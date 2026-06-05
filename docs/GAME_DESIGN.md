@@ -13,3 +13,6 @@ La mappa predefinita usa un formato JSON a due layer. `rows` descrive ciò che i
 
 ## Mappa grande e scoperta progressiva
 La mappa principale è ora pensata come un arcipelago ampio, con isola iniziale al centro e isole circostanti coperte da nuvole. La dimensione 128x80 evita che l'intera area sia leggibile in un solo colpo d'occhio. Lo zoom minimo è volutamente limitato: il giocatore deve usare il pan per scoprire e pianificare l'espansione.
+
+## Offline progress rule
+Offline progress uses the same economy direction as live play, but with a safety rule: buildings may expire while the player is away, while heat explosions are not triggered offline. This prevents a return-to-game experience where a large part of the grid is destroyed without player interaction. The maximum offline duration is controlled by `economy.json` through `maxOfflineSeconds`.

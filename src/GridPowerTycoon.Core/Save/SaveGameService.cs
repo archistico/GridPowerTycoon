@@ -132,7 +132,7 @@ public sealed class SaveGameService
         File.WriteAllText(path, json);
     }
 
-    public GameWorld LoadFromFile(string path, GameData data)
+    public SaveGame LoadSaveFromFile(string path)
     {
         if (!File.Exists(path))
             throw new FileNotFoundException("Save file not found.", path);
@@ -143,6 +143,12 @@ public sealed class SaveGameService
         if (save is null)
             throw new InvalidOperationException("Unable to read save file.");
 
+        return save;
+    }
+
+    public GameWorld LoadFromFile(string path, GameData data)
+    {
+        var save = LoadSaveFromFile(path);
         return RestoreWorld(save, data);
     }
 

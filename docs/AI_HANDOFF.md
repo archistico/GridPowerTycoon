@@ -195,3 +195,15 @@ Tests added under `tests/GridPowerTycoon.Core.Tests/Save/SaveGameServiceTests.cs
 ## Step 12A
 
 Bilanciamento: il pannello solare ora ha `lifetimeSeconds: 180` in `Data/buildings.json`, invece dei 30 secondi iniziali. La modifica è solo dati/documentazione e non cambia la logica.
+
+## Step 13 - Offline progress
+- Added `OfflineProgressSystem` and `OfflineProgressResult` in Core.
+- Save files already contained `SavedAt`; startup now reads the save, restores the world, applies capped offline progress using `EconomySettings.MaxOfflineSeconds`, then writes the updated save back to avoid repeated offline gain.
+- Offline progress simulates in 1-second internal steps, so energy consumers, auto-sell, lifetime and tool generation remain consistent.
+- Offline heat conversion runs, but explosions are disabled while the player is away via `HeatSystem.Update(deltaSeconds, allowExplosions: false)`. Buildings can still expire offline.
+- Startup status message summarizes offline energy, research, money, axes, mines and expired buildings.
+
+
+## Step 13 fix - OfflineProgressResult None
+
+Fixed `OfflineProgressResult.None` constructor arguments after adding `BuildingsExploded`, so the Core project compiles with the offline progress model.

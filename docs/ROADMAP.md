@@ -167,3 +167,13 @@ MonoGame ora usa `Saves/savegame.json` nella cartella di output. Se il file esis
 ## Step 12A - Durata pannelli solari
 
 Stato: completato. Il valore `lifetimeSeconds` del pannello solare in `buildings.json` è stato aumentato da 30 a 180 secondi.
+
+## Step 13 - Offline progress
+Status: implemented.
+
+When a save exists at startup, the game computes the elapsed time since `SavedAt`, caps it with `economy.json` / `maxOfflineSeconds`, applies production, research, auto-selling, lifetime decay and tool generation, then shows a compact summary in the status bar. Heat conversion is applied offline, but explosions are disabled while the player is absent.
+
+
+## Step 13 fix - OfflineProgressResult None
+
+Fixed `OfflineProgressResult.None` constructor arguments after adding `BuildingsExploded`, so the Core project compiles with the offline progress model.

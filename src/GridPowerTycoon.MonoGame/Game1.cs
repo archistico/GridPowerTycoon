@@ -93,11 +93,24 @@ public sealed class Game1 : Game
         _saveGameService = new SaveGameService();
         _savePath = Path.Combine(AppContext.BaseDirectory, "Saves", "savegame.json");
 
-        var world = File.Exists(_savePath)
-            ? _saveGameService.LoadFromFile(_savePath, _gameData)
-            : new GameWorld(map, _gameData);
+        var world = new GameWorld(map, _gameData);
+        OfflineProgressResult? offlineProgress = null;
+
+        if (File.Exists(_savePath))
+        {
+            var save = _saveGameService.LoadSaveFromFile(_savePath);
+            world = _saveGameService.RestoreWorld(save, _gameData);
+            offlineProgress = new OfflineProgressSystem(world, new SellSystem(world))
+                .Apply(save.SavedAt, DateTimeOffset.UtcNow);
+        }
 
         ConfigureWorld(world);
+
+        if (offlineProgress is not null && offlineProgress.HasProgress)
+        {
+            _lastSaveLoadMessage = FormatOfflineProgress(offlineProgress);
+            _saveGameService.SaveToFile(_world, _savePath);
+        }
 
         _camera = new Camera2D();
         CenterCameraOnInitialIsland();
@@ -244,6 +257,28 @@ public sealed class Game1 : Game
         _lastResearchResult = null;
         _lastUpgradeResult = null;
         _lastSaveLoadMessage = "GAME LOADED";
+    }
+
+    private static string FormatOfflineProgress(OfflineProgressResult result)
+    {
+        var minutes = Math.Floor(result.AppliedSeconds / 60d);
+        var seconds = Math.Floor(result.AppliedSeconds % 60d);
+
+        var duration = minutes >= 60
+            ? $"{Math.Floor(minutes / 60d):0}H {minutes % 60:0}M"
+            : $"{minutes:0}M {seconds:0}S";
+
+        return $"OFFLINE {duration}: ENERGY {FormatDelta(result.EnergyDelta)} RESEARCH {FormatDelta(result.ResearchDelta)} MONEY {FormatMoneyDelta(result.MoneyDelta)} AXES {FormatDelta(result.AxesDelta)} MINES {FormatDelta(result.MinesDelta)} EXPIRED {result.BuildingsExpired}";
+    }
+
+    private static string FormatDelta(double value)
+    {
+        return value >= 0 ? $"+{value:0.00}" : $"{value:0.00}";
+    }
+
+    private static string FormatMoneyDelta(decimal value)
+    {
+        return value >= 0 ? $"+${value:0.00}" : $"-${Math.Abs(value):0.00}";
     }
 
     private void HandleBuildSelectionInput()

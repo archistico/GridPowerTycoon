@@ -15,12 +15,19 @@ public sealed class HeatSystem
 
     public void Update(double deltaSeconds)
     {
+        Update(deltaSeconds, allowExplosions: true);
+    }
+
+    public void Update(double deltaSeconds, bool allowExplosions)
+    {
         if (deltaSeconds <= 0)
             return;
 
         ProduceHeat(deltaSeconds);
         ConvertHeat(deltaSeconds);
-        ExplodeOverheatedBuildings();
+
+        if (allowExplosions)
+            ExplodeOverheatedBuildings();
     }
 
     private void ProduceHeat(double deltaSeconds)
