@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using GridPowerTycoon.Core.Buildings;
 using GridPowerTycoon.Core.Economy;
 using GridPowerTycoon.Core.Map;
+using GridPowerTycoon.Core.Research;
 
 namespace GridPowerTycoon.Core.Data;
 
@@ -27,6 +28,12 @@ public sealed class GameDataLoader
         var settings = LoadJson<EconomySettings>(path, "economy settings");
         ValidateEconomySettings(settings);
         return settings;
+    }
+
+    public ResearchCatalog LoadResearchCatalog(string path)
+    {
+        var data = LoadJson<ResearchCatalogData>(path, "research");
+        return ResearchCatalog.FromDefinitions(data.Researches);
     }
 
     public GridMap LoadMap(string path)

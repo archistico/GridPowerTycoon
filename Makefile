@@ -1,7 +1,7 @@
 .PHONY: run build test check clean zip z
 
 run:
-	dotnet run --project src/OpenCad2D.App
+	dotnet run --project src/GridPowerTycoon.MonoGame/GridPowerTycoon.MonoGame.csproj
 	
 build:
 	dotnet build
@@ -23,12 +23,12 @@ endif
 
 zip:
 ifeq ($(OS),Windows_NT)
-	@powershell -NoProfile -ExecutionPolicy Bypass -Command "$$date = Get-Date -Format 'yyyyMMdd'; $$name = $${date} + '_OpenCad2d.zip'; if (Test-Path $$name) { Remove-Item $$name -Force }; Compress-Archive -Path 'docs','src','tests','OpenCad2D.sln','README.md','THIRD-PARTY-NOTICES.md' -DestinationPath $$name -Force; Write-Host ('Created ' + $$name)"
+	@powershell -NoProfile -ExecutionPolicy Bypass -Command "$$date = Get-Date -Format 'yyyyMMdd'; $$name = $${date} + '_GridPowerTycoon.zip'; if (Test-Path $$name) { Remove-Item $$name -Force }; Compress-Archive -Path 'docs','src','tests','GridPowerTycoon.sln','README.md','THIRD-PARTY-NOTICES.md' -DestinationPath $$name -Force; Write-Host ('Created ' + $$name)"
 else
-	@name="$$(date +%Y%m%d)_OpenCad2d.zip"; rm -f "$$name"; zip -r "$$name" docs src tests OpenCad2D.sln README.md THIRD-PARTY-NOTICES.md; echo "Created $$name"
+	@name="$$(date +%Y%m%d)_GridPowerTycoon.zip"; rm -f "$$name"; zip -r "$$name" docs src tests GridPowerTycoon.sln README.md THIRD-PARTY-NOTICES.md; echo "Created $$name"
 endif
 
 z: clean zip
 
 publish:
-	dotnet publish src\OpenCad2D.App\OpenCad2D.App.csproj -c Release -r win-x64 --self-contained true -o artifacts\OpenCad2D-win-x64 /p:DebugType=None /p:DebugSymbols=false
+	dotnet publish src\GridPowerTycoon.MonoGame/GridPowerTycoon.MonoGame.csproj -c Release -r win-x64 --self-contained true -o artifacts\GridPowerTycoon-win-x64 /p:DebugType=None /p:DebugSymbols=false

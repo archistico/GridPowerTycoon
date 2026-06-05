@@ -1,6 +1,7 @@
 using GridPowerTycoon.Core.Build;
 using GridPowerTycoon.Core.Data;
 using GridPowerTycoon.Core.Economy;
+using GridPowerTycoon.Core.Research;
 using GridPowerTycoon.Core.Simulation;
 using GridPowerTycoon.Core.World;
 using GridPowerTycoon.MonoGame.Input;
@@ -20,6 +21,7 @@ public sealed class Game1 : Game
     private GameWorld _world = null!;
     private BuildSystem _buildSystem = null!;
     private SellSystem _sellSystem = null!;
+    private ResearchSystem _researchSystem = null!;
     private GameSimulation _simulation = null!;
     private Camera2D _camera = null!;
     private InputManager _input = null!;
@@ -29,6 +31,7 @@ public sealed class Game1 : Game
     private UiRenderer _uiRenderer = null!;
 
     private string? _selectedBuildingId = "wind_turbine";
+    private ResearchResult? _lastResearchResult;
 
     public Game1()
     {
@@ -51,12 +54,14 @@ public sealed class Game1 : Game
         var dataDirectory = Path.Combine(AppContext.BaseDirectory, "Data");
         var buildings = loader.LoadBuildingCatalog(Path.Combine(dataDirectory, "buildings.json"));
         var economy = loader.LoadEconomySettings(Path.Combine(dataDirectory, "economy.json"));
+        var research = loader.LoadResearchCatalog(Path.Combine(dataDirectory, "research.json"));
         var map = loader.LoadMap(Path.Combine(dataDirectory, "maps", "default-map.json"));
-        var data = new GameData(buildings, economy);
+        var data = new GameData(buildings, economy, research);
 
         _world = new GameWorld(map, data);
         _buildSystem = new BuildSystem(_world);
         _sellSystem = new SellSystem(_world);
+        _researchSystem = new ResearchSystem(_world);
         _simulation = new GameSimulation(_world, _sellSystem);
         _camera = new Camera2D();
         _input = new InputManager();
@@ -118,6 +123,7 @@ public sealed class Game1 : Game
             GraphicsDevice.Viewport,
             _selectedBuildingId,
             _mapInput.LastBuildResult,
+            _lastResearchResult,
             _mapInput.SelectedMapBuildingId);
 
         _spriteBatch.End();
@@ -141,6 +147,12 @@ public sealed class Game1 : Game
         if (_input.IsKeyPressed(Keys.D4) || _input.IsKeyPressed(Keys.NumPad4))
             _selectedBuildingId = buildIds.Count > 3 ? buildIds[3] : null;
 
+        if (_input.IsKeyPressed(Keys.D5) || _input.IsKeyPressed(Keys.NumPad5))
+            _selectedBuildingId = buildIds.Count > 4 ? buildIds[4] : null;
+
+        if (_input.IsKeyPressed(Keys.D6) || _input.IsKeyPressed(Keys.NumPad6))
+            _selectedBuildingId = buildIds.Count > 5 ? buildIds[5] : null;
+
         var mousePoint = new Point(_input.CurrentMouse.X, _input.CurrentMouse.Y);
         if (_input.IsLeftClickPressed() && _uiRenderer.IsSellButtonAt(mousePoint, GraphicsDevice.Viewport))
         {
@@ -149,14 +161,26 @@ public sealed class Game1 : Game
         }
 
         if (_input.IsLeftClickPressed() &&
+            _uiRenderer.TryGetResearchButtonAt(mousePoint, out var clickedResearchId))
+        {
+            _lastResearchResult = _researchSystem.Complete(clickedResearchId);
+            _mapInput.ClearLastBuildResult();
+            return;
+        }
+
+        if (_input.IsLeftClickPressed() &&
             _uiRenderer.IsReplaceButtonAt(mousePoint, GraphicsDevice.Viewport, _mapInput.SelectedMapBuildingId))
         {
             var result = _buildSystem.ReplaceExpired(_mapInput.SelectedMapBuildingId!.Value);
             _mapInput.SetLastBuildResult(result);
+            _lastResearchResult = null;
             return;
         }
 
         if (_input.IsLeftClickPressed() && _uiRenderer.TryGetBuildingButtonAt(mousePoint, out var clickedBuildingId))
+        {
             _selectedBuildingId = clickedBuildingId;
+            _lastResearchResult = null;
+        }
     }
 }

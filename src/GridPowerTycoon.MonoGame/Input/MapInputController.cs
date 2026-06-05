@@ -73,6 +73,11 @@ public sealed class MapInputController
         LastBuildResult = result;
     }
 
+    public void ClearLastBuildResult()
+    {
+        LastBuildResult = null;
+    }
+
     private GridPosition ScreenToTile(Point screenPoint)
     {
         var world = _camera.ScreenToWorld(screenPoint.ToVector2());

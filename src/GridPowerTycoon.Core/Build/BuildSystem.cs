@@ -104,8 +104,12 @@ public sealed class BuildSystem
         if (_world.Resources.Money < definition.Cost)
             return BuildFailureReason.NotEnoughMoney;
 
-        // Research is intentionally not enforced yet. The enum value is already present
-        // so the UI and future ResearchSystem can use a stable failure contract.
+        if (!string.IsNullOrWhiteSpace(definition.RequiredResearchId) &&
+            !_world.Research.IsCompleted(definition.RequiredResearchId))
+        {
+            return BuildFailureReason.ResearchRequired;
+        }
+
         return BuildFailureReason.None;
     }
 

@@ -1,5 +1,6 @@
 using GridPowerTycoon.Core.Build;
 using GridPowerTycoon.Core.Buildings;
+using GridPowerTycoon.Core.Research;
 using GridPowerTycoon.Core.World;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -9,14 +10,24 @@ namespace GridPowerTycoon.MonoGame.Rendering;
 public sealed class UiRenderer
 {
     public const int TopBarHeight = 64;
-    public const int SideMenuWidth = 190;
+    public const int SideMenuWidth = 210;
 
     private static readonly string[] BuildButtonIds =
     {
         "wind_turbine",
         "battery_small",
         "office_small",
-        "research_small"
+        "research_small",
+        "solar_panel",
+        "generator_small"
+    };
+
+    private static readonly string[] ResearchButtonIds =
+    {
+        "battery",
+        "office_small",
+        "solar_power",
+        "generator_small"
     };
 
     private readonly GameWorld _world;
@@ -30,7 +41,13 @@ public sealed class UiRenderer
         _text = new PixelTextRenderer(pixel);
     }
 
-    public void Draw(SpriteBatch spriteBatch, Viewport viewport, string? selectedBuildingId, BuildResult? lastBuildResult, Guid? selectedMapBuildingId)
+    public void Draw(
+        SpriteBatch spriteBatch,
+        Viewport viewport,
+        string? selectedBuildingId,
+        BuildResult? lastBuildResult,
+        ResearchResult? lastResearchResult,
+        Guid? selectedMapBuildingId)
     {
         var topBar = GetTopBarRectangle(viewport);
         var sideMenu = GetSideMenuRectangle(viewport);
@@ -40,8 +57,9 @@ public sealed class UiRenderer
 
         DrawTopBar(spriteBatch, topBar);
         DrawBuildMenu(spriteBatch, selectedBuildingId);
+        DrawResearchMenu(spriteBatch);
         DrawSelectedBuildingPanel(spriteBatch, viewport, selectedMapBuildingId);
-        DrawStatus(spriteBatch, viewport, selectedBuildingId, lastBuildResult);
+        DrawStatus(spriteBatch, viewport, selectedBuildingId, lastBuildResult, lastResearchResult);
     }
 
     public bool IsMouseOverUi(Point mousePosition, Viewport viewport)
@@ -55,7 +73,6 @@ public sealed class UiRenderer
     {
         return GetSellButtonRectangle(viewport).Contains(mousePosition);
     }
-
 
     public bool IsReplaceButtonAt(Point mousePosition, Viewport viewport, Guid? selectedMapBuildingId)
     {
@@ -83,6 +100,21 @@ public sealed class UiRenderer
         }
 
         buildingId = null;
+        return false;
+    }
+
+    public bool TryGetResearchButtonAt(Point mousePosition, out string researchId)
+    {
+        for (var i = 0; i < ResearchButtonIds.Length; i++)
+        {
+            if (GetResearchButtonRectangle(i).Contains(mousePosition))
+            {
+                researchId = ResearchButtonIds[i];
+                return true;
+            }
+        }
+
+        researchId = "";
         return false;
     }
 
@@ -131,22 +163,58 @@ public sealed class UiRenderer
             var isSelected = string.Equals(selectedBuildingId, id, StringComparison.OrdinalIgnoreCase);
 
             _world.BuildingCatalog.TryGet(id, out var definition);
+            var isLocked = definition is not null && !IsBuildingUnlocked(definition);
 
             spriteBatch.Draw(_pixel, rect, isSelected ? new Color(67, 86, 110) : new Color(48, 60, 76));
             DrawOutline(spriteBatch, rect, isSelected ? new Color(255, 220, 80) : new Color(74, 88, 108), isSelected ? 3 : 1);
 
             var iconRect = new Rectangle(rect.X + 8, rect.Y + 8, 28, 28);
-            spriteBatch.Draw(_pixel, iconRect, definition is null ? Color.Magenta : GetBuildingColor(definition.Category));
+            var iconColor = definition is null ? Color.Magenta : GetBuildingColor(definition.Category);
+            if (isLocked)
+                iconColor = new Color(90, 95, 105);
+            spriteBatch.Draw(_pixel, iconRect, iconColor);
             DrawOutline(spriteBatch, iconRect, new Color(15, 20, 28), 1);
 
             var indexText = (i + 1).ToString();
             var name = definition?.Name ?? id;
             var cost = definition is null ? "?" : FormatNumber((double)definition.Cost);
-            _text.DrawString(spriteBatch, $"{indexText} {Shorten(name, 16)}", new Vector2(rect.X + 44, rect.Y + 8), new Color(235, 240, 245), 1);
-            _text.DrawString(spriteBatch, $"${cost}", new Vector2(rect.X + 44, rect.Y + 25), new Color(255, 225, 120), 1);
+            var textColor = isLocked ? new Color(150, 155, 165) : new Color(235, 240, 245);
+            _text.DrawString(spriteBatch, $"{indexText} {Shorten(name, 17)}", new Vector2(rect.X + 44, rect.Y + 8), textColor, 1);
+            _text.DrawString(spriteBatch, isLocked ? "LOCKED" : $"${cost}", new Vector2(rect.X + 44, rect.Y + 25), isLocked ? new Color(255, 150, 120) : new Color(255, 225, 120), 1);
         }
     }
 
+    private void DrawResearchMenu(SpriteBatch spriteBatch)
+    {
+        _text.DrawString(spriteBatch, "RESEARCH", new Vector2(18, 448), new Color(230, 238, 245), 2);
+
+        for (var i = 0; i < ResearchButtonIds.Length; i++)
+        {
+            var id = ResearchButtonIds[i];
+            var rect = GetResearchButtonRectangle(i);
+
+            _world.ResearchCatalog.TryGet(id, out var definition);
+            var completed = _world.Research.IsCompleted(id);
+            var canAfford = definition is not null && _world.Resources.Research >= definition.Cost;
+            var missingPrereq = definition is not null && definition.RequiredResearchIds.Any(x => !_world.Research.IsCompleted(x));
+
+            var background = completed
+                ? new Color(50, 85, 62)
+                : canAfford && !missingPrereq
+                    ? new Color(64, 58, 86)
+                    : new Color(45, 49, 62);
+
+            spriteBatch.Draw(_pixel, rect, background);
+            DrawOutline(spriteBatch, rect, completed ? new Color(130, 230, 150) : new Color(80, 86, 105), 1);
+
+            var name = definition?.Name ?? id;
+            var cost = definition is null ? "?" : FormatNumber(definition.Cost);
+            var status = completed ? "DONE" : missingPrereq ? "REQ" : $"R {cost}";
+
+            _text.DrawString(spriteBatch, Shorten(name, 21), new Vector2(rect.X + 8, rect.Y + 6), new Color(235, 240, 245), 1);
+            _text.DrawString(spriteBatch, status, new Vector2(rect.X + 8, rect.Y + 23), completed ? new Color(160, 245, 175) : new Color(210, 190, 255), 1);
+        }
+    }
 
     private void DrawSelectedBuildingPanel(SpriteBatch spriteBatch, Viewport viewport, Guid? selectedMapBuildingId)
     {
@@ -190,12 +258,19 @@ public sealed class UiRenderer
         }
     }
 
-    private void DrawStatus(SpriteBatch spriteBatch, Viewport viewport, string? selectedBuildingId, BuildResult? lastBuildResult)
+    private void DrawStatus(SpriteBatch spriteBatch, Viewport viewport, string? selectedBuildingId, BuildResult? lastBuildResult, ResearchResult? lastResearchResult)
     {
         var y = viewport.Height - 34;
         var message = selectedBuildingId is null
-            ? "SELECT BUILDING 1-4"
+            ? "SELECT BUILDING 1-6"
             : $"SELECTED {selectedBuildingId}";
+
+        if (lastResearchResult is not null)
+        {
+            message = lastResearchResult.Success
+                ? $"RESEARCH OK {lastResearchResult.ResearchId}"
+                : $"RESEARCH FAILED {lastResearchResult.FailureReason}";
+        }
 
         if (lastBuildResult is not null)
         {
@@ -206,6 +281,12 @@ public sealed class UiRenderer
 
         spriteBatch.Draw(_pixel, new Rectangle(SideMenuWidth, viewport.Height - 44, viewport.Width - SideMenuWidth, 44), new Color(25, 31, 42));
         _text.DrawString(spriteBatch, message, new Vector2(SideMenuWidth + 14, y), new Color(230, 238, 245), 1);
+    }
+
+    private bool IsBuildingUnlocked(BuildingDefinition definition)
+    {
+        return string.IsNullOrWhiteSpace(definition.RequiredResearchId) ||
+               _world.Research.IsCompleted(definition.RequiredResearchId);
     }
 
     private static Rectangle GetTopBarRectangle(Viewport viewport)
@@ -237,6 +318,11 @@ public sealed class UiRenderer
     private static Rectangle GetBuildButtonRectangle(int index)
     {
         return new Rectangle(12, 112 + index * 54, SideMenuWidth - 24, 46);
+    }
+
+    private static Rectangle GetResearchButtonRectangle(int index)
+    {
+        return new Rectangle(12, 482 + index * 42, SideMenuWidth - 24, 36);
     }
 
     private static Color GetBuildingColor(BuildingCategory category)

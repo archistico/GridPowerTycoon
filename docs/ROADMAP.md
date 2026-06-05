@@ -32,3 +32,13 @@ Questo step introduce la prima simulazione economica continua: gli edifici attiv
 ## Fix JSON enum converter
 - Added JsonStringEnumConverter to GameDataLoader so JSON string enum values such as building category "PowerProducer" deserialize correctly.
 - Added regression test for loading building categories from JSON strings.
+
+## Step 06 - Ricerca e sblocco edifici
+
+Stato: implementato.
+
+- `research.json` caricato all'avvio.
+- Catalogo e stato ricerca separati nel Core.
+- Sistema ricerca con controlli: ricerca sconosciuta, già completata, prerequisiti mancanti, punti ricerca insufficienti.
+- `BuildSystem` rispetta `requiredResearchId` degli edifici.
+- UI minima per acquistare ricerche e visualizzare edifici bloccati.

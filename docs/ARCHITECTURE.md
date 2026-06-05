@@ -33,3 +33,7 @@ La vendita manuale e automatica è gestita da `SellSystem`, che usa i valori di 
 ## Building replacement flow
 
 Expired building replacement stays in `GridPowerTycoon.Core.Build.BuildSystem`, not in the MonoGame UI. The UI selects a building instance, shows its state and calls `ReplaceExpired` when the player presses the replace button. This keeps the same boundary used for initial construction: MonoGame collects input, Core validates rules and mutates game state.
+
+## Research data
+
+La ricerca è definita esternamente in `Data/research.json`. Il Core mantiene separati `ResearchCatalog`, che contiene le definizioni statiche, e `ResearchState`, che contiene le ricerche completate nella partita corrente. `ResearchSystem` è l'unico punto in cui vengono spesi punti ricerca e completate nuove tecnologie. Gli edifici leggono il requisito da `BuildingDefinition.RequiredResearchId`; `BuildSystem` impedisce la costruzione finché la ricerca richiesta non è completata.

@@ -166,6 +166,33 @@ public sealed class BuildSystemTests
         Assert.Equal(BuildingState.Expired, instance.State);
     }
 
+
+    [Fact]
+    public void Build_WhenResearchIsRequiredButNotCompleted_ShouldFail()
+    {
+        var world = CreateWorldWithResearchRequirement(startingMoney: 100);
+        var system = new BuildSystem(world);
+
+        var result = system.Build("battery_small", new GridPosition(1, 1));
+
+        Assert.False(result.Success);
+        Assert.Equal(BuildFailureReason.ResearchRequired, result.FailureReason);
+        Assert.False(world.Map.GetTile(new GridPosition(1, 1)).HasBuilding);
+    }
+
+    [Fact]
+    public void Build_WhenRequiredResearchIsCompleted_ShouldSucceed()
+    {
+        var world = CreateWorldWithResearchRequirement(startingMoney: 100);
+        world.Research.Complete("battery");
+        var system = new BuildSystem(world);
+
+        var result = system.Build("battery_small", new GridPosition(1, 1));
+
+        Assert.True(result.Success);
+        Assert.Equal(550, world.Resources.MaxEnergy);
+    }
+
     private static GameWorld CreateWorld(decimal startingMoney)
     {
         var map = new GridMap(4, 4, TileType.Land);
@@ -198,4 +225,40 @@ public sealed class BuildSystemTests
 
         return new GameWorld(map, new GameData(catalog, economy));
     }
+
+    private static GameWorld CreateWorldWithResearchRequirement(decimal startingMoney)
+    {
+        var map = new GridMap(4, 4, TileType.Land);
+        var catalog = BuildingCatalog.FromDefinitions(new[]
+        {
+            new BuildingDefinition
+            {
+                Id = "battery_small",
+                Name = "Batteria",
+                Category = BuildingCategory.Storage,
+                Cost = 50,
+                BatteryCapacity = 450,
+                RequiredResearchId = "battery"
+            }
+        });
+
+        var economy = new EconomySettings
+        {
+            StartingMoney = startingMoney,
+            StartingMaxEnergy = 100
+        };
+
+        var research = GridPowerTycoon.Core.Research.ResearchCatalog.FromDefinitions(new[]
+        {
+            new GridPowerTycoon.Core.Research.ResearchDefinition
+            {
+                Id = "battery",
+                Name = "Batterie",
+                Cost = 10
+            }
+        });
+
+        return new GameWorld(map, new GameData(catalog, economy, research));
+    }
+
 }

@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "researches": [
+    {
+      "id": "battery",
+      "name": "Batterie",
+      "description": "Sblocca la batteria piccola.",
+      "cost": 10,
+      "unlockBuildingIds": [ "battery_small" ],
+      "requiredResearchIds": []
+    },
+    {
+      "id": "office_small",
+      "name": "Vendita automatica",
+      "description": "Sblocca l'ufficio piccolo.",
+      "cost": 25,
+      "unlockBuildingIds": [ "office_small" ],
+      "requiredResearchIds": []
+    },
+    {
+      "id": "solar_power",
+      "name": "Energia solare",
+      "description": "Sblocca il pannello solare.",
+      "cost": 50,
+      "unlockBuildingIds": [ "solar_panel" ],
+      "requiredResearchIds": []
+    },
+    {
+      "id": "generator_small",
+      "name": "Generatori base",
+      "description": "Sblocca il generatore piccolo.",
+      "cost": 75,
+      "unlockBuildingIds": [ "generator_small" ],
+      "requiredResearchIds": [ "solar_power" ]
+    }
+  ]
+}

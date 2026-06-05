@@ -53,6 +53,18 @@ public sealed class ResourceState
             Research += amount;
     }
 
+    public bool TrySpendResearch(double amount)
+    {
+        if (amount < 0)
+            throw new ArgumentOutOfRangeException(nameof(amount));
+
+        if (Research < amount)
+            return false;
+
+        Research -= amount;
+        return true;
+    }
+
     public void AddMoney(decimal amount)
     {
         if (amount > 0)

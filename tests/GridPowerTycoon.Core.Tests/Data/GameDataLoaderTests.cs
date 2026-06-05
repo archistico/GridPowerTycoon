@@ -52,3 +52,44 @@ public sealed class GameDataLoaderTests
         }
     }
 }
+
+public sealed class GameDataLoaderResearchTests
+{
+    [Fact]
+    public void LoadResearchCatalog_ShouldReadResearchDefinitions()
+    {
+        var file = Path.Combine(Path.GetTempPath(), $"research-{Guid.NewGuid():N}.json");
+
+        File.WriteAllText(file, """
+        {
+          "version": 1,
+          "researches": [
+            {
+              "id": "battery",
+              "name": "Batterie",
+              "description": "Sblocca le batterie.",
+              "cost": 50,
+              "unlockBuildingIds": [ "battery_small" ],
+              "requiredResearchIds": []
+            }
+          ]
+        }
+        """);
+
+        try
+        {
+            var loader = new GameDataLoader();
+            var catalog = loader.LoadResearchCatalog(file);
+
+            var definition = catalog.GetRequired("battery");
+
+            Assert.Equal("Batterie", definition.Name);
+            Assert.Equal(50, definition.Cost);
+            Assert.Contains("battery_small", definition.UnlockBuildingIds);
+        }
+        finally
+        {
+            File.Delete(file);
+        }
+    }
+}
