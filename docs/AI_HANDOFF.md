@@ -99,3 +99,66 @@ La generazione strumenti è stata rallentata in `src/GridPowerTycoon.MonoGame/Da
 - `minesPerSecond`: `0.0025`.
 
 Con costo 4 strumenti per rimuovere un ostacolo, i boschi richiedono circa 13m20s e le montagne circa 26m40s. Aggiunto `docs/BALANCE_NOTES.md` per documentare le scelte di bilanciamento. Il prossimo blocco consigliato è il sistema di upgrade da JSON.
+
+## Step 10 - Upgrade da JSON
+
+Aggiunto sistema upgrade configurabile da `src/GridPowerTycoon.MonoGame/Data/upgrades.json`.
+
+Nuovi namespace/classi Core:
+- `GridPowerTycoon.Core.Upgrades.UpgradeDefinition`
+- `UpgradeCatalogData`
+- `UpgradeCatalog`
+- `UpgradeState`
+- `UpgradeSystem`
+- `UpgradeCalculator`
+- `UpgradeEffectType`
+- `UpgradeResult`
+- `UpgradeFailureReason`
+
+`GameData` e `GameWorld` ora includono catalogo e stato upgrade. `GameDataLoader` carica anche `upgrades.json`.
+
+Sistemi aggiornati per usare i valori effettivi:
+- `BuildSystem`: vita edificio e capacità batteria tengono conto degli upgrade;
+- `ProductionSystem`: energia/ricerca tengono conto degli upgrade;
+- `AutoSellSystem`: vendita automatica tiene conto degli upgrade;
+- `HeatSystem`: conversione calore tiene conto degli upgrade;
+- `ToolGenerationSystem`: asce/mine tengono conto degli upgrade;
+- `ResourceRateSnapshot`: mostra rate stimati già aggiornati.
+
+UI MonoGame:
+- pannello `UPGRADES` sulla destra;
+- click su upgrade acquista se requisiti/costi sono soddisfatti;
+- feedback nella status bar.
+
+Decisione: l'upgrade durata vita non modifica retroattivamente la vita rimanente degli edifici già costruiti; vale per nuove costruzioni e rimpiazzi.
+
+## Step 10B - UI polish applied
+
+The UI was reorganized after the first upgrades implementation. The left menu is now a three-column layout with BUILD, RESEARCH and UPGRADE columns. Upgrade entries show the affected stat and percentage effect. The top bar displays Energy, Research, Money, Axes and Mines using the same visual hierarchy, each with a per-second rate below it. Building details now include cost, size, all production/consumption values, battery capacity, heat conversion input/output, and integer lifetime seconds. Small generators now explicitly show heat input and energy output. The MonoGame window is resizable through `Window.AllowUserResizing = true` and a client-size handler updates the back buffer.
+
+## Step 10C - Top bar energy fill bar
+
+User requested keeping the energy fill bar near SELL because it is useful as a quick visual indicator. `UiRenderer.DrawTopBar` now reserves space before the SELL button, draws the ENERGY/RESEARCH/MONEY/AXES/MINES metrics to the left, and renders a compact `FILL xx%` bar immediately before SELL. The bar is based on `Resources.Energy / Resources.MaxEnergy`.
+
+## Step 10D - Consumo energia operativo e fullscreen
+
+Introdotto il campo `energyConsumptionPerSecond` in `BuildingDefinition`, letto direttamente da `buildings.json`. `ResourceState` espone ora `TrySpendEnergy`, usato dai sistemi di produzione/ricerca, autosell e calore per alimentare gli edifici che richiedono energia operativa. Se l'energia disponibile non basta, l'edificio salta il proprio output per quel tick invece di produrre/vendere/accumulare calore.
+
+Valori dati iniziali:
+- `wind_turbine`: `batteryCapacity = 10`, così ogni pala aumenta leggermente la capacità energetica massima;
+- `office_small`: `energyConsumptionPerSecond = 0.2`;
+- `research_small`: `energyConsumptionPerSecond = 0.5`.
+
+`ResourceRateSnapshot` include `EnergyConsumptionPerSecond` e stima i valori netti considerando produzione, conversione calore, consumi operativi e vendita automatica. `UiRenderer` mostra `ENERGY IN -x/s` nel pannello edificio. `Game1` avvia il gioco in fullscreen borderless tramite `StartFullscreen()`.
+
+## Step 11 - Cloud area unlocks
+
+Added configurable cloud-area unlocking. `area-unlock.json` defines `cloudUnlockMoneyCost` and `cloudUnlockResearchCost`. `MapDefinition` now supports optional `hiddenRows`; visible `C` cells remain clouds, while `hiddenRows` stores the real tile revealed after unlocking. `Tile` now stores `CoveredType` and exposes `RevealCoveredType()`.
+
+Core additions: `AreaUnlockSettings`, `AreaUnlockSystem`, `AreaUnlockResult`, `AreaUnlockFailureReason`. Unlocking a cloud spends money/research and reveals the covered tile. UI additions: clicking a cloud opens a cloud panel with cell, revealed terrain, costs, and UNLOCK button. Status bar reports unlock success/failure.
+
+## Step 11B - Mappa arcipelago più ampia
+- La mappa predefinita è stata portata da 20x12 a 64x40 celle.
+- Il file `Data/maps/default-map.json` ora rappresenta un arcipelago con più isole e coste più irregolari/naturali.
+- L'isola iniziale resta visibile; le isole successive sono coperte da nuvole e usano `hiddenRows` per rivelare terreno, boschi e montagne allo sblocco.
+- La modifica è solo dati/documentazione: non cambia sistemi Core, input o rendering.

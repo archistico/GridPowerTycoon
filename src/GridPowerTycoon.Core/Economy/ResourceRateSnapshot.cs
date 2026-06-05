@@ -1,4 +1,5 @@
 using GridPowerTycoon.Core.Buildings;
+using GridPowerTycoon.Core.Upgrades;
 using GridPowerTycoon.Core.World;
 
 namespace GridPowerTycoon.Core.Economy;
@@ -12,6 +13,7 @@ public sealed class ResourceRateSnapshot
     public double RawEnergyProductionPerSecond { get; init; }
     public double RawResearchProductionPerSecond { get; init; }
     public double AutoSellEnergyPerSecond { get; init; }
+    public double EnergyConsumptionPerSecond { get; init; }
     public double HeatProducedPerSecond { get; init; }
     public double HeatConvertedEnergyPerSecond { get; init; }
 
@@ -19,10 +21,13 @@ public sealed class ResourceRateSnapshot
     {
         ArgumentNullException.ThrowIfNull(world);
 
+        var availableEnergy = world.Resources.Energy;
         var rawEnergyProduction = 0d;
         var rawResearchProduction = 0d;
         var autoSell = 0d;
+        var energyConsumption = 0d;
         var heatProduced = 0d;
+        var moneyPerSecond = 0m;
 
         foreach (var instance in world.BuildingInstances.Values)
         {
@@ -32,27 +37,114 @@ public sealed class ResourceRateSnapshot
             if (!world.BuildingCatalog.TryGet(instance.DefinitionId, out var definition))
                 continue;
 
-            rawEnergyProduction += definition.EnergyPerSecond;
-            rawResearchProduction += definition.ResearchPerSecond;
-            autoSell += definition.AutoSellPerSecond;
-            heatProduced += definition.HeatPerSecond;
+            var energyPerSecond = UpgradeCalculator.GetEnergyPerSecond(world, definition);
+            if (energyPerSecond <= 0)
+                continue;
+
+            var consumption = UpgradeCalculator.GetEnergyConsumptionPerSecond(world, definition);
+            if (consumption > 0)
+            {
+                if (availableEnergy < consumption)
+                    continue;
+
+                availableEnergy -= consumption;
+                energyConsumption += consumption;
+            }
+
+            rawEnergyProduction += energyPerSecond;
+            availableEnergy = Math.Min(world.Resources.MaxEnergy, availableEnergy + energyPerSecond);
         }
 
         var heatConvertedEnergy = EstimateHeatConvertedEnergyPerSecond(world);
-        var grossEnergyProduction = rawEnergyProduction + heatConvertedEnergy;
+        if (heatConvertedEnergy > 0)
+            availableEnergy = Math.Min(world.Resources.MaxEnergy, availableEnergy + heatConvertedEnergy);
 
-        var energyBeforeAutoSell = Math.Min(
-            world.Resources.MaxEnergy,
-            world.Resources.Energy + grossEnergyProduction);
+        foreach (var instance in world.BuildingInstances.Values)
+        {
+            if (!instance.IsActive)
+                continue;
 
-        var effectiveAutoSell = Math.Min(energyBeforeAutoSell, autoSell);
-        var energyAfterAutoSell = energyBeforeAutoSell - effectiveAutoSell;
-        var netEnergyPerSecond = energyAfterAutoSell - world.Resources.Energy;
+            if (!world.BuildingCatalog.TryGet(instance.DefinitionId, out var definition))
+                continue;
 
-        var autoSellMultiplier = Math.Max(0, world.EconomySettings.AutoSellMultiplier);
-        var moneyPerSecond = (decimal)effectiveAutoSell *
-                             world.EconomySettings.EnergySellValue *
-                             (decimal)autoSellMultiplier;
+            var heatPerSecond = definition.HeatPerSecond;
+            if (heatPerSecond <= 0)
+                continue;
+
+            var consumption = UpgradeCalculator.GetEnergyConsumptionPerSecond(world, definition);
+            if (consumption > 0)
+            {
+                if (availableEnergy < consumption)
+                    continue;
+
+                availableEnergy -= consumption;
+                energyConsumption += consumption;
+            }
+
+            heatProduced += heatPerSecond;
+        }
+
+        foreach (var instance in world.BuildingInstances.Values)
+        {
+            if (!instance.IsActive)
+                continue;
+
+            if (!world.BuildingCatalog.TryGet(instance.DefinitionId, out var definition))
+                continue;
+
+            var researchPerSecond = UpgradeCalculator.GetResearchPerSecond(world, definition);
+            if (researchPerSecond <= 0)
+                continue;
+
+            var consumption = UpgradeCalculator.GetEnergyConsumptionPerSecond(world, definition);
+            if (consumption > 0)
+            {
+                if (availableEnergy < consumption)
+                    continue;
+
+                availableEnergy -= consumption;
+                energyConsumption += consumption;
+            }
+
+            rawResearchProduction += researchPerSecond;
+        }
+
+        foreach (var instance in world.BuildingInstances.Values)
+        {
+            if (!instance.IsActive)
+                continue;
+
+            if (!world.BuildingCatalog.TryGet(instance.DefinitionId, out var definition))
+                continue;
+
+            var autoSellPerSecond = UpgradeCalculator.GetAutoSellPerSecond(world, definition);
+            if (autoSellPerSecond <= 0)
+                continue;
+
+            var consumption = UpgradeCalculator.GetEnergyConsumptionPerSecond(world, definition);
+            if (consumption > 0)
+            {
+                if (availableEnergy < consumption)
+                    continue;
+
+                availableEnergy -= consumption;
+                energyConsumption += consumption;
+            }
+
+            var effectiveAutoSell = Math.Min(availableEnergy, autoSellPerSecond);
+            if (effectiveAutoSell <= 0)
+                continue;
+
+            availableEnergy -= effectiveAutoSell;
+            autoSell += effectiveAutoSell;
+
+            var autoSellMultiplier = Math.Max(0, world.EconomySettings.AutoSellMultiplier);
+            moneyPerSecond += (decimal)effectiveAutoSell *
+                              world.EconomySettings.EnergySellValue *
+                              (decimal)autoSellMultiplier;
+        }
+
+        var netEnergyPerSecond = availableEnergy - world.Resources.Energy;
 
         return new ResourceRateSnapshot
         {
@@ -62,6 +154,7 @@ public sealed class ResourceRateSnapshot
             RawEnergyProductionPerSecond = rawEnergyProduction,
             RawResearchProductionPerSecond = rawResearchProduction,
             AutoSellEnergyPerSecond = autoSell,
+            EnergyConsumptionPerSecond = energyConsumption,
             HeatProducedPerSecond = heatProduced,
             HeatConvertedEnergyPerSecond = heatConvertedEnergy
         };
@@ -95,10 +188,10 @@ public sealed class ResourceRateSnapshot
             if (!world.BuildingCatalog.TryGet(converter.DefinitionId, out var converterDefinition))
                 continue;
 
-            if (converterDefinition.HeatConversionPerSecond <= 0 || converterDefinition.HeatRange <= 0)
+            if (UpgradeCalculator.GetHeatConversionPerSecond(world, converterDefinition) <= 0 || converterDefinition.HeatRange <= 0)
                 continue;
 
-            var remainingCapacity = converterDefinition.HeatConversionPerSecond;
+            var remainingCapacity = UpgradeCalculator.GetHeatConversionPerSecond(world, converterDefinition);
 
             foreach (var producer in world.BuildingInstances.Values
                          .Where(x => x.IsActive)

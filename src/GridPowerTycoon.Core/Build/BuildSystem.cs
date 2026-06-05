@@ -1,5 +1,6 @@
 using GridPowerTycoon.Core.Buildings;
 using GridPowerTycoon.Core.Map;
+using GridPowerTycoon.Core.Upgrades;
 using GridPowerTycoon.Core.World;
 
 namespace GridPowerTycoon.Core.Build;
@@ -29,7 +30,7 @@ public sealed class BuildSystem
             Guid.NewGuid(),
             definition.Id,
             position,
-            definition.LifetimeSeconds);
+            UpgradeCalculator.GetLifetimeSeconds(_world, definition));
 
         _world.AddBuilding(instance);
         OccupyTiles(instance, definition);
@@ -61,7 +62,7 @@ public sealed class BuildSystem
         if (!_world.Resources.TrySpendMoney(definition.Cost))
             return BuildResult.Fail(BuildFailureReason.NotEnoughMoney);
 
-        instance.Replace(definition.LifetimeSeconds);
+        instance.Replace(UpgradeCalculator.GetLifetimeSeconds(_world, definition));
         return BuildResult.Ok(instance.Id);
     }
 
@@ -128,6 +129,6 @@ public sealed class BuildSystem
     private void ApplyImmediateBuildingEffects(BuildingDefinition definition)
     {
         if (definition.BatteryCapacity > 0)
-            _world.Resources.IncreaseMaxEnergy(definition.BatteryCapacity);
+            _world.Resources.IncreaseMaxEnergy(UpgradeCalculator.GetBatteryCapacity(_world, definition));
     }
 }

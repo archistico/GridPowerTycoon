@@ -99,6 +99,69 @@ public sealed class GameSimulationTests
         Assert.Equal(100, world.Resources.Energy);
     }
 
+
+    [Fact]
+    public void ConsumingResearchCenter_WhenNoEnergy_ShouldNotProduceResearch()
+    {
+        var world = CreateWorld(startingMoney: 1000);
+        var build = new BuildSystem(world);
+        Assert.True(build.Build("consuming_research", new GridPosition(1, 1)).Success);
+        var sell = new SellSystem(world);
+        var simulation = new GameSimulation(world, sell);
+
+        simulation.Update(10);
+
+        Assert.Equal(0, world.Resources.Research);
+        Assert.Equal(0, world.Resources.Energy);
+    }
+
+    [Fact]
+    public void ConsumingResearchCenter_WithEnergy_ShouldConsumeEnergyAndProduceResearch()
+    {
+        var world = CreateWorld(startingMoney: 1000);
+        var build = new BuildSystem(world);
+        Assert.True(build.Build("consuming_research", new GridPosition(1, 1)).Success);
+        world.Resources.AddEnergy(10);
+        var sell = new SellSystem(world);
+        var simulation = new GameSimulation(world, sell);
+
+        simulation.Update(10);
+
+        Assert.Equal(12.5, world.Resources.Research);
+        Assert.Equal(5, world.Resources.Energy);
+    }
+
+    [Fact]
+    public void ConsumingOffice_WhenNoEnergy_ShouldNotAutoSell()
+    {
+        var world = CreateWorld(startingMoney: 100);
+        var build = new BuildSystem(world);
+        Assert.True(build.Build("consuming_office", new GridPosition(1, 1)).Success);
+        var sell = new SellSystem(world);
+        var simulation = new GameSimulation(world, sell);
+
+        simulation.Update(2);
+
+        Assert.Equal(50m, world.Resources.Money);
+        Assert.Equal(0, world.Resources.Energy);
+    }
+
+    [Fact]
+    public void ConsumingOffice_WithEnergy_ShouldConsumeEnergyAndAutoSellRemainingEnergy()
+    {
+        var world = CreateWorld(startingMoney: 100);
+        var build = new BuildSystem(world);
+        Assert.True(build.Build("consuming_office", new GridPosition(1, 1)).Success);
+        world.Resources.AddEnergy(50);
+        var sell = new SellSystem(world);
+        var simulation = new GameSimulation(world, sell);
+
+        simulation.Update(2);
+
+        Assert.Equal(29.6, world.Resources.Energy, 6);
+        Assert.Equal(70m, world.Resources.Money);
+    }
+
     private static GameWorld CreateWorld(decimal startingMoney, decimal energySellValue = 1)
     {
         var map = new GridMap(4, 4, TileType.Land);
@@ -147,6 +210,24 @@ public sealed class GameSimulationTests
                 Category = BuildingCategory.Research,
                 Cost = 1000,
                 ResearchPerSecond = 1.25
+            },
+            new BuildingDefinition
+            {
+                Id = "consuming_research",
+                Name = "Centro ricerca alimentato",
+                Category = BuildingCategory.Research,
+                Cost = 1,
+                ResearchPerSecond = 1.25,
+                EnergyConsumptionPerSecond = 0.5
+            },
+            new BuildingDefinition
+            {
+                Id = "consuming_office",
+                Name = "Ufficio alimentato",
+                Category = BuildingCategory.Automation,
+                Cost = 50,
+                AutoSellPerSecond = 10,
+                EnergyConsumptionPerSecond = 0.2
             }
         });
 

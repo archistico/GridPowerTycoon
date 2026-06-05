@@ -7,15 +7,35 @@ public static class MapDefinitionConverter
         Validate(definition);
 
         var map = new GridMap(definition.Width, definition.Height, TileType.Land);
+        var hasHiddenRows = definition.HiddenRows.Count > 0;
 
         for (var y = 0; y < definition.Height; y++)
         {
             var row = definition.Rows[y];
+            var hiddenRow = hasHiddenRows ? definition.HiddenRows[y] : null;
 
             for (var x = 0; x < definition.Width; x++)
             {
                 var tileType = CharToTileType(row[x]);
-                map.GetTile(new GridPosition(x, y)).SetType(tileType);
+                var tile = map.GetTile(new GridPosition(x, y));
+
+                tile.SetType(tileType);
+
+                if (tileType == TileType.Cloud)
+                {
+                    var coveredType = hiddenRow is null
+                        ? TileType.Land
+                        : CharToTileType(hiddenRow[x]);
+
+                    if (coveredType == TileType.Cloud)
+                        coveredType = TileType.Land;
+
+                    tile.SetCoveredType(coveredType);
+                }
+                else
+                {
+                    tile.SetCoveredType(null);
+                }
             }
         }
 
@@ -30,20 +50,28 @@ public static class MapDefinitionConverter
         if (definition.Height <= 0)
             throw new InvalidOperationException("Map height must be greater than zero.");
 
-        if (definition.Rows.Count != definition.Height)
-            throw new InvalidOperationException($"Map rows count must be equal to height. Expected {definition.Height}, found {definition.Rows.Count}.");
+        ValidateRows(definition.Rows, definition.Width, definition.Height, "Map rows");
 
-        for (var y = 0; y < definition.Rows.Count; y++)
+        if (definition.HiddenRows.Count > 0)
+            ValidateRows(definition.HiddenRows, definition.Width, definition.Height, "Map hiddenRows");
+    }
+
+    private static void ValidateRows(IReadOnlyList<string> rows, int width, int height, string label)
+    {
+        if (rows.Count != height)
+            throw new InvalidOperationException($"{label} count must be equal to height. Expected {height}, found {rows.Count}.");
+
+        for (var y = 0; y < rows.Count; y++)
         {
-            var row = definition.Rows[y];
+            var row = rows[y];
 
-            if (row.Length != definition.Width)
-                throw new InvalidOperationException($"Map row {y} must contain exactly {definition.Width} characters. Found {row.Length}.");
+            if (row.Length != width)
+                throw new InvalidOperationException($"{label} row {y} must contain exactly {width} characters. Found {row.Length}.");
 
             for (var x = 0; x < row.Length; x++)
             {
                 if (!IsKnownTileCode(row[x]))
-                    throw new InvalidOperationException($"Map contains unknown tile code '{row[x]}' at x={x}, y={y}.");
+                    throw new InvalidOperationException($"{label} contains unknown tile code '{row[x]}' at x={x}, y={y}.");
             }
         }
     }

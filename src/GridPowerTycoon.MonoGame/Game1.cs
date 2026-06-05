@@ -1,10 +1,12 @@
 using GridPowerTycoon.Core.Build;
 using GridPowerTycoon.Core.Data;
 using GridPowerTycoon.Core.Economy;
+using GridPowerTycoon.Core.Expansion;
 using GridPowerTycoon.Core.Research;
 using GridPowerTycoon.Core.Simulation;
 using GridPowerTycoon.Core.World;
 using GridPowerTycoon.Core.Tools;
+using GridPowerTycoon.Core.Upgrades;
 using GridPowerTycoon.MonoGame.Input;
 using GridPowerTycoon.MonoGame.Rendering;
 using Microsoft.Xna.Framework;
@@ -24,6 +26,8 @@ public sealed class Game1 : Game
     private SellSystem _sellSystem = null!;
     private ResearchSystem _researchSystem = null!;
     private TerrainClearSystem _terrainClearSystem = null!;
+    private UpgradeSystem _upgradeSystem = null!;
+    private AreaUnlockSystem _areaUnlockSystem = null!;
     private GameSimulation _simulation = null!;
     private Camera2D _camera = null!;
     private InputManager _input = null!;
@@ -34,6 +38,7 @@ public sealed class Game1 : Game
 
     private string? _selectedBuildingId = "wind_turbine";
     private ResearchResult? _lastResearchResult;
+    private UpgradeResult? _lastUpgradeResult;
 
     public Game1()
     {
@@ -46,11 +51,28 @@ public sealed class Game1 : Game
 
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
+        Window.AllowUserResizing = true;
+        Window.ClientSizeChanged += HandleClientSizeChanged;
+    }
+
+
+    private void HandleClientSizeChanged(object? sender, EventArgs e)
+    {
+        var width = Math.Max(900, Window.ClientBounds.Width);
+        var height = Math.Max(540, Window.ClientBounds.Height);
+
+        if (_graphics.PreferredBackBufferWidth == width && _graphics.PreferredBackBufferHeight == height)
+            return;
+
+        _graphics.PreferredBackBufferWidth = width;
+        _graphics.PreferredBackBufferHeight = height;
+        _graphics.ApplyChanges();
     }
 
     protected override void Initialize()
     {
         Window.Title = "GridPower Tycoon";
+        StartFullscreen();
 
         var loader = new GameDataLoader();
         var dataDirectory = Path.Combine(AppContext.BaseDirectory, "Data");
@@ -59,14 +81,18 @@ public sealed class Game1 : Game
         var research = loader.LoadResearchCatalog(Path.Combine(dataDirectory, "research.json"));
         var heat = loader.LoadHeatSettings(Path.Combine(dataDirectory, "heat.json"));
         var tools = loader.LoadToolSettings(Path.Combine(dataDirectory, "tools.json"));
+        var upgrades = loader.LoadUpgradeCatalog(Path.Combine(dataDirectory, "upgrades.json"));
+        var areaUnlock = loader.LoadAreaUnlockSettings(Path.Combine(dataDirectory, "area-unlock.json"));
         var map = loader.LoadMap(Path.Combine(dataDirectory, "maps", "default-map.json"));
-        var data = new GameData(buildings, economy, research, heat, tools);
+        var data = new GameData(buildings, economy, research, heat, tools, upgrades, areaUnlock);
 
         _world = new GameWorld(map, data);
         _buildSystem = new BuildSystem(_world);
         _sellSystem = new SellSystem(_world);
         _researchSystem = new ResearchSystem(_world);
         _terrainClearSystem = new TerrainClearSystem(_world);
+        _upgradeSystem = new UpgradeSystem(_world);
+        _areaUnlockSystem = new AreaUnlockSystem(_world);
         _simulation = new GameSimulation(_world, _sellSystem);
         _camera = new Camera2D();
         _input = new InputManager();
@@ -131,11 +157,26 @@ public sealed class Game1 : Game
             _lastResearchResult,
             _mapInput.SelectedMapBuildingId,
             _mapInput.SelectedTerrainPosition,
-            _mapInput.LastTerrainClearResult);
+            _mapInput.SelectedCloudPosition,
+            _mapInput.LastTerrainClearResult,
+            _mapInput.LastAreaUnlockResult,
+            _lastUpgradeResult);
 
         _spriteBatch.End();
 
         base.Draw(gameTime);
+    }
+
+
+    private void StartFullscreen()
+    {
+        var displayMode = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode;
+
+        _graphics.HardwareModeSwitch = false;
+        _graphics.IsFullScreen = true;
+        _graphics.PreferredBackBufferWidth = displayMode.Width;
+        _graphics.PreferredBackBufferHeight = displayMode.Height;
+        _graphics.ApplyChanges();
     }
 
     private void HandleBuildSelectionInput()
@@ -171,7 +212,19 @@ public sealed class Game1 : Game
             _uiRenderer.TryGetResearchButtonAt(mousePoint, out var clickedResearchId))
         {
             _lastResearchResult = _researchSystem.Complete(clickedResearchId);
+            _lastUpgradeResult = null;
             _mapInput.ClearLastBuildResult();
+            _mapInput.ClearLastAreaUnlockResult();
+            return;
+        }
+
+        if (_input.IsLeftClickPressed() &&
+            _uiRenderer.TryGetUpgradeButtonAt(mousePoint, GraphicsDevice.Viewport, out var clickedUpgradeId))
+        {
+            _lastUpgradeResult = _upgradeSystem.Purchase(clickedUpgradeId);
+            _lastResearchResult = null;
+            _mapInput.ClearLastBuildResult();
+            _mapInput.ClearLastAreaUnlockResult();
             return;
         }
 
@@ -181,6 +234,7 @@ public sealed class Game1 : Game
             var result = _buildSystem.ReplaceExpired(_mapInput.SelectedMapBuildingId!.Value);
             _mapInput.SetLastBuildResult(result);
             _lastResearchResult = null;
+            _lastUpgradeResult = null;
             return;
         }
 
@@ -190,6 +244,17 @@ public sealed class Game1 : Game
             var result = _terrainClearSystem.Clear(_mapInput.SelectedTerrainPosition!.Value);
             _mapInput.SetLastTerrainClearResult(result);
             _lastResearchResult = null;
+            _lastUpgradeResult = null;
+            return;
+        }
+
+        if (_input.IsLeftClickPressed() &&
+            _uiRenderer.IsUnlockCloudButtonAt(mousePoint, GraphicsDevice.Viewport, _mapInput.SelectedCloudPosition))
+        {
+            var result = _areaUnlockSystem.UnlockCloud(_mapInput.SelectedCloudPosition!.Value);
+            _mapInput.SetLastAreaUnlockResult(result);
+            _lastResearchResult = null;
+            _lastUpgradeResult = null;
             return;
         }
 
@@ -197,6 +262,8 @@ public sealed class Game1 : Game
         {
             _selectedBuildingId = clickedBuildingId;
             _lastResearchResult = null;
+            _lastUpgradeResult = null;
+            _mapInput.ClearLastAreaUnlockResult();
         }
     }
 }

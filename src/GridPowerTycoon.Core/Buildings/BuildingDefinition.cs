@@ -16,6 +16,7 @@ public sealed class BuildingDefinition
     public double EnergyPerSecond { get; init; }
     public double HeatPerSecond { get; init; }
     public double ResearchPerSecond { get; init; }
+    public double EnergyConsumptionPerSecond { get; init; }
 
     public double BatteryCapacity { get; init; }
     public double AutoSellPerSecond { get; init; }

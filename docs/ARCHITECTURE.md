@@ -47,3 +47,16 @@ Heat balance values are externalized in `src/GridPowerTycoon.MonoGame/Data/heat.
 La gestione di asce, mine e pulizia del terreno è nel Core, non nello strato MonoGame. Le quantità e i costi sono configurati in `Data/tools.json`, caricato da `GameDataLoader` dentro `ToolSettings`.
 
 `ToolGenerationSystem` viene aggiornato dalla simulazione e incrementa progressivamente `ResourceState.Axes` e `ResourceState.Mines` rispettando i massimi configurati. `TerrainClearSystem` applica le regole di pulizia: i boschi consumano asce, le montagne consumano mine, e in caso di successo la cella diventa `TileType.Land`.
+
+## Upgrade system
+
+Gli upgrade sono contenuto di gioco e vengono caricati da `Data/upgrades.json`.
+
+Il codice contiene solo le regole generali:
+- acquisto;
+- controllo costo;
+- controllo ricerca richiesta;
+- livello massimo;
+- applicazione moltiplicatori tramite `UpgradeCalculator`.
+
+I valori di bilanciamento restano nel JSON: costi, moltiplicatori, edificio target e tipo effetto.

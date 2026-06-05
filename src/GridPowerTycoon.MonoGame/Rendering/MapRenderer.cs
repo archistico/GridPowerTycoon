@@ -1,6 +1,7 @@
 using GridPowerTycoon.Core.Build;
 using GridPowerTycoon.Core.Buildings;
 using GridPowerTycoon.Core.Map;
+using GridPowerTycoon.Core.Upgrades;
 using GridPowerTycoon.Core.World;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -63,7 +64,8 @@ public sealed class MapRenderer
 
     private void DrawLifetimeBar(SpriteBatch spriteBatch, Rectangle buildingRect, BuildingInstance instance, BuildingDefinition definition)
     {
-        if (definition.LifetimeSeconds <= 0)
+        var effectiveLifetime = UpgradeCalculator.GetLifetimeSeconds(_world, definition);
+        if (effectiveLifetime <= 0)
             return;
 
         const int margin = 4;
@@ -78,7 +80,7 @@ public sealed class MapRenderer
         spriteBatch.Draw(_pixel, barBackground, new Color(18, 24, 34, 220));
 
         var ratio = instance.State == BuildingState.Active
-            ? instance.RemainingLifetimeSeconds / definition.LifetimeSeconds
+            ? instance.RemainingLifetimeSeconds / effectiveLifetime
             : 0;
 
         var fillWidth = (int)Math.Round(barBackground.Width * Math.Clamp(ratio, 0, 1));

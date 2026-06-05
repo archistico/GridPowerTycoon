@@ -4,6 +4,7 @@ public sealed class Tile
 {
     public GridPosition Position { get; }
     public TileType Type { get; private set; }
+    public TileType? CoveredType { get; private set; }
     public Guid? BuildingId { get; private set; }
 
     public bool HasBuilding => BuildingId.HasValue;
@@ -19,6 +20,22 @@ public sealed class Tile
     public void SetType(TileType type)
     {
         Type = type;
+    }
+
+    public void SetCoveredType(TileType? coveredType)
+    {
+        CoveredType = coveredType;
+    }
+
+    public TileType RevealCoveredType()
+    {
+        if (!CoveredType.HasValue)
+            throw new InvalidOperationException("Tile has no covered type to reveal.");
+
+        var revealedType = CoveredType.Value;
+        Type = revealedType;
+        CoveredType = null;
+        return revealedType;
     }
 
     public void SetBuilding(Guid buildingId)

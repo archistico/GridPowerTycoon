@@ -40,6 +40,21 @@ public sealed class ResourceState
         return removed;
     }
 
+    public bool TrySpendEnergy(double amount)
+    {
+        if (amount < 0)
+            throw new ArgumentOutOfRangeException(nameof(amount));
+
+        if (amount <= 0)
+            return true;
+
+        if (Energy < amount)
+            return false;
+
+        Energy -= amount;
+        return true;
+    }
+
     public double RemoveAllEnergy()
     {
         var removed = Energy;
@@ -87,6 +102,15 @@ public sealed class ResourceState
     {
         if (amount > 0)
             MaxEnergy += amount;
+    }
+
+    public void SetMaxEnergy(double value)
+    {
+        if (value <= 0)
+            throw new ArgumentOutOfRangeException(nameof(value));
+
+        MaxEnergy = value;
+        Energy = Math.Min(Energy, MaxEnergy);
     }
 
     public void AddAxes(double amount, double maxAxes)

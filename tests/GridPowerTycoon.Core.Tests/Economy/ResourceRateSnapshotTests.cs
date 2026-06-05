@@ -60,6 +60,22 @@ public sealed class ResourceRateSnapshotTests
         Assert.Equal(0, rates.EnergyPerSecond);
     }
 
+
+    [Fact]
+    public void Calculate_WithConsumingResearchBuildingAndStoredEnergy_ShouldIncludeEnergyConsumption()
+    {
+        var world = CreateWorld(startingMoney: 1000);
+        var build = new BuildSystem(world);
+        Assert.True(build.Build("consuming_research", new GridPosition(1, 1)).Success);
+        world.Resources.AddEnergy(10);
+
+        var rates = ResourceRateSnapshot.Calculate(world);
+
+        Assert.Equal(-0.5, rates.EnergyPerSecond);
+        Assert.Equal(1.25, rates.ResearchPerSecond);
+        Assert.Equal(0.5, rates.EnergyConsumptionPerSecond);
+    }
+
     private static GameWorld CreateWorld(decimal startingMoney, decimal energySellValue = 1)
     {
         var map = new GridMap(4, 4, TileType.Land);
@@ -89,6 +105,15 @@ public sealed class ResourceRateSnapshotTests
                 Category = BuildingCategory.Research,
                 Cost = 1000,
                 ResearchPerSecond = 1.25
+            },
+            new BuildingDefinition
+            {
+                Id = "consuming_research",
+                Name = "Centro ricerca alimentato",
+                Category = BuildingCategory.Research,
+                Cost = 1,
+                ResearchPerSecond = 1.25,
+                EnergyConsumptionPerSecond = 0.5
             }
         });
 

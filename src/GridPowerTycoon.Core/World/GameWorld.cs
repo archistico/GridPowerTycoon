@@ -1,9 +1,11 @@
 using GridPowerTycoon.Core.Buildings;
 using GridPowerTycoon.Core.Economy;
+using GridPowerTycoon.Core.Expansion;
 using GridPowerTycoon.Core.Heat;
 using GridPowerTycoon.Core.Map;
 using GridPowerTycoon.Core.Research;
 using GridPowerTycoon.Core.Tools;
+using GridPowerTycoon.Core.Upgrades;
 
 namespace GridPowerTycoon.Core.World;
 
@@ -18,7 +20,10 @@ public sealed class GameWorld
     public ResearchCatalog ResearchCatalog { get; }
     public HeatSettings HeatSettings { get; }
     public ToolSettings ToolSettings { get; }
+    public UpgradeCatalog UpgradeCatalog { get; }
+    public AreaUnlockSettings AreaUnlockSettings { get; }
     public ResearchState Research { get; } = new();
+    public UpgradeState Upgrades { get; } = new();
 
     public IReadOnlyDictionary<Guid, BuildingInstance> BuildingInstances => _buildingInstances;
 
@@ -30,6 +35,8 @@ public sealed class GameWorld
         ResearchCatalog = data.Research;
         HeatSettings = data.Heat;
         ToolSettings = data.Tools;
+        UpgradeCatalog = data.Upgrades;
+        AreaUnlockSettings = data.AreaUnlock;
         Resources = new ResourceState(data.Economy);
     }
 

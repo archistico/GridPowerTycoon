@@ -29,3 +29,19 @@ Questi tempi sono volutamente lenti per la progressione normale. Più avanti pot
 ## Regola generale
 
 Quando una risorsa serve a sbloccare spazio, deve essere più lenta delle risorse economiche principali. Denaro, energia e ricerca alimentano il ciclo continuo; asce e mine devono invece creare decisioni di espansione.
+
+## Upgrade iniziali
+
+Gli upgrade di Step 10 sono volutamente semplici e non ripetibili (`maxLevel = 1`). Servono per introdurre la progressione senza creare ancora una curva economica complessa.
+
+Valori iniziali:
+- pala eolica produzione +50%;
+- pala eolica durata +100%;
+- centro ricerca piccolo +25%;
+- batteria piccola +50%;
+- ufficio piccolo +50%;
+- generatore piccolo +50%;
+- asce +25%;
+- mine +25%.
+
+Da ribilanciare dopo test manuale: costi denaro/ricerca e ordine percepito di acquisto.

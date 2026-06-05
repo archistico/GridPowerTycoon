@@ -1,4 +1,5 @@
 using GridPowerTycoon.Core.Build;
+using GridPowerTycoon.Core.Expansion;
 using GridPowerTycoon.Core.Map;
 using GridPowerTycoon.Core.Tools;
 using GridPowerTycoon.Core.World;
@@ -19,8 +20,10 @@ public sealed class MapInputController
     public GridPosition? HoveredTile { get; private set; }
     public Guid? SelectedMapBuildingId { get; private set; }
     public GridPosition? SelectedTerrainPosition { get; private set; }
+    public GridPosition? SelectedCloudPosition { get; private set; }
     public BuildResult? LastBuildResult { get; private set; }
     public TerrainClearResult? LastTerrainClearResult { get; private set; }
+    public AreaUnlockResult? LastAreaUnlockResult { get; private set; }
 
     public MapInputController(
         GameWorld world,
@@ -51,8 +54,7 @@ public sealed class MapInputController
         var tilePosition = ScreenToTile(mousePoint);
         if (!_world.Map.Contains(tilePosition))
         {
-            SelectedMapBuildingId = null;
-            SelectedTerrainPosition = null;
+            ClearSelection();
             return;
         }
 
@@ -61,8 +63,10 @@ public sealed class MapInputController
         {
             SelectedMapBuildingId = tile.BuildingId.Value;
             SelectedTerrainPosition = null;
+            SelectedCloudPosition = null;
             LastBuildResult = null;
             LastTerrainClearResult = null;
+            LastAreaUnlockResult = null;
             return;
         }
 
@@ -71,23 +75,39 @@ public sealed class MapInputController
         if (tile.Type == TileType.Forest || tile.Type == TileType.Mountain)
         {
             SelectedTerrainPosition = tilePosition;
+            SelectedCloudPosition = null;
             LastBuildResult = null;
             LastTerrainClearResult = null;
+            LastAreaUnlockResult = null;
+            return;
+        }
+
+        if (tile.Type == TileType.Cloud)
+        {
+            SelectedCloudPosition = tilePosition;
+            SelectedTerrainPosition = null;
+            LastBuildResult = null;
+            LastTerrainClearResult = null;
+            LastAreaUnlockResult = null;
             return;
         }
 
         SelectedTerrainPosition = null;
+        SelectedCloudPosition = null;
 
         if (selectedBuildingId is null)
             return;
 
         LastBuildResult = _buildSystem.Build(selectedBuildingId, tilePosition);
         LastTerrainClearResult = null;
+        LastAreaUnlockResult = null;
     }
 
     public void SetLastBuildResult(BuildResult result)
     {
         LastBuildResult = result;
+        LastTerrainClearResult = null;
+        LastAreaUnlockResult = null;
     }
 
     public void ClearLastBuildResult()
@@ -99,6 +119,7 @@ public sealed class MapInputController
     {
         LastTerrainClearResult = result;
         LastBuildResult = null;
+        LastAreaUnlockResult = null;
 
         if (result.Success)
             SelectedTerrainPosition = null;
@@ -107,6 +128,31 @@ public sealed class MapInputController
     public void ClearLastTerrainClearResult()
     {
         LastTerrainClearResult = null;
+    }
+
+    public void ClearLastAreaUnlockResult()
+    {
+        LastAreaUnlockResult = null;
+    }
+
+    public void SetLastAreaUnlockResult(AreaUnlockResult result)
+    {
+        LastAreaUnlockResult = result;
+        LastBuildResult = null;
+        LastTerrainClearResult = null;
+
+        if (result.Success)
+            SelectedCloudPosition = null;
+    }
+
+    private void ClearSelection()
+    {
+        SelectedMapBuildingId = null;
+        SelectedTerrainPosition = null;
+        SelectedCloudPosition = null;
+        LastBuildResult = null;
+        LastTerrainClearResult = null;
+        LastAreaUnlockResult = null;
     }
 
     private GridPosition ScreenToTile(Point screenPoint)

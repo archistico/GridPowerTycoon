@@ -62,6 +62,9 @@ public sealed class BuildingCatalog
             if (definition.EnergyPerSecond < 0 || definition.HeatPerSecond < 0 || definition.ResearchPerSecond < 0)
                 throw new InvalidOperationException($"Building '{definition.Id}' has negative production values.");
 
+            if (definition.EnergyConsumptionPerSecond < 0)
+                throw new InvalidOperationException($"Building '{definition.Id}' has negative energy consumption.");
+
             if (definition.BatteryCapacity < 0 || definition.AutoSellPerSecond < 0)
                 throw new InvalidOperationException($"Building '{definition.Id}' has negative capacity or autosell values.");
 

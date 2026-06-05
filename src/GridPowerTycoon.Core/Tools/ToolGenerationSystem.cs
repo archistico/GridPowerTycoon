@@ -1,3 +1,4 @@
+using GridPowerTycoon.Core.Upgrades;
 using GridPowerTycoon.Core.World;
 
 namespace GridPowerTycoon.Core.Tools;
@@ -18,7 +19,7 @@ public sealed class ToolGenerationSystem
 
         var settings = _world.ToolSettings;
 
-        _world.Resources.AddAxes(settings.AxesPerSecond * deltaSeconds, settings.MaxAxes);
-        _world.Resources.AddMines(settings.MinesPerSecond * deltaSeconds, settings.MaxMines);
+        _world.Resources.AddAxes(UpgradeCalculator.GetAxesPerSecond(_world) * deltaSeconds, settings.MaxAxes);
+        _world.Resources.AddMines(UpgradeCalculator.GetMinesPerSecond(_world) * deltaSeconds, settings.MaxMines);
     }
 }

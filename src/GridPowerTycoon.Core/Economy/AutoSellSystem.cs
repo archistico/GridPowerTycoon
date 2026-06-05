@@ -1,3 +1,4 @@
+using GridPowerTycoon.Core.Upgrades;
 using GridPowerTycoon.Core.World;
 
 namespace GridPowerTycoon.Core.Economy;
@@ -18,7 +19,7 @@ public sealed class AutoSellSystem
         if (deltaSeconds <= 0)
             return 0m;
 
-        var autoSellPerSecond = 0d;
+        var earned = 0m;
 
         foreach (var instance in _world.BuildingInstances.Values)
         {
@@ -28,12 +29,17 @@ public sealed class AutoSellSystem
             if (!_world.BuildingCatalog.TryGet(instance.DefinitionId, out var definition))
                 continue;
 
-            autoSellPerSecond += definition.AutoSellPerSecond;
+            var autoSellPerSecond = UpgradeCalculator.GetAutoSellPerSecond(_world, definition);
+            if (autoSellPerSecond <= 0)
+                continue;
+
+            var energyConsumption = UpgradeCalculator.GetEnergyConsumptionPerSecond(_world, definition) * deltaSeconds;
+            if (!_world.Resources.TrySpendEnergy(energyConsumption))
+                continue;
+
+            earned += _sellSystem.SellAmount(autoSellPerSecond * deltaSeconds);
         }
 
-        if (autoSellPerSecond <= 0)
-            return 0m;
-
-        return _sellSystem.SellAmount(autoSellPerSecond * deltaSeconds);
+        return earned;
     }
 }

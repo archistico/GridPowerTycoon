@@ -1,4 +1,5 @@
 using GridPowerTycoon.Core.Buildings;
+using GridPowerTycoon.Core.Upgrades;
 using GridPowerTycoon.Core.World;
 
 namespace GridPowerTycoon.Core.Heat;
@@ -35,6 +36,10 @@ public sealed class HeatSystem
             if (definition.HeatPerSecond <= 0)
                 continue;
 
+            var energyConsumption = UpgradeCalculator.GetEnergyConsumptionPerSecond(_world, definition) * deltaSeconds;
+            if (!_world.Resources.TrySpendEnergy(energyConsumption))
+                continue;
+
             instance.AddHeat(definition.HeatPerSecond * deltaSeconds);
         }
     }
@@ -49,10 +54,10 @@ public sealed class HeatSystem
             if (!_world.BuildingCatalog.TryGet(converter.DefinitionId, out var converterDefinition))
                 continue;
 
-            if (converterDefinition.HeatConversionPerSecond <= 0 || converterDefinition.HeatRange <= 0)
+            if (UpgradeCalculator.GetHeatConversionPerSecond(_world, converterDefinition) <= 0 || converterDefinition.HeatRange <= 0)
                 continue;
 
-            var remainingCapacity = converterDefinition.HeatConversionPerSecond * deltaSeconds;
+            var remainingCapacity = UpgradeCalculator.GetHeatConversionPerSecond(_world, converterDefinition) * deltaSeconds;
             if (remainingCapacity <= 0)
                 continue;
 

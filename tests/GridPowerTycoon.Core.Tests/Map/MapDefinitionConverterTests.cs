@@ -31,6 +31,38 @@ public sealed class MapDefinitionConverterTests
     }
 
     [Fact]
+    public void ToGridMap_WhenHiddenRowsExist_ShouldKeepCloudVisibleAndStoreCoveredType()
+    {
+        var definition = new MapDefinition
+        {
+            Width = 5,
+            Height = 3,
+            Rows =
+            {
+                "~~~~~",
+                "~.CC~",
+                "~~~~~"
+            },
+            HiddenRows =
+            {
+                "~~~~~",
+                "~.FM~",
+                "~~~~~"
+            }
+        };
+
+        var map = MapDefinitionConverter.ToGridMap(definition);
+
+        var forestCloud = map.GetTile(new GridPosition(2, 1));
+        var mountainCloud = map.GetTile(new GridPosition(3, 1));
+
+        Assert.Equal(TileType.Cloud, forestCloud.Type);
+        Assert.Equal(TileType.Forest, forestCloud.CoveredType);
+        Assert.Equal(TileType.Cloud, mountainCloud.Type);
+        Assert.Equal(TileType.Mountain, mountainCloud.CoveredType);
+    }
+
+    [Fact]
     public void ToGridMap_WhenRowCountDoesNotMatchHeight_ShouldThrow()
     {
         var definition = new MapDefinition

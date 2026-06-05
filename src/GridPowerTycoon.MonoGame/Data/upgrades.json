@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "upgrades": [
+    {
+      "id": "wind_turbine_energy_1",
+      "name": "Eolico migliorato I",
+      "description": "Aumenta la produzione delle pale eoliche del 50%.",
+      "targetBuildingId": "wind_turbine",
+      "costMoney": 100,
+      "costResearch": 0,
+      "effectType": "MultiplyEnergyProduction",
+      "multiplier": 1.5,
+      "requiredResearchId": null,
+      "maxLevel": 1
+    },
+    {
+      "id": "wind_turbine_lifetime_1",
+      "name": "Materiali eolici I",
+      "description": "Aumenta la durata delle pale eoliche del 100%.",
+      "targetBuildingId": "wind_turbine",
+      "costMoney": 250,
+      "costResearch": 0,
+      "effectType": "MultiplyLifetime",
+      "multiplier": 2.0,
+      "requiredResearchId": null,
+      "maxLevel": 1
+    },
+    {
+      "id": "research_small_output_1",
+      "name": "Laboratori efficienti I",
+      "description": "Aumenta la produzione dei centri di ricerca piccoli del 25%.",
+      "targetBuildingId": "research_small",
+      "costMoney": 1000,
+      "costResearch": 100,
+      "effectType": "MultiplyResearchProduction",
+      "multiplier": 1.25,
+      "requiredResearchId": null,
+      "maxLevel": 1
+    },
+    {
+      "id": "battery_small_capacity_1",
+      "name": "Batterie potenziate I",
+      "description": "Aumenta la capacità delle batterie del 50%.",
+      "targetBuildingId": "battery_small",
+      "costMoney": 500,
+      "costResearch": 100,
+      "effectType": "MultiplyBatteryCapacity",
+      "multiplier": 1.5,
+      "requiredResearchId": "battery",
+      "maxLevel": 1
+    },
+    {
+      "id": "office_small_sell_1",
+      "name": "Vendita ottimizzata I",
+      "description": "Aumenta la vendita automatica degli uffici piccoli del 50%.",
+      "targetBuildingId": "office_small",
+      "costMoney": 1000,
+      "costResearch": 250,
+      "effectType": "MultiplyAutoSell",
+      "multiplier": 1.5,
+      "requiredResearchId": "office_small",
+      "maxLevel": 1
+    },
+    {
+      "id": "generator_small_conversion_1",
+      "name": "Generatori efficienti I",
+      "description": "Aumenta la conversione dei generatori piccoli del 50%.",
+      "targetBuildingId": "generator_small",
+      "costMoney": 5000,
+      "costResearch": 500,
+      "effectType": "MultiplyHeatConversion",
+      "multiplier": 1.5,
+      "requiredResearchId": "generator_small",
+      "maxLevel": 1
+    },
+    {
+      "id": "axes_generation_1",
+      "name": "Squadra boscaioli I",
+      "description": "Aumenta la generazione di asce del 25%.",
+      "targetBuildingId": null,
+      "costMoney": 2000,
+      "costResearch": 250,
+      "effectType": "MultiplyToolAxesGeneration",
+      "multiplier": 1.25,
+      "requiredResearchId": null,
+      "maxLevel": 1
+    },
+    {
+      "id": "mines_generation_1",
+      "name": "Squadra minatori I",
+      "description": "Aumenta la generazione di mine del 25%.",
+      "targetBuildingId": null,
+      "costMoney": 4000,
+      "costResearch": 500,
+      "effectType": "MultiplyToolMinesGeneration",
+      "multiplier": 1.25,
+      "requiredResearchId": null,
+      "maxLevel": 1
+    }
+  ]
+}

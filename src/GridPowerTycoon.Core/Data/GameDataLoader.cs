@@ -2,10 +2,12 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using GridPowerTycoon.Core.Buildings;
 using GridPowerTycoon.Core.Economy;
+using GridPowerTycoon.Core.Expansion;
 using GridPowerTycoon.Core.Heat;
 using GridPowerTycoon.Core.Map;
 using GridPowerTycoon.Core.Research;
 using GridPowerTycoon.Core.Tools;
+using GridPowerTycoon.Core.Upgrades;
 
 namespace GridPowerTycoon.Core.Data;
 
@@ -52,6 +54,20 @@ public sealed class GameDataLoader
         return settings;
     }
 
+    public UpgradeCatalog LoadUpgradeCatalog(string path)
+    {
+        var data = LoadJson<UpgradeCatalogData>(path, "upgrades");
+        return UpgradeCatalog.FromDefinitions(data.Upgrades);
+    }
+
+
+    public AreaUnlockSettings LoadAreaUnlockSettings(string path)
+    {
+        var settings = LoadJson<AreaUnlockSettings>(path, "area unlock settings");
+        ValidateAreaUnlockSettings(settings);
+        return settings;
+    }
+
     public GridMap LoadMap(string path)
     {
         var definition = LoadJson<MapDefinition>(path, "map");
@@ -70,6 +86,16 @@ public sealed class GameDataLoader
             throw new InvalidOperationException($"Unable to read game data file for {description}.");
 
         return data;
+    }
+
+
+    private static void ValidateAreaUnlockSettings(AreaUnlockSettings settings)
+    {
+        if (settings.CloudUnlockMoneyCost < 0)
+            throw new InvalidOperationException("cloudUnlockMoneyCost cannot be negative.");
+
+        if (settings.CloudUnlockResearchCost < 0)
+            throw new InvalidOperationException("cloudUnlockResearchCost cannot be negative.");
     }
 
 
