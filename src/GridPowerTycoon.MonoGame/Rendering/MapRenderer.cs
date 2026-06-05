@@ -51,11 +51,54 @@ public sealed class MapRenderer
             spriteBatch.Draw(_pixel, inner, GetBuildingColor(definition.Category, instance.State));
             DrawOutline(spriteBatch, inner, new Color(10, 14, 20), 2);
 
+            DrawLifetimeBar(spriteBatch, inner, instance, definition);
+
             if (instance.State == BuildingState.Expired)
             {
                 DrawDiagonal(spriteBatch, inner, new Color(255, 255, 255, 180));
             }
         }
+    }
+
+    private void DrawLifetimeBar(SpriteBatch spriteBatch, Rectangle buildingRect, BuildingInstance instance, BuildingDefinition definition)
+    {
+        if (definition.LifetimeSeconds <= 0)
+            return;
+
+        const int margin = 4;
+        const int height = 5;
+
+        var barBackground = new Rectangle(
+            buildingRect.X + margin,
+            buildingRect.Bottom - margin - height,
+            Math.Max(1, buildingRect.Width - margin * 2),
+            height);
+
+        spriteBatch.Draw(_pixel, barBackground, new Color(18, 24, 34, 220));
+
+        var ratio = instance.State == BuildingState.Active
+            ? instance.RemainingLifetimeSeconds / definition.LifetimeSeconds
+            : 0;
+
+        var fillWidth = (int)Math.Round(barBackground.Width * Math.Clamp(ratio, 0, 1));
+        if (fillWidth > 0)
+        {
+            var fill = new Rectangle(barBackground.X, barBackground.Y, fillWidth, barBackground.Height);
+            spriteBatch.Draw(_pixel, fill, GetLifetimeBarColor(ratio));
+        }
+
+        DrawOutline(spriteBatch, barBackground, new Color(8, 12, 18, 230), 1);
+    }
+
+    private static Color GetLifetimeBarColor(double ratio)
+    {
+        if (ratio <= 0.25)
+            return new Color(235, 80, 65);
+
+        if (ratio <= 0.5)
+            return new Color(235, 180, 70);
+
+        return new Color(110, 220, 120);
     }
 
     private void DrawHoverAndBuildPreview(SpriteBatch spriteBatch, GridPosition? hoveredTile, string? selectedBuildingId, BuildSystem buildSystem)

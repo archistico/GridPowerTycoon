@@ -42,3 +42,17 @@ Stato: implementato.
 - Sistema ricerca con controlli: ricerca sconosciuta, già completata, prerequisiti mancanti, punti ricerca insufficienti.
 - `BuildSystem` rispetta `requiredResearchId` degli edifici.
 - UI minima per acquistare ricerche e visualizzare edifici bloccati.
+
+## Step 06 UI polish - Barre vita e valori stabili
+
+Stato: implementato.
+
+- Gli edifici con `LifetimeSeconds > 0` mostrano ora una barretta di vita nella parte bassa del riquadro edificio.
+- La barra diventa verde/gialla/rossa in base alla durata residua.
+- Gli edifici scaduti mostrano la barra vuota e mantengono la diagonale di stato scaduto.
+- I valori della TopBar (`ENERGY`, `RESEARCH`, `MONEY`) usano sempre due decimali per evitare oscillazioni visive quando cambiano velocemente.
+
+## Step 06 UI polish - Resource rates in top bar
+
+Added per-second resource rate display below the main top bar counters.
+Energy rate is computed as an estimated net change for the next second, taking into account active producers, max storage cap and automatic selling. Research rate is the sum of active research buildings. Money rate is the estimated automatic-sale income per second.

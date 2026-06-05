@@ -1,5 +1,6 @@
 using GridPowerTycoon.Core.Build;
 using GridPowerTycoon.Core.Buildings;
+using GridPowerTycoon.Core.Economy;
 using GridPowerTycoon.Core.Research;
 using GridPowerTycoon.Core.World;
 using Microsoft.Xna.Framework;
@@ -126,13 +127,20 @@ public sealed class UiRenderer
     private void DrawTopBar(SpriteBatch spriteBatch, Rectangle topBar)
     {
         var resources = _world.Resources;
-        var money = FormatNumber((double)resources.Money);
-        var energy = $"{FormatNumber(resources.Energy)}/{FormatNumber(resources.MaxEnergy)}";
-        var research = FormatNumber(resources.Research);
+        var money = FormatNumberFixed2((double)resources.Money);
+        var energy = $"{FormatNumberFixed2(resources.Energy)}/{FormatNumberFixed2(resources.MaxEnergy)}";
+        var research = FormatNumberFixed2(resources.Research);
 
-        _text.DrawString(spriteBatch, $"ENERGY {energy}", new Vector2(14, 16), new Color(230, 238, 245), 2);
-        _text.DrawString(spriteBatch, $"RESEARCH {research}", new Vector2(330, 16), new Color(210, 190, 255), 2);
-        _text.DrawString(spriteBatch, $"MONEY ${money}", new Vector2(600, 16), new Color(255, 225, 120), 2);
+        var rates = ResourceRateSnapshot.Calculate(_world);
+
+        _text.DrawString(spriteBatch, $"ENERGY {energy}", new Vector2(14, 12), new Color(230, 238, 245), 2);
+        _text.DrawString(spriteBatch, $"{FormatSignedNumberFixed2(rates.EnergyPerSecond)}/S", new Vector2(14, 40), new Color(135, 210, 255), 1);
+
+        _text.DrawString(spriteBatch, $"RESEARCH {research}", new Vector2(330, 12), new Color(210, 190, 255), 2);
+        _text.DrawString(spriteBatch, $"{FormatSignedNumberFixed2(rates.ResearchPerSecond)}/S", new Vector2(330, 40), new Color(210, 190, 255), 1);
+
+        _text.DrawString(spriteBatch, $"MONEY ${money}", new Vector2(600, 12), new Color(255, 225, 120), 2);
+        _text.DrawString(spriteBatch, $"${FormatSignedNumberFixed2((double)rates.MoneyPerSecond)}/S", new Vector2(600, 40), new Color(255, 225, 120), 1);
 
         var sellButton = GetSellButtonRectangle(new Viewport(0, 0, topBar.Width, topBar.Height));
         spriteBatch.Draw(_pixel, sellButton, new Color(70, 120, 72));
@@ -379,5 +387,30 @@ public sealed class UiRenderer
             return (value / 1_000d).ToString("0.##") + "K";
 
         return value.ToString("0.##");
+    }
+
+    private static string FormatNumberFixed2(double value)
+    {
+        if (value >= 1_000_000_000)
+            return (value / 1_000_000_000d).ToString("0.00") + "B";
+
+        if (value >= 1_000_000)
+            return (value / 1_000_000d).ToString("0.00") + "M";
+
+        if (value >= 1_000)
+            return (value / 1_000d).ToString("0.00") + "K";
+
+        return value.ToString("0.00");
+    }
+
+    private static string FormatSignedNumberFixed2(double value)
+    {
+        if (value > 0)
+            return "+" + FormatNumberFixed2(value);
+
+        if (value < 0)
+            return "-" + FormatNumberFixed2(Math.Abs(value));
+
+        return "+0.00";
     }
 }
