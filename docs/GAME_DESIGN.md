@@ -20,3 +20,15 @@ Offline progress uses the same economy direction as live play, but with a safety
 ## Cloud expansion groups
 
 On the large map, unlocking clouds one cell at a time is too slow and repetitive. Cloud expansion now reveals a small connected group around the selected cell. The amount is controlled by JSON, so the pacing can be adjusted without recompiling. The current default reveals up to 9 connected cloud tiles within radius 2 for a fixed money/research cost.
+## Step 16 - Primi edifici mid-game
+
+Aggiunto il primo blocco di progressione industriale configurato nei JSON:
+
+- Centrale a carbone: 155k$, 680 calore/s, vita 300s.
+- Ufficio grande: 150k$, vende 200 energia/s e consuma energia operativa.
+- Generatore medio: 100k$, converte 1k calore/s, raggio 1.
+- Centrale a gas: 7.5M$, 25k calore/s, vita 300s.
+- Centro ricerca grande: 10M$, produce 100 ricerca/s e consuma energia operativa.
+
+Aggiunte ricerche collegate e primi upgrade specifici. La UI BUILD/RESEARCH/UPGRADE include i nuovi elementi. La formattazione numerica della UI ora usa prefissi SI: k, M, G, T, P, E, Z, Y.
+

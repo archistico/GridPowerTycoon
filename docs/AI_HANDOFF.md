@@ -217,3 +217,29 @@ Current default in `Data/area-unlock.json`: radius 2, max 9 tiles per unlock, fi
 ## Step 15 - Stato operativo edifici
 
 Aggiunto namespace `GridPowerTycoon.Core.Operations` con `BuildingOperationalState`, `BuildingOperationalStatus` e `BuildingOperationalStatusCalculator`. Il calcolatore non modifica il mondo: produce solo diagnostica per UI/test. La UI usa questo stato nel pannello edificio per mostrare `ACTIVE`, `NO ENERGY`, `EXPIRED`, `EXPLODED`, `HEAT WARNING`, `NO HEAT CONVERSION`, output effettivi e output lordi quando l'edificio non sta producendo. Aggiunti test in `tests/GridPowerTycoon.Core.Tests/Operations/BuildingOperationalStatusCalculatorTests.cs`.
+## Step 16 - Primi edifici mid-game
+
+Aggiunto il primo blocco di progressione industriale configurato nei JSON:
+
+- Centrale a carbone: 155k$, 680 calore/s, vita 300s.
+- Ufficio grande: 150k$, vende 200 energia/s e consuma energia operativa.
+- Generatore medio: 100k$, converte 1k calore/s, raggio 1.
+- Centrale a gas: 7.5M$, 25k calore/s, vita 300s.
+- Centro ricerca grande: 10M$, produce 100 ricerca/s e consuma energia operativa.
+
+Aggiunte ricerche collegate e primi upgrade specifici. La UI BUILD/RESEARCH/UPGRADE include i nuovi elementi. La formattazione numerica della UI ora usa prefissi SI: k, M, G, T, P, E, Z, Y.
+
+
+
+## Step 16A - Reactor reference: upgrade repeatable and managers
+
+User provided Reactor upgrade and research reference values. These are now documented in `docs/REACTOR_REFERENCE_BALANCE.md`, not applied directly to gameplay JSON.
+
+Important design change identified: upgrades should become repeatable multi-level purchases rather than only one-time purchases. Current `UpgradeState` already tracks levels, so the next implementation should likely evolve `UpgradeDefinition` and `upgrades.json` to support:
+- `baseCostMoney` / `baseCostResearch`, or compatibility aliases from current `costMoney` / `costResearch`;
+- `costGrowthMultiplier`;
+- `effectPerLevel`;
+- UI display of current level, next cost and per-level effect;
+- maxLevel where 0 can mean unlimited/practically unlimited.
+
+Reactor research references also introduce manager unlocks, for example automatic renewal of wind turbines, solar panels and coal plants. Recommended order: first implement upgrade multi-level costs/effects, then add a separate manager renewal system.

@@ -96,6 +96,66 @@
       "multiplier": 1.25,
       "requiredResearchId": null,
       "maxLevel": 1
+    },
+    {
+      "id": "coal_lifetime_1",
+      "name": "Manutenzione carbone I",
+      "description": "Aumenta la durata delle centrali a carbone del 50%.",
+      "targetBuildingId": "coal_power_plant",
+      "costMoney": 250000,
+      "costResearch": 2500,
+      "effectType": "MultiplyLifetime",
+      "multiplier": 1.5,
+      "requiredResearchId": "coal_power",
+      "maxLevel": 1
+    },
+    {
+      "id": "office_large_sell_1",
+      "name": "Trading industriale I",
+      "description": "Aumenta la vendita automatica degli uffici grandi del 50%.",
+      "targetBuildingId": "office_large",
+      "costMoney": 500000,
+      "costResearch": 3500,
+      "effectType": "MultiplyAutoSell",
+      "multiplier": 1.5,
+      "requiredResearchId": "office_large",
+      "maxLevel": 1
+    },
+    {
+      "id": "generator_medium_conversion_1",
+      "name": "Generatori medi efficienti I",
+      "description": "Aumenta la conversione dei generatori medi del 50%.",
+      "targetBuildingId": "generator_medium",
+      "costMoney": 750000,
+      "costResearch": 5000,
+      "effectType": "MultiplyHeatConversion",
+      "multiplier": 1.5,
+      "requiredResearchId": "generator_medium",
+      "maxLevel": 1
+    },
+    {
+      "id": "gas_lifetime_1",
+      "name": "Manutenzione gas I",
+      "description": "Aumenta la durata delle centrali a gas del 50%.",
+      "targetBuildingId": "gas_power_plant",
+      "costMoney": 15000000,
+      "costResearch": 20000,
+      "effectType": "MultiplyLifetime",
+      "multiplier": 1.5,
+      "requiredResearchId": "gas_power",
+      "maxLevel": 1
+    },
+    {
+      "id": "research_large_output_1",
+      "name": "Laboratori avanzati I",
+      "description": "Aumenta la produzione dei centri di ricerca grandi del 25%.",
+      "targetBuildingId": "research_large",
+      "costMoney": 25000000,
+      "costResearch": 50000,
+      "effectType": "MultiplyResearchProduction",
+      "multiplier": 1.25,
+      "requiredResearchId": "research_large",
+      "maxLevel": 1
     }
   ]
 }

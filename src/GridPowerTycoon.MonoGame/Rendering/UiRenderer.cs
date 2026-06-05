@@ -31,7 +31,12 @@ public sealed class UiRenderer
         "office_small",
         "research_small",
         "solar_panel",
-        "generator_small"
+        "generator_small",
+        "coal_power_plant",
+        "office_large",
+        "generator_medium",
+        "gas_power_plant",
+        "research_large"
     };
 
     private static readonly string[] ResearchButtonIds =
@@ -39,7 +44,12 @@ public sealed class UiRenderer
         "battery",
         "office_small",
         "solar_power",
-        "generator_small"
+        "generator_small",
+        "coal_power",
+        "office_large",
+        "generator_medium",
+        "gas_power",
+        "research_large"
     };
 
     private static readonly string[] UpgradeButtonIds =
@@ -51,7 +61,12 @@ public sealed class UiRenderer
         "office_small_sell_1",
         "generator_small_conversion_1",
         "axes_generation_1",
-        "mines_generation_1"
+        "mines_generation_1",
+        "coal_lifetime_1",
+        "office_large_sell_1",
+        "generator_medium_conversion_1",
+        "gas_lifetime_1",
+        "research_large_output_1"
     };
 
     private readonly GameWorld _world;
@@ -599,7 +614,7 @@ public sealed class UiRenderer
     {
         var y = viewport.Height - 34;
         var message = selectedBuildingId is null
-            ? "SELECT BUILDING 1-6"
+            ? "SELECT BUILDING"
             : $"SELECTED {selectedBuildingId}";
 
         if (lastResearchResult is not null)
@@ -820,30 +835,38 @@ public sealed class UiRenderer
 
     private static string FormatNumber(double value)
     {
-        if (value >= 1_000_000_000)
-            return (value / 1_000_000_000d).ToString("0.##") + "B";
-
-        if (value >= 1_000_000)
-            return (value / 1_000_000d).ToString("0.##") + "M";
-
-        if (value >= 1_000)
-            return (value / 1_000d).ToString("0.##") + "K";
-
-        return value.ToString("0.##");
+        return FormatSiNumber(value, "0.##");
     }
 
     private static string FormatNumberFixed2(double value)
     {
-        if (value >= 1_000_000_000)
-            return (value / 1_000_000_000d).ToString("0.00") + "B";
+        return FormatSiNumber(value, "0.00");
+    }
 
-        if (value >= 1_000_000)
-            return (value / 1_000_000d).ToString("0.00") + "M";
+    private static string FormatSiNumber(double value, string format)
+    {
+        var sign = value < 0 ? "-" : "";
+        var absolute = Math.Abs(value);
 
-        if (value >= 1_000)
-            return (value / 1_000d).ToString("0.00") + "K";
+        var units = new[]
+        {
+            (Value: 1_000_000_000_000_000_000_000_000d, Suffix: "Y"),
+            (Value: 1_000_000_000_000_000_000_000d, Suffix: "Z"),
+            (Value: 1_000_000_000_000_000_000d, Suffix: "E"),
+            (Value: 1_000_000_000_000_000d, Suffix: "P"),
+            (Value: 1_000_000_000_000d, Suffix: "T"),
+            (Value: 1_000_000_000d, Suffix: "G"),
+            (Value: 1_000_000d, Suffix: "M"),
+            (Value: 1_000d, Suffix: "k")
+        };
 
-        return value.ToString("0.00");
+        foreach (var unit in units)
+        {
+            if (absolute >= unit.Value)
+                return sign + (absolute / unit.Value).ToString(format) + unit.Suffix;
+        }
+
+        return value.ToString(format);
     }
 
 

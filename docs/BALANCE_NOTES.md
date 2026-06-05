@@ -49,3 +49,26 @@ Da ribilanciare dopo test manuale: costi denaro/ricerca e ordine percepito di ac
 ## Step 12A - Durata pannelli solari
 
 Il pannello solare passa da 30 secondi a 180 secondi di vita. La durata precedente era troppo breve rispetto al costo e alla necessità di affiancare un generatore. Il pannello deve introdurre la gestione del calore senza diventare una manutenzione troppo frequente.
+## Step 16 - Primi edifici mid-game
+
+Aggiunto il primo blocco di progressione industriale configurato nei JSON:
+
+- Centrale a carbone: 155k$, 680 calore/s, vita 300s.
+- Ufficio grande: 150k$, vende 200 energia/s e consuma energia operativa.
+- Generatore medio: 100k$, converte 1k calore/s, raggio 1.
+- Centrale a gas: 7.5M$, 25k calore/s, vita 300s.
+- Centro ricerca grande: 10M$, produce 100 ricerca/s e consuma energia operativa.
+
+Aggiunte ricerche collegate e primi upgrade specifici. La UI BUILD/RESEARCH/UPGRADE include i nuovi elementi. La formattazione numerica della UI ora usa prefissi SI: k, M, G, T, P, E, Z, Y.
+
+
+
+## Reactor reference: upgrade a livelli e gestori
+
+I nuovi dati di riferimento mostrano che gli upgrade devono essere pensati come acquisti ripetibili a livelli: livello 0 iniziale, livello 1 dopo il primo acquisto, poi livelli successivi con costo crescente. Questo è più adatto a un idle/tycoon rispetto agli upgrade monouso.
+
+Direzione consigliata per GridPowerTycoon:
+- mantenere gli upgrade attuali funzionanti;
+- convertire `upgrades.json` verso un modello multi-livello con `baseCostMoney`, `costGrowthMultiplier` ed `effectPerLevel`;
+- mostrare nella UI il livello corrente, il prossimo costo e l'effetto del prossimo livello;
+- introdurre in seguito le ricerche gestore per rinnovare automaticamente edifici scaduti.

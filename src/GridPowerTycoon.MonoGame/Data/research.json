@@ -6,7 +6,9 @@
       "name": "Batterie",
       "description": "Sblocca la batteria piccola.",
       "cost": 10,
-      "unlockBuildingIds": [ "battery_small" ],
+      "unlockBuildingIds": [
+        "battery_small"
+      ],
       "requiredResearchIds": []
     },
     {
@@ -14,7 +16,9 @@
       "name": "Vendita automatica",
       "description": "Sblocca l'ufficio piccolo.",
       "cost": 25,
-      "unlockBuildingIds": [ "office_small" ],
+      "unlockBuildingIds": [
+        "office_small"
+      ],
       "requiredResearchIds": []
     },
     {
@@ -22,7 +26,9 @@
       "name": "Energia solare",
       "description": "Sblocca il pannello solare.",
       "cost": 50,
-      "unlockBuildingIds": [ "solar_panel" ],
+      "unlockBuildingIds": [
+        "solar_panel"
+      ],
       "requiredResearchIds": []
     },
     {
@@ -30,8 +36,72 @@
       "name": "Generatori base",
       "description": "Sblocca il generatore piccolo.",
       "cost": 75,
-      "unlockBuildingIds": [ "generator_small" ],
-      "requiredResearchIds": [ "solar_power" ]
+      "unlockBuildingIds": [
+        "generator_small"
+      ],
+      "requiredResearchIds": [
+        "solar_power"
+      ]
+    },
+    {
+      "id": "coal_power",
+      "name": "Energia a carbone",
+      "description": "Sblocca la centrale a carbone.",
+      "cost": 750,
+      "unlockBuildingIds": [
+        "coal_power_plant"
+      ],
+      "requiredResearchIds": [
+        "generator_small"
+      ]
+    },
+    {
+      "id": "office_large",
+      "name": "Vendita industriale",
+      "description": "Sblocca l'ufficio grande.",
+      "cost": 1250,
+      "unlockBuildingIds": [
+        "office_large"
+      ],
+      "requiredResearchIds": [
+        "office_small"
+      ]
+    },
+    {
+      "id": "generator_medium",
+      "name": "Generatori medi",
+      "description": "Sblocca il generatore medio.",
+      "cost": 2000,
+      "unlockBuildingIds": [
+        "generator_medium"
+      ],
+      "requiredResearchIds": [
+        "coal_power"
+      ]
+    },
+    {
+      "id": "gas_power",
+      "name": "Centrali a gas",
+      "description": "Sblocca la centrale a gas.",
+      "cost": 10000,
+      "unlockBuildingIds": [
+        "gas_power_plant"
+      ],
+      "requiredResearchIds": [
+        "generator_medium"
+      ]
+    },
+    {
+      "id": "research_large",
+      "name": "Ricerca avanzata",
+      "description": "Sblocca il centro di ricerca grande.",
+      "cost": 25000,
+      "unlockBuildingIds": [
+        "research_large"
+      ],
+      "requiredResearchIds": [
+        "gas_power"
+      ]
     }
   ]
 }

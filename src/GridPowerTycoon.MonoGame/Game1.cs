@@ -303,6 +303,18 @@ public sealed class Game1 : Game
         if (_input.IsKeyPressed(Keys.D6) || _input.IsKeyPressed(Keys.NumPad6))
             _selectedBuildingId = buildIds.Count > 5 ? buildIds[5] : null;
 
+        if (_input.IsKeyPressed(Keys.D7) || _input.IsKeyPressed(Keys.NumPad7))
+            _selectedBuildingId = buildIds.Count > 6 ? buildIds[6] : null;
+
+        if (_input.IsKeyPressed(Keys.D8) || _input.IsKeyPressed(Keys.NumPad8))
+            _selectedBuildingId = buildIds.Count > 7 ? buildIds[7] : null;
+
+        if (_input.IsKeyPressed(Keys.D9) || _input.IsKeyPressed(Keys.NumPad9))
+            _selectedBuildingId = buildIds.Count > 8 ? buildIds[8] : null;
+
+        if (_input.IsKeyPressed(Keys.D0) || _input.IsKeyPressed(Keys.NumPad0))
+            _selectedBuildingId = buildIds.Count > 9 ? buildIds[9] : null;
+
         var mousePoint = new Point(_input.CurrentMouse.X, _input.CurrentMouse.Y);
         if (_input.IsLeftClickPressed() && _uiRenderer.IsSellButtonAt(mousePoint, GraphicsDevice.Viewport))
         {
