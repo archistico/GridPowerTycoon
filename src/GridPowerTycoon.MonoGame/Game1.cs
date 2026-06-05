@@ -4,6 +4,7 @@ using GridPowerTycoon.Core.Economy;
 using GridPowerTycoon.Core.Expansion;
 using GridPowerTycoon.Core.Research;
 using GridPowerTycoon.Core.Simulation;
+using GridPowerTycoon.Core.Save;
 using GridPowerTycoon.Core.World;
 using GridPowerTycoon.Core.Tools;
 using GridPowerTycoon.Core.Upgrades;
@@ -35,6 +36,10 @@ public sealed class Game1 : Game
     private MapInputController _mapInput = null!;
     private MapRenderer _mapRenderer = null!;
     private UiRenderer _uiRenderer = null!;
+    private SaveGameService _saveGameService = null!;
+    private GameData _gameData = null!;
+    private string _savePath = string.Empty;
+    private string? _lastSaveLoadMessage;
 
     private string? _selectedBuildingId = "wind_turbine";
     private ResearchResult? _lastResearchResult;
@@ -84,9 +89,27 @@ public sealed class Game1 : Game
         var upgrades = loader.LoadUpgradeCatalog(Path.Combine(dataDirectory, "upgrades.json"));
         var areaUnlock = loader.LoadAreaUnlockSettings(Path.Combine(dataDirectory, "area-unlock.json"));
         var map = loader.LoadMap(Path.Combine(dataDirectory, "maps", "default-map.json"));
-        var data = new GameData(buildings, economy, research, heat, tools, upgrades, areaUnlock);
+        _gameData = new GameData(buildings, economy, research, heat, tools, upgrades, areaUnlock);
+        _saveGameService = new SaveGameService();
+        _savePath = Path.Combine(AppContext.BaseDirectory, "Saves", "savegame.json");
 
-        _world = new GameWorld(map, data);
+        var world = File.Exists(_savePath)
+            ? _saveGameService.LoadFromFile(_savePath, _gameData)
+            : new GameWorld(map, _gameData);
+
+        ConfigureWorld(world);
+
+        _camera = new Camera2D();
+        CenterCameraOnInitialIsland();
+        _input = new InputManager();
+        _cameraInput = new CameraInputController(_camera, _input);
+
+        base.Initialize();
+    }
+
+    private void ConfigureWorld(GameWorld world)
+    {
+        _world = world;
         _buildSystem = new BuildSystem(_world);
         _sellSystem = new SellSystem(_world);
         _researchSystem = new ResearchSystem(_world);
@@ -94,11 +117,32 @@ public sealed class Game1 : Game
         _upgradeSystem = new UpgradeSystem(_world);
         _areaUnlockSystem = new AreaUnlockSystem(_world);
         _simulation = new GameSimulation(_world, _sellSystem);
-        _camera = new Camera2D();
-        _input = new InputManager();
-        _cameraInput = new CameraInputController(_camera, _input);
 
-        base.Initialize();
+        if (_pixel is not null)
+        {
+            _mapRenderer = new MapRenderer(_world, _pixel);
+            _uiRenderer = new UiRenderer(_world, _pixel);
+            _mapInput = new MapInputController(
+                _world,
+                _camera,
+                _input,
+                _buildSystem,
+                point => _uiRenderer.IsMouseOverUi(point, GraphicsDevice.Viewport));
+        }
+    }
+
+
+    private void CenterCameraOnInitialIsland()
+    {
+        var worldCenter = new Vector2(
+            _world.Map.Width * MapRenderer.TileSize / 2f,
+            _world.Map.Height * MapRenderer.TileSize / 2f);
+
+        var viewportSize = new Vector2(
+            _graphics.PreferredBackBufferWidth,
+            _graphics.PreferredBackBufferHeight);
+
+        _camera.SetPosition(worldCenter - viewportSize / (2f * _camera.Zoom));
     }
 
     protected override void LoadContent()
@@ -108,14 +152,7 @@ public sealed class Game1 : Game
         _pixel = new Texture2D(GraphicsDevice, 1, 1);
         _pixel.SetData(new[] { Color.White });
 
-        _mapRenderer = new MapRenderer(_world, _pixel);
-        _uiRenderer = new UiRenderer(_world, _pixel);
-        _mapInput = new MapInputController(
-            _world,
-            _camera,
-            _input,
-            _buildSystem,
-            point => _uiRenderer.IsMouseOverUi(point, GraphicsDevice.Viewport));
+        ConfigureWorld(_world);
     }
 
     protected override void Update(GameTime gameTime)
@@ -123,7 +160,16 @@ public sealed class Game1 : Game
         _input.Update();
 
         if (_input.IsKeyPressed(Keys.Escape))
+        {
+            SaveCurrentGame();
             Exit();
+        }
+
+        if (_input.IsKeyPressed(Keys.F5))
+            SaveCurrentGame();
+
+        if (_input.IsKeyPressed(Keys.F9))
+            LoadCurrentGame();
 
         HandleBuildSelectionInput();
 
@@ -160,7 +206,8 @@ public sealed class Game1 : Game
             _mapInput.SelectedCloudPosition,
             _mapInput.LastTerrainClearResult,
             _mapInput.LastAreaUnlockResult,
-            _lastUpgradeResult);
+            _lastUpgradeResult,
+            _lastSaveLoadMessage);
 
         _spriteBatch.End();
 
@@ -177,6 +224,26 @@ public sealed class Game1 : Game
         _graphics.PreferredBackBufferWidth = displayMode.Width;
         _graphics.PreferredBackBufferHeight = displayMode.Height;
         _graphics.ApplyChanges();
+    }
+
+    private void SaveCurrentGame()
+    {
+        _saveGameService.SaveToFile(_world, _savePath);
+        _lastSaveLoadMessage = "GAME SAVED";
+    }
+
+    private void LoadCurrentGame()
+    {
+        if (!File.Exists(_savePath))
+        {
+            _lastSaveLoadMessage = "NO SAVE FOUND";
+            return;
+        }
+
+        ConfigureWorld(_saveGameService.LoadFromFile(_savePath, _gameData));
+        _lastResearchResult = null;
+        _lastUpgradeResult = null;
+        _lastSaveLoadMessage = "GAME LOADED";
     }
 
     private void HandleBuildSelectionInput()

@@ -45,3 +45,7 @@ Valori iniziali:
 - mine +25%.
 
 Da ribilanciare dopo test manuale: costi denaro/ricerca e ordine percepito di acquisto.
+
+## Step 12A - Durata pannelli solari
+
+Il pannello solare passa da 30 secondi a 180 secondi di vita. La durata precedente era troppo breve rispetto al costo e alla necessità di affiancare un generatore. Il pannello deve introdurre la gestione del calore senza diventare una manutenzione troppo frequente.

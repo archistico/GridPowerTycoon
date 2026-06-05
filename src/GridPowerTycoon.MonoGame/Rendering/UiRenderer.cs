@@ -75,7 +75,8 @@ public sealed class UiRenderer
         GridPosition? selectedCloudPosition,
         TerrainClearResult? lastTerrainClearResult,
         AreaUnlockResult? lastAreaUnlockResult,
-        UpgradeResult? lastUpgradeResult)
+        UpgradeResult? lastUpgradeResult,
+        string? saveLoadMessage)
     {
         var topBar = GetTopBarRectangle(viewport);
         var sideMenu = GetSideMenuRectangle(viewport);
@@ -90,7 +91,7 @@ public sealed class UiRenderer
         DrawSelectedBuildingPanel(spriteBatch, viewport, selectedMapBuildingId);
         DrawSelectedTerrainPanel(spriteBatch, viewport, selectedTerrainPosition);
         DrawSelectedCloudPanel(spriteBatch, viewport, selectedCloudPosition);
-        DrawStatus(spriteBatch, viewport, selectedBuildingId, lastBuildResult, lastResearchResult, lastTerrainClearResult, lastAreaUnlockResult, lastUpgradeResult);
+        DrawStatus(spriteBatch, viewport, selectedBuildingId, lastBuildResult, lastResearchResult, lastTerrainClearResult, lastAreaUnlockResult, lastUpgradeResult, saveLoadMessage);
     }
 
     public bool IsMouseOverUi(Point mousePosition, Viewport viewport)
@@ -518,7 +519,7 @@ public sealed class UiRenderer
                _world.Resources.Research >= _world.AreaUnlockSettings.CloudUnlockResearchCost;
     }
 
-    private void DrawStatus(SpriteBatch spriteBatch, Viewport viewport, string? selectedBuildingId, BuildResult? lastBuildResult, ResearchResult? lastResearchResult, TerrainClearResult? lastTerrainClearResult, AreaUnlockResult? lastAreaUnlockResult, UpgradeResult? lastUpgradeResult)
+    private void DrawStatus(SpriteBatch spriteBatch, Viewport viewport, string? selectedBuildingId, BuildResult? lastBuildResult, ResearchResult? lastResearchResult, TerrainClearResult? lastTerrainClearResult, AreaUnlockResult? lastAreaUnlockResult, UpgradeResult? lastUpgradeResult, string? saveLoadMessage)
     {
         var y = viewport.Height - 34;
         var message = selectedBuildingId is null
@@ -560,8 +561,12 @@ public sealed class UiRenderer
                 : $"UPGRADE FAILED {lastUpgradeResult.FailureReason}";
         }
 
+        if (!string.IsNullOrWhiteSpace(saveLoadMessage))
+            message = saveLoadMessage;
+
         spriteBatch.Draw(_pixel, new Rectangle(SideMenuWidth, viewport.Height - 44, Math.Max(0, viewport.Width - SideMenuWidth), 44), new Color(25, 31, 42));
         _text.DrawString(spriteBatch, message, new Vector2(SideMenuWidth + 14, y), new Color(230, 238, 245), 1);
+        _text.DrawString(spriteBatch, "F5 SAVE  F9 LOAD  ESC SAVE+EXIT", new Vector2(Math.Max(SideMenuWidth + 360, viewport.Width - 300), y), new Color(170, 185, 205), 1);
     }
 
     private bool IsBuildingUnlocked(BuildingDefinition definition)

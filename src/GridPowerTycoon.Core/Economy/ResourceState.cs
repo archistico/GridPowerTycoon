@@ -152,5 +152,17 @@ public sealed class ResourceState
         Mines -= amount;
         return true;
     }
-}
 
+    public void Restore(double energy, double maxEnergy, double research, decimal money, double axes, double mines)
+    {
+        if (maxEnergy <= 0)
+            throw new ArgumentOutOfRangeException(nameof(maxEnergy));
+
+        MaxEnergy = maxEnergy;
+        Energy = Math.Clamp(energy, 0, MaxEnergy);
+        Research = Math.Max(0, research);
+        Money = money < 0 ? 0 : money;
+        Axes = Math.Max(0, axes);
+        Mines = Math.Max(0, mines);
+    }
+}

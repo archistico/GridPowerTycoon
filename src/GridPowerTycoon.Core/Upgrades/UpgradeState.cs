@@ -23,4 +23,18 @@ public sealed class UpgradeState
 
         _levels[upgradeId] = GetLevel(upgradeId) + 1;
     }
+
+    public void SetLevel(string upgradeId, int level)
+    {
+        if (string.IsNullOrWhiteSpace(upgradeId))
+            throw new ArgumentException("Upgrade id cannot be empty.", nameof(upgradeId));
+
+        if (level < 0)
+            throw new ArgumentOutOfRangeException(nameof(level));
+
+        if (level == 0)
+            _levels.Remove(upgradeId);
+        else
+            _levels[upgradeId] = level;
+    }
 }

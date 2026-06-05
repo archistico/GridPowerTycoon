@@ -77,4 +77,24 @@ public sealed class BuildingInstance
         AccumulatedHeat = 0;
         State = BuildingState.Active;
     }
+
+    public static BuildingInstance Restore(
+        Guid id,
+        string definitionId,
+        GridPosition position,
+        double remainingLifetimeSeconds,
+        double accumulatedHeat,
+        BuildingState state)
+    {
+        if (remainingLifetimeSeconds < 0)
+            throw new ArgumentOutOfRangeException(nameof(remainingLifetimeSeconds));
+
+        if (accumulatedHeat < 0)
+            throw new ArgumentOutOfRangeException(nameof(accumulatedHeat));
+
+        var instance = new BuildingInstance(id, definitionId, position, remainingLifetimeSeconds);
+        instance.AccumulatedHeat = accumulatedHeat;
+        instance.State = state;
+        return instance;
+    }
 }

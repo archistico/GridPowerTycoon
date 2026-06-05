@@ -6,7 +6,7 @@ public sealed class Camera2D
 {
     public Vector2 Position { get; private set; } = Vector2.Zero;
     public float Zoom { get; private set; } = 1f;
-    public float MinZoom { get; set; } = 0.4f;
+    public float MinZoom { get; set; } = 0.75f;
     public float MaxZoom { get; set; } = 3f;
 
     public Matrix GetTransformMatrix()
@@ -18,6 +18,11 @@ public sealed class Camera2D
     public void Move(Vector2 delta)
     {
         Position += delta;
+    }
+
+    public void SetPosition(Vector2 position)
+    {
+        Position = position;
     }
 
     public void SetZoom(float zoom)

@@ -136,3 +136,34 @@ Stato: implementato in pacchetto Step 11.
 - Il file `Data/maps/default-map.json` ora rappresenta un arcipelago con più isole e coste più irregolari/naturali.
 - L'isola iniziale resta visibile; le isole successive sono coperte da nuvole e usano `hiddenRows` per rivelare terreno, boschi e montagne allo sblocco.
 - La modifica è solo dati/documentazione: non cambia sistemi Core, input o rendering.
+
+## Step 11C - Mappa grande centrata e zoom limitato
+Stato: preparato.
+
+Modifiche:
+- mappa default portata a 128x80 celle, cioè 4x l'area della 64x40;
+- isola iniziale visibile al centro della mappa;
+- isole future coperte da nuvole con terreno reale in hiddenRows;
+- zoom minimo aumentato a 0.75 per obbligare l'esplorazione tramite pan;
+- camera iniziale centrata sull'isola/mappa;
+- capacità batteria della pala eolica ridotta da 10 a 5.
+
+## Step 12 - Salvataggio e caricamento partita
+
+Stato: preparato.
+
+Aggiunto sistema di salvataggio JSON in `GridPowerTycoon.Core.Save`.
+
+Il salvataggio conserva:
+- risorse: energia, capacità massima, ricerca, denaro, asce, mine;
+- mappa completa: tipo cella, eventuale terreno coperto sotto le nuvole, edificio presente;
+- edifici: id istanza, definizione, posizione, vita residua, calore accumulato, stato Active/Expired/Exploded;
+- ricerche completate;
+- livelli upgrade acquistati.
+
+MonoGame ora usa `Saves/savegame.json` nella cartella di output. Se il file esiste viene caricato all'avvio; con F5 si salva manualmente, con F9 si ricarica, con ESC il gioco salva prima di uscire.
+
+
+## Step 12A - Durata pannelli solari
+
+Stato: completato. Il valore `lifetimeSeconds` del pannello solare in `buildings.json` è stato aumentato da 30 a 180 secondi.

@@ -12,7 +12,7 @@
       "energyPerSecond": 1,
       "heatPerSecond": 0,
       "researchPerSecond": 0,
-      "batteryCapacity": 10,
+      "batteryCapacity": 5,
       "autoSellPerSecond": 0,
       "heatConversionPerSecond": 0,
       "heatRange": 0,
@@ -84,7 +84,7 @@
     {
       "id": "solar_panel",
       "name": "Pannello solare",
-      "description": "Produce calore che dovrà essere convertito da un generatore vicino.",
+      "description": "Produce calore che dovrà essere convertito da un generatore vicino. Ha una durata superiore alla pala eolica, ma richiede gestione del calore.",
       "category": "HeatProducer",
       "cost": 200,
       "width": 1,
@@ -96,7 +96,7 @@
       "autoSellPerSecond": 0,
       "heatConversionPerSecond": 0,
       "heatRange": 0,
-      "lifetimeSeconds": 30,
+      "lifetimeSeconds": 180,
       "requiredResearchId": "solar_power",
       "unlockLevel": 1,
       "energyConsumptionPerSecond": 0

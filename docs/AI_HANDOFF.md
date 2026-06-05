@@ -162,3 +162,36 @@ Core additions: `AreaUnlockSettings`, `AreaUnlockSystem`, `AreaUnlockResult`, `A
 - Il file `Data/maps/default-map.json` ora rappresenta un arcipelago con più isole e coste più irregolari/naturali.
 - L'isola iniziale resta visibile; le isole successive sono coperte da nuvole e usano `hiddenRows` per rivelare terreno, boschi e montagne allo sblocco.
 - La modifica è solo dati/documentazione: non cambia sistemi Core, input o rendering.
+
+## Step 11C - Large centered archipelago and camera zoom limit
+- Default map expanded from 64x40 to 128x80 cells, giving 4x the previous area.
+- Initial visible island is now centered in the map; surrounding islands remain cloud-covered and reveal their real terrain from hiddenRows.
+- Camera now starts centered on the map/initial island instead of the top-left corner.
+- Camera minimum zoom increased from 0.40 to 0.75 so the player cannot zoom out to see too much of the archipelago at once and must pan to explore.
+- Wind turbine battery capacity contribution reduced from 10 to 5 in buildings.json.
+
+## Step 12 - Save/load JSON
+
+Added `GridPowerTycoon.Core.Save` with `SaveGame`, `SaveResources`, `SaveMap`, `SaveTile`, `SaveBuildingInstance` and `SaveGameService`.
+
+`SaveGameService.CreateSave(GameWorld)` snapshots resources, full map state, building instances, completed research and upgrade levels. `RestoreWorld(SaveGame, GameData)` rebuilds a `GameWorld` from the save while reusing the current game data catalogs/settings.
+
+Support methods were added:
+- `ResourceState.Restore(...)` restores resources safely.
+- `BuildingInstance.Restore(...)` recreates instances with lifetime, heat and state.
+- `UpgradeState.SetLevel(...)` restores purchased upgrade levels.
+
+MonoGame integration:
+- Save path: `AppContext.BaseDirectory/Saves/savegame.json`.
+- Startup loads the save if it exists, otherwise starts a new world from `default-map.json`.
+- F5 saves.
+- F9 loads.
+- ESC saves then exits.
+- Bottom status bar shows save/load messages and key hints.
+
+Tests added under `tests/GridPowerTycoon.Core.Tests/Save/SaveGameServiceTests.cs` for round-tripping resources, map state, buildings, research and upgrades.
+
+
+## Step 12A
+
+Bilanciamento: il pannello solare ora ha `lifetimeSeconds: 180` in `Data/buildings.json`, invece dei 30 secondi iniziali. La modifica è solo dati/documentazione e non cambia la logica.
