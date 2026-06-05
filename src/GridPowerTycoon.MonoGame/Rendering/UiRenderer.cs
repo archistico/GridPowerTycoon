@@ -503,9 +503,13 @@ public sealed class UiRenderer
 
         _text.DrawString(spriteBatch, "CLOUD AREA", new Vector2(panel.X + 12, panel.Y + 12), new Color(235, 240, 245), 2);
         _text.DrawString(spriteBatch, $"CELL {tile.Position.X},{tile.Position.Y}", new Vector2(panel.X + 12, panel.Y + 48), new Color(210, 222, 235), 1);
+        var tilesToUnlock = CountUnlockableCloudTiles(selectedCloudPosition.Value);
+
         _text.DrawString(spriteBatch, $"REVEALS {revealText}", new Vector2(panel.X + 12, panel.Y + 70), new Color(210, 222, 235), 1);
-        _text.DrawString(spriteBatch, $"COST ${FormatNumber((double)_world.AreaUnlockSettings.CloudUnlockMoneyCost)}", new Vector2(panel.X + 12, panel.Y + 92), new Color(255, 225, 120), 1);
-        _text.DrawString(spriteBatch, $"COST R{FormatNumber(_world.AreaUnlockSettings.CloudUnlockResearchCost)}", new Vector2(panel.X + 12, panel.Y + 114), new Color(210, 190, 255), 1);
+        _text.DrawString(spriteBatch, $"UNLOCKS UP TO {tilesToUnlock} TILES", new Vector2(panel.X + 12, panel.Y + 92), new Color(210, 222, 235), 1);
+        _text.DrawString(spriteBatch, $"RADIUS {_world.AreaUnlockSettings.CloudUnlockRadius} MAX {_world.AreaUnlockSettings.MaxCloudTilesPerUnlock}", new Vector2(panel.X + 12, panel.Y + 114), new Color(170, 185, 205), 1);
+        _text.DrawString(spriteBatch, $"COST ${FormatNumber((double)_world.AreaUnlockSettings.CloudUnlockMoneyCost)}", new Vector2(panel.X + 12, panel.Y + 136), new Color(255, 225, 120), 1);
+        _text.DrawString(spriteBatch, $"COST R{FormatNumber(_world.AreaUnlockSettings.CloudUnlockResearchCost)}", new Vector2(panel.X + 12, panel.Y + 158), new Color(210, 190, 255), 1);
 
         var unlockButton = GetUnlockCloudButtonRectangle(viewport);
         spriteBatch.Draw(_pixel, unlockButton, CanUnlockCloud() ? new Color(88, 118, 72) : new Color(80, 80, 84));
@@ -517,6 +521,66 @@ public sealed class UiRenderer
     {
         return _world.Resources.Money >= _world.AreaUnlockSettings.CloudUnlockMoneyCost &&
                _world.Resources.Research >= _world.AreaUnlockSettings.CloudUnlockResearchCost;
+    }
+
+    private int CountUnlockableCloudTiles(GridPosition start)
+    {
+        if (!_world.Map.Contains(start))
+            return 0;
+
+        var startTile = _world.Map.GetTile(start);
+        if (startTile.Type != TileType.Cloud || !startTile.CoveredType.HasValue)
+            return 0;
+
+        var radius = Math.Max(0, _world.AreaUnlockSettings.CloudUnlockRadius);
+        var maxTiles = Math.Max(1, _world.AreaUnlockSettings.MaxCloudTilesPerUnlock);
+        var count = 0;
+        var visited = new HashSet<GridPosition>();
+        var queue = new Queue<GridPosition>();
+
+        queue.Enqueue(start);
+        visited.Add(start);
+
+        while (queue.Count > 0 && count < maxTiles)
+        {
+            var current = queue.Dequeue();
+            var distance = Math.Abs(current.X - start.X) + Math.Abs(current.Y - start.Y);
+            if (distance > radius)
+                continue;
+
+            if (_world.Map.Contains(current))
+            {
+                var tile = _world.Map.GetTile(current);
+                if (tile.Type == TileType.Cloud && tile.CoveredType.HasValue && !tile.HasBuilding)
+                    count++;
+            }
+
+            foreach (var neighbor in GetCardinalNeighbors(current))
+            {
+                if (visited.Contains(neighbor) || !_world.Map.Contains(neighbor))
+                    continue;
+
+                var neighborDistance = Math.Abs(neighbor.X - start.X) + Math.Abs(neighbor.Y - start.Y);
+                if (neighborDistance > radius)
+                    continue;
+
+                if (_world.Map.GetTile(neighbor).Type != TileType.Cloud)
+                    continue;
+
+                visited.Add(neighbor);
+                queue.Enqueue(neighbor);
+            }
+        }
+
+        return count;
+    }
+
+    private static IEnumerable<GridPosition> GetCardinalNeighbors(GridPosition position)
+    {
+        yield return new GridPosition(position.X + 1, position.Y);
+        yield return new GridPosition(position.X - 1, position.Y);
+        yield return new GridPosition(position.X, position.Y + 1);
+        yield return new GridPosition(position.X, position.Y - 1);
     }
 
     private void DrawStatus(SpriteBatch spriteBatch, Viewport viewport, string? selectedBuildingId, BuildResult? lastBuildResult, ResearchResult? lastResearchResult, TerrainClearResult? lastTerrainClearResult, AreaUnlockResult? lastAreaUnlockResult, UpgradeResult? lastUpgradeResult, string? saveLoadMessage)
@@ -550,7 +614,7 @@ public sealed class UiRenderer
         if (lastAreaUnlockResult is not null)
         {
             message = lastAreaUnlockResult.Success
-                ? $"AREA UNLOCKED {lastAreaUnlockResult.RevealedTileType}"
+                ? $"AREA UNLOCKED {lastAreaUnlockResult.TilesUnlocked} TILES"
                 : $"UNLOCK FAILED {lastAreaUnlockResult.FailureReason}";
         }
 
@@ -614,7 +678,7 @@ public sealed class UiRenderer
     private static Rectangle GetSelectedCloudPanelRectangle(Viewport viewport)
     {
         var width = 330;
-        var height = 190;
+        var height = 242;
         return new Rectangle(Math.Max(SideMenuWidth + 10, viewport.Width - width - 20), Math.Max(TopBarHeight + 10, viewport.Height - height - 58), width, height);
     }
 

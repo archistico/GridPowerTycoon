@@ -16,3 +16,7 @@ La mappa principale è ora pensata come un arcipelago ampio, con isola iniziale 
 
 ## Offline progress rule
 Offline progress uses the same economy direction as live play, but with a safety rule: buildings may expire while the player is away, while heat explosions are not triggered offline. This prevents a return-to-game experience where a large part of the grid is destroyed without player interaction. The maximum offline duration is controlled by `economy.json` through `maxOfflineSeconds`.
+
+## Cloud expansion groups
+
+On the large map, unlocking clouds one cell at a time is too slow and repetitive. Cloud expansion now reveals a small connected group around the selected cell. The amount is controlled by JSON, so the pacing can be adjusted without recompiling. The current default reveals up to 9 connected cloud tiles within radius 2 for a fixed money/research cost.

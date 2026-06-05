@@ -96,6 +96,12 @@ public sealed class GameDataLoader
 
         if (settings.CloudUnlockResearchCost < 0)
             throw new InvalidOperationException("cloudUnlockResearchCost cannot be negative.");
+
+        if (settings.CloudUnlockRadius < 0)
+            throw new InvalidOperationException("cloudUnlockRadius cannot be negative.");
+
+        if (settings.MaxCloudTilesPerUnlock <= 0)
+            throw new InvalidOperationException("maxCloudTilesPerUnlock must be greater than zero.");
     }
 
 

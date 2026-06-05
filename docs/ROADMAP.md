@@ -177,3 +177,9 @@ When a save exists at startup, the game computes the elapsed time since `SavedAt
 ## Step 13 fix - OfflineProgressResult None
 
 Fixed `OfflineProgressResult.None` constructor arguments after adding `BuildingsExploded`, so the Core project compiles with the offline progress model.
+
+## Step 14 - Cloud area group unlock
+
+Status: prepared.
+
+Cloud unlocking now reveals a small connected group instead of a single tile. The action still starts from one cloud tile, but the system uses `cloudUnlockRadius` and `maxCloudTilesPerUnlock` from `Data/area-unlock.json` to reveal a bounded group of connected cloud cells. This makes expansion on the large 128x80 map less repetitive while keeping the cost and pace configurable.

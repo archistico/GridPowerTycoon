@@ -79,7 +79,40 @@ public sealed class AreaUnlockSystemTests
         Assert.Equal(9, world.Resources.Research);
     }
 
-    private static GameWorld CreateWorld(decimal startingMoney, double startingResearch)
+
+    [Fact]
+    public void UnlockCloud_WithRadius_ShouldRevealConnectedCloudGroupUpToConfiguredMaximum()
+    {
+        var world = CreateWorld(startingMoney: 1000, startingResearch: 50, radius: 2, maxTiles: 4);
+        var positions = new[]
+        {
+            new GridPosition(1, 1),
+            new GridPosition(2, 1),
+            new GridPosition(1, 2),
+            new GridPosition(2, 2),
+            new GridPosition(3, 3)
+        };
+
+        foreach (var position in positions)
+        {
+            var tile = world.Map.GetTile(position);
+            tile.SetType(TileType.Cloud);
+            tile.SetCoveredType(TileType.Land);
+        }
+
+        var system = new AreaUnlockSystem(world);
+
+        var result = system.UnlockCloud(new GridPosition(1, 1));
+
+        Assert.True(result.Success);
+        Assert.Equal(4, result.TilesUnlocked);
+        Assert.Equal(4, positions.Count(x => world.Map.GetTile(x).Type == TileType.Land));
+        Assert.Equal(TileType.Cloud, world.Map.GetTile(new GridPosition(3, 3)).Type);
+        Assert.Equal(500, world.Resources.Money);
+        Assert.Equal(40, world.Resources.Research);
+    }
+
+    private static GameWorld CreateWorld(decimal startingMoney, double startingResearch, int radius = 0, int maxTiles = 1)
     {
         var map = new GridMap(4, 4, TileType.Land);
         var catalog = BuildingCatalog.FromDefinitions(new[]
@@ -103,7 +136,9 @@ public sealed class AreaUnlockSystemTests
         var areaUnlock = new AreaUnlockSettings
         {
             CloudUnlockMoneyCost = 500,
-            CloudUnlockResearchCost = 10
+            CloudUnlockResearchCost = 10,
+            CloudUnlockRadius = radius,
+            MaxCloudTilesPerUnlock = maxTiles
         };
 
         return new GameWorld(map, new GameData(catalog, economy, GridPowerTycoon.Core.Research.ResearchCatalog.Empty, new GridPowerTycoon.Core.Heat.HeatSettings(), new GridPowerTycoon.Core.Tools.ToolSettings(), GridPowerTycoon.Core.Upgrades.UpgradeCatalog.Empty, areaUnlock));
