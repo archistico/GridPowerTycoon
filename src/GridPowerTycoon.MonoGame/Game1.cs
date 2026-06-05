@@ -39,6 +39,7 @@ public sealed class Game1 : Game
     private SaveGameService _saveGameService = null!;
     private GameData _gameData = null!;
     private string _savePath = string.Empty;
+    private string _dataDirectory = string.Empty;
     private string? _lastSaveLoadMessage;
 
     private string? _selectedBuildingId = "wind_turbine";
@@ -80,7 +81,8 @@ public sealed class Game1 : Game
         StartFullscreen();
 
         var loader = new GameDataLoader();
-        var dataDirectory = Path.Combine(AppContext.BaseDirectory, "Data");
+        _dataDirectory = Path.Combine(AppContext.BaseDirectory, "Data");
+        var dataDirectory = _dataDirectory;
         var buildings = loader.LoadBuildingCatalog(Path.Combine(dataDirectory, "buildings.json"));
         var economy = loader.LoadEconomySettings(Path.Combine(dataDirectory, "economy.json"));
         var research = loader.LoadResearchCatalog(Path.Combine(dataDirectory, "research.json"));
@@ -115,7 +117,10 @@ public sealed class Game1 : Game
         _camera = new Camera2D();
         CenterCameraOnInitialIsland();
         _input = new InputManager();
-        _cameraInput = new CameraInputController(_camera, _input);
+        _cameraInput = new CameraInputController(
+            _camera,
+            _input,
+            point => _uiRenderer?.IsMouseOverUi(point, GraphicsDevice.Viewport) == true);
 
         base.Initialize();
     }
@@ -183,6 +188,8 @@ public sealed class Game1 : Game
 
         if (_input.IsKeyPressed(Keys.F9))
             LoadCurrentGame();
+
+        _uiRenderer.HandleScroll(new Point(_input.CurrentMouse.X, _input.CurrentMouse.Y), _input.CurrentMouse.ScrollWheelValue - _input.PreviousMouse.ScrollWheelValue, GraphicsDevice.Viewport);
 
         HandleBuildSelectionInput();
 
@@ -259,9 +266,42 @@ public sealed class Game1 : Game
         }
 
         ConfigureWorld(_saveGameService.LoadFromFile(_savePath, _gameData));
+        CenterCameraOnInitialIsland();
         _lastResearchResult = null;
         _lastUpgradeResult = null;
         _lastSaveLoadMessage = "GAME LOADED";
+    }
+
+    private void StartNewGame()
+    {
+        var loader = new GameDataLoader();
+        var map = loader.LoadMap(Path.Combine(_dataDirectory, "maps", "default-map.json"));
+
+        ConfigureWorld(new GameWorld(map, _gameData));
+        CenterCameraOnInitialIsland();
+        _selectedBuildingId = "wind_turbine";
+        _lastResearchResult = null;
+        _lastUpgradeResult = null;
+        _lastSaveLoadMessage = "NEW GAME STARTED";
+    }
+
+    private void ToggleFullscreen()
+    {
+        if (_graphics.IsFullScreen)
+        {
+            _graphics.IsFullScreen = false;
+            _graphics.PreferredBackBufferWidth = 1280;
+            _graphics.PreferredBackBufferHeight = 720;
+            _graphics.ApplyChanges();
+            _lastSaveLoadMessage = "WINDOWED MODE";
+        }
+        else
+        {
+            StartFullscreen();
+            _lastSaveLoadMessage = "FULLSCREEN MODE";
+        }
+
+        CenterCameraOnInitialIsland();
     }
 
     private static string FormatOfflineProgress(OfflineProgressResult result)
@@ -343,8 +383,39 @@ public sealed class Game1 : Game
             return;
         }
 
+        if (_input.IsLeftClickPressed() && _uiRenderer.IsSaveButtonAt(mousePoint, GraphicsDevice.Viewport))
+        {
+            SaveCurrentGame();
+            return;
+        }
+
+        if (_input.IsLeftClickPressed() && _uiRenderer.IsLoadButtonAt(mousePoint, GraphicsDevice.Viewport))
+        {
+            LoadCurrentGame();
+            return;
+        }
+
+        if (_input.IsLeftClickPressed() && _uiRenderer.IsNewGameButtonAt(mousePoint, GraphicsDevice.Viewport))
+        {
+            StartNewGame();
+            return;
+        }
+
+        if (_input.IsLeftClickPressed() && _uiRenderer.IsToggleFullscreenButtonAt(mousePoint, GraphicsDevice.Viewport))
+        {
+            ToggleFullscreen();
+            return;
+        }
+
+        if (_input.IsLeftClickPressed() && _uiRenderer.IsExitButtonAt(mousePoint, GraphicsDevice.Viewport))
+        {
+            SaveCurrentGame();
+            Exit();
+            return;
+        }
+
         if (_input.IsLeftClickPressed() &&
-            _uiRenderer.TryGetResearchButtonAt(mousePoint, out var clickedResearchId))
+            _uiRenderer.TryGetResearchButtonAt(mousePoint, GraphicsDevice.Viewport, out var clickedResearchId))
         {
             _lastResearchResult = _researchSystem.Complete(clickedResearchId);
             _lastUpgradeResult = null;
@@ -393,7 +464,7 @@ public sealed class Game1 : Game
             return;
         }
 
-        if (_input.IsLeftClickPressed() && _uiRenderer.TryGetBuildingButtonAt(mousePoint, out var clickedBuildingId))
+        if (_input.IsLeftClickPressed() && _uiRenderer.TryGetBuildingButtonAt(mousePoint, GraphicsDevice.Viewport, out var clickedBuildingId))
         {
             _selectedBuildingId = clickedBuildingId;
             _lastResearchResult = null;

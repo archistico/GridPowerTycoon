@@ -242,3 +242,23 @@ Stato: completato. Aumentati i `costGrowthMultiplier` in `upgrades.json` per ren
 - The clicked map cell remains selected and highlighted until another cell is selected.
 - Building, terrain and cloud details now use the same property rows, so values stay in predictable positions across different selections.
 - Context actions (REPLACE, RESTORE, CLEAR, UNLOCK) are shown in the fixed properties column.
+
+## Step 18C - Scroll nelle colonne BUILD/RESEARCH/UPGRADE
+
+Stato: preparato.
+
+Le tre colonne laterali ora hanno scroll indipendente tramite rotella del mouse. La rotella sopra BUILD, RESEARCH o UPGRADE scorre solo quella colonna e non modifica lo zoom della mappa. I bottoni fuori dall'area visibile non sono cliccabili. La camera ignora zoom e pan del mouse quando il puntatore è sopra la UI, mantenendo separati input mappa e input interfaccia.
+
+## Step 18D - Game command buttons
+
+Status: prepared.
+
+Added visible command buttons in the bottom status bar so the game no longer depends only on keyboard shortcuts:
+
+- SAVE
+- LOAD
+- NEW
+- VIEW
+- EXIT
+
+The old keyboard shortcuts remain available: F5 saves, F9 loads, ESC saves and exits. VIEW toggles fullscreen/windowed mode. NEW starts a fresh world from the current JSON data without immediately overwriting the save file.

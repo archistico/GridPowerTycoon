@@ -82,6 +82,10 @@ public sealed class UiRenderer
     private readonly Texture2D _pixel;
     private readonly PixelTextRenderer _text;
 
+    private int _buildScrollOffset;
+    private int _researchScrollOffset;
+    private int _upgradeScrollOffset;
+
     public UiRenderer(GameWorld world, Texture2D pixel)
     {
         _world = world;
@@ -111,9 +115,9 @@ public sealed class UiRenderer
         spriteBatch.Draw(_pixel, sideMenu, new Color(38, 48, 62));
 
         DrawTopBar(spriteBatch, topBar, viewport);
-        DrawBuildMenu(spriteBatch, selectedBuildingId);
-        DrawResearchMenu(spriteBatch);
-        DrawUpgradeMenu(spriteBatch);
+        DrawBuildMenu(spriteBatch, viewport, selectedBuildingId);
+        DrawResearchMenu(spriteBatch, viewport);
+        DrawUpgradeMenu(spriteBatch, viewport);
         DrawPropertiesPanel(spriteBatch, viewport, selectedTilePosition, selectedMapBuildingId, selectedTerrainPosition, selectedCloudPosition);
         DrawStatus(spriteBatch, viewport, selectedBuildingId, lastBuildResult, lastResearchResult, lastTerrainClearResult, lastAreaUnlockResult, lastUpgradeResult, saveLoadMessage);
     }
@@ -125,9 +129,61 @@ public sealed class UiRenderer
                GetPropertiesPanelRectangle(viewport).Contains(mousePosition);
     }
 
+    public void HandleScroll(Point mousePosition, int scrollDelta, Viewport viewport)
+    {
+        if (scrollDelta == 0)
+            return;
+
+        if (!GetSideMenuRectangle(viewport).Contains(mousePosition))
+            return;
+
+        const int scrollStep = 90;
+        var delta = scrollDelta > 0 ? -scrollStep : scrollStep;
+
+        if (mousePosition.X >= GetBuildColumnX() && mousePosition.X < GetBuildColumnX() + ColumnWidth)
+        {
+            _buildScrollOffset = ClampScrollOffset(_buildScrollOffset + delta, BuildButtonIds.Length, 58, viewport);
+            return;
+        }
+
+        if (mousePosition.X >= GetResearchColumnX() && mousePosition.X < GetResearchColumnX() + ColumnWidth)
+        {
+            _researchScrollOffset = ClampScrollOffset(_researchScrollOffset + delta, ResearchButtonIds.Length, 58, viewport);
+            return;
+        }
+
+        if (mousePosition.X >= GetUpgradeColumnX() && mousePosition.X < GetUpgradeColumnX() + ColumnWidth)
+            _upgradeScrollOffset = ClampScrollOffset(_upgradeScrollOffset + delta, UpgradeButtonIds.Length, 50, viewport);
+    }
+
     public bool IsSellButtonAt(Point mousePosition, Viewport viewport)
     {
         return GetSellButtonRectangle(viewport).Contains(mousePosition);
+    }
+
+    public bool IsSaveButtonAt(Point mousePosition, Viewport viewport)
+    {
+        return GetSaveButtonRectangle(viewport).Contains(mousePosition);
+    }
+
+    public bool IsLoadButtonAt(Point mousePosition, Viewport viewport)
+    {
+        return GetLoadButtonRectangle(viewport).Contains(mousePosition);
+    }
+
+    public bool IsNewGameButtonAt(Point mousePosition, Viewport viewport)
+    {
+        return GetNewGameButtonRectangle(viewport).Contains(mousePosition);
+    }
+
+    public bool IsToggleFullscreenButtonAt(Point mousePosition, Viewport viewport)
+    {
+        return GetToggleFullscreenButtonRectangle(viewport).Contains(mousePosition);
+    }
+
+    public bool IsExitButtonAt(Point mousePosition, Viewport viewport)
+    {
+        return GetExitButtonRectangle(viewport).Contains(mousePosition);
     }
 
     public bool IsReplaceButtonAt(Point mousePosition, Viewport viewport, Guid? selectedMapBuildingId)
@@ -174,11 +230,12 @@ public sealed class UiRenderer
         return GetUnlockCloudButtonRectangle(viewport).Contains(mousePosition);
     }
 
-    public bool TryGetBuildingButtonAt(Point mousePosition, out string? buildingId)
+    public bool TryGetBuildingButtonAt(Point mousePosition, Viewport viewport, out string? buildingId)
     {
         for (var i = 0; i < BuildButtonIds.Length; i++)
         {
-            if (GetBuildButtonRectangle(i).Contains(mousePosition))
+            var rect = GetBuildButtonRectangle(i);
+            if (IsMenuButtonVisible(rect, viewport) && rect.Contains(mousePosition))
             {
                 buildingId = BuildButtonIds[i];
                 return true;
@@ -189,11 +246,12 @@ public sealed class UiRenderer
         return false;
     }
 
-    public bool TryGetResearchButtonAt(Point mousePosition, out string researchId)
+    public bool TryGetResearchButtonAt(Point mousePosition, Viewport viewport, out string researchId)
     {
         for (var i = 0; i < ResearchButtonIds.Length; i++)
         {
-            if (GetResearchButtonRectangle(i).Contains(mousePosition))
+            var rect = GetResearchButtonRectangle(i);
+            if (IsMenuButtonVisible(rect, viewport) && rect.Contains(mousePosition))
             {
                 researchId = ResearchButtonIds[i];
                 return true;
@@ -208,7 +266,8 @@ public sealed class UiRenderer
     {
         for (var i = 0; i < UpgradeButtonIds.Length; i++)
         {
-            if (GetUpgradeButtonRectangle(i).Contains(mousePosition))
+            var rect = GetUpgradeButtonRectangle(i);
+            if (IsMenuButtonVisible(rect, viewport) && rect.Contains(mousePosition))
             {
                 upgradeId = UpgradeButtonIds[i];
                 return true;
@@ -274,15 +333,19 @@ public sealed class UiRenderer
         _text.DrawString(spriteBatch, percentText, new Vector2(rect.X + 10, rect.Y + 11), new Color(235, 245, 255), 1);
     }
 
-    private void DrawBuildMenu(SpriteBatch spriteBatch, string? selectedBuildingId)
+    private void DrawBuildMenu(SpriteBatch spriteBatch, Viewport viewport, string? selectedBuildingId)
     {
         var headerX = GetBuildColumnX();
         _text.DrawString(spriteBatch, "BUILD", new Vector2(headerX, MenuHeaderY), new Color(230, 238, 245), 2);
+
+        DrawColumnScrollHint(spriteBatch, viewport, headerX, _buildScrollOffset, BuildButtonIds.Length, 58);
 
         for (var i = 0; i < BuildButtonIds.Length; i++)
         {
             var id = BuildButtonIds[i];
             var rect = GetBuildButtonRectangle(i);
+            if (!IsMenuButtonVisible(rect, viewport))
+                continue;
             var isSelected = string.Equals(selectedBuildingId, id, StringComparison.OrdinalIgnoreCase);
 
             _world.BuildingCatalog.TryGet(id, out var definition);
@@ -307,15 +370,19 @@ public sealed class UiRenderer
         }
     }
 
-    private void DrawResearchMenu(SpriteBatch spriteBatch)
+    private void DrawResearchMenu(SpriteBatch spriteBatch, Viewport viewport)
     {
         var headerX = GetResearchColumnX();
         _text.DrawString(spriteBatch, "RESEARCH", new Vector2(headerX, MenuHeaderY), new Color(230, 238, 245), 2);
+
+        DrawColumnScrollHint(spriteBatch, viewport, headerX, _researchScrollOffset, ResearchButtonIds.Length, 58);
 
         for (var i = 0; i < ResearchButtonIds.Length; i++)
         {
             var id = ResearchButtonIds[i];
             var rect = GetResearchButtonRectangle(i);
+            if (!IsMenuButtonVisible(rect, viewport))
+                continue;
 
             _world.ResearchCatalog.TryGet(id, out var definition);
             var completed = _world.Research.IsCompleted(id);
@@ -340,15 +407,19 @@ public sealed class UiRenderer
         }
     }
 
-    private void DrawUpgradeMenu(SpriteBatch spriteBatch)
+    private void DrawUpgradeMenu(SpriteBatch spriteBatch, Viewport viewport)
     {
         var headerX = GetUpgradeColumnX();
         _text.DrawString(spriteBatch, "UPGRADE", new Vector2(headerX, MenuHeaderY), new Color(230, 238, 245), 2);
+
+        DrawColumnScrollHint(spriteBatch, viewport, headerX, _upgradeScrollOffset, UpgradeButtonIds.Length, 50);
 
         for (var i = 0; i < UpgradeButtonIds.Length; i++)
         {
             var id = UpgradeButtonIds[i];
             var rect = GetUpgradeButtonRectangle(i);
+            if (!IsMenuButtonVisible(rect, viewport))
+                continue;
 
             _world.UpgradeCatalog.TryGet(id, out var definition);
             var level = definition is null ? 0 : _world.Upgrades.GetLevel(id);
@@ -919,8 +990,25 @@ public sealed class UiRenderer
 
         var properties = GetPropertiesPanelRectangle(viewport);
         spriteBatch.Draw(_pixel, new Rectangle(SideMenuWidth, viewport.Height - 44, Math.Max(0, properties.X - SideMenuWidth), 44), new Color(25, 31, 42));
-        _text.DrawString(spriteBatch, message, new Vector2(SideMenuWidth + 14, y), new Color(230, 238, 245), 1);
-        _text.DrawString(spriteBatch, "F5 SAVE  F9 LOAD  ESC SAVE+EXIT", new Vector2(Math.Max(SideMenuWidth + 360, GetPropertiesPanelRectangle(viewport).X - 300), y), new Color(170, 185, 205), 1);
+        _text.DrawString(spriteBatch, Shorten(message, 68), new Vector2(SideMenuWidth + 14, y), new Color(230, 238, 245), 1);
+
+        DrawGameCommandButtons(spriteBatch, viewport);
+    }
+
+    private void DrawGameCommandButtons(SpriteBatch spriteBatch, Viewport viewport)
+    {
+        DrawSmallCommandButton(spriteBatch, GetSaveButtonRectangle(viewport), "SAVE", new Color(54, 78, 103));
+        DrawSmallCommandButton(spriteBatch, GetLoadButtonRectangle(viewport), "LOAD", new Color(54, 78, 103));
+        DrawSmallCommandButton(spriteBatch, GetNewGameButtonRectangle(viewport), "NEW", new Color(74, 64, 96));
+        DrawSmallCommandButton(spriteBatch, GetToggleFullscreenButtonRectangle(viewport), "VIEW", new Color(66, 82, 78));
+        DrawSmallCommandButton(spriteBatch, GetExitButtonRectangle(viewport), "EXIT", new Color(96, 58, 58));
+    }
+
+    private void DrawSmallCommandButton(SpriteBatch spriteBatch, Rectangle rect, string label, Color background)
+    {
+        spriteBatch.Draw(_pixel, rect, background);
+        DrawOutline(spriteBatch, rect, new Color(120, 140, 165), 1);
+        _text.DrawString(spriteBatch, label, new Vector2(rect.X + 8, rect.Y + 8), new Color(235, 240, 245), 1);
     }
 
     private bool IsBuildingUnlocked(BuildingDefinition definition)
@@ -950,6 +1038,43 @@ public sealed class UiRenderer
         var sellButton = GetSellButtonRectangle(viewport);
         var width = Math.Clamp(viewport.Width / 7, 120, 190);
         return new Rectangle(Math.Max(10, sellButton.X - width - 14), 21, width, 32);
+    }
+
+    private static Rectangle GetSaveButtonRectangle(Viewport viewport)
+    {
+        var x = GetGameCommandButtonsStartX(viewport);
+        return new Rectangle(x, viewport.Height - 36, 56, 28);
+    }
+
+    private static Rectangle GetLoadButtonRectangle(Viewport viewport)
+    {
+        var save = GetSaveButtonRectangle(viewport);
+        return new Rectangle(save.Right + 8, save.Y, 56, 28);
+    }
+
+    private static Rectangle GetNewGameButtonRectangle(Viewport viewport)
+    {
+        var load = GetLoadButtonRectangle(viewport);
+        return new Rectangle(load.Right + 8, load.Y, 48, 28);
+    }
+
+    private static Rectangle GetToggleFullscreenButtonRectangle(Viewport viewport)
+    {
+        var newGame = GetNewGameButtonRectangle(viewport);
+        return new Rectangle(newGame.Right + 8, newGame.Y, 56, 28);
+    }
+
+    private static Rectangle GetExitButtonRectangle(Viewport viewport)
+    {
+        var view = GetToggleFullscreenButtonRectangle(viewport);
+        return new Rectangle(view.Right + 8, view.Y, 56, 28);
+    }
+
+    private static int GetGameCommandButtonsStartX(Viewport viewport)
+    {
+        var properties = GetPropertiesPanelRectangle(viewport);
+        const int totalWidth = 56 + 8 + 56 + 8 + 48 + 8 + 56 + 8 + 56;
+        return Math.Max(SideMenuWidth + 360, properties.X - totalWidth - 12);
     }
 
     public const int PropertiesPanelWidth = 380;
@@ -989,19 +1114,47 @@ public sealed class UiRenderer
     private static int GetResearchColumnX() => PanelMargin + ColumnWidth + ColumnGap;
     private static int GetUpgradeColumnX() => PanelMargin + (ColumnWidth + ColumnGap) * 2;
 
-    private static Rectangle GetBuildButtonRectangle(int index)
+    private Rectangle GetBuildButtonRectangle(int index)
     {
-        return new Rectangle(GetBuildColumnX(), MenuButtonsY + index * 58, ColumnWidth, 50);
+        return new Rectangle(GetBuildColumnX(), MenuButtonsY + index * 58 - _buildScrollOffset, ColumnWidth, 50);
     }
 
-    private static Rectangle GetResearchButtonRectangle(int index)
+    private Rectangle GetResearchButtonRectangle(int index)
     {
-        return new Rectangle(GetResearchColumnX(), MenuButtonsY + index * 58, ColumnWidth, 50);
+        return new Rectangle(GetResearchColumnX(), MenuButtonsY + index * 58 - _researchScrollOffset, ColumnWidth, 50);
     }
 
-    private static Rectangle GetUpgradeButtonRectangle(int index)
+    private Rectangle GetUpgradeButtonRectangle(int index)
     {
-        return new Rectangle(GetUpgradeColumnX(), MenuButtonsY + index * 50, ColumnWidth, 46);
+        return new Rectangle(GetUpgradeColumnX(), MenuButtonsY + index * 50 - _upgradeScrollOffset, ColumnWidth, 46);
+    }
+
+    private static bool IsMenuButtonVisible(Rectangle rect, Viewport viewport)
+    {
+        return rect.Top >= MenuButtonsY && rect.Bottom <= viewport.Height - 8;
+    }
+
+    private static int ClampScrollOffset(int offset, int itemCount, int itemStride, Viewport viewport)
+    {
+        var contentHeight = itemCount * itemStride;
+        var visibleHeight = Math.Max(1, viewport.Height - MenuButtonsY - 14);
+        var maxOffset = Math.Max(0, contentHeight - visibleHeight);
+        return Math.Clamp(offset, 0, maxOffset);
+    }
+
+    private void DrawColumnScrollHint(SpriteBatch spriteBatch, Viewport viewport, int x, int offset, int itemCount, int itemStride)
+    {
+        var maxOffset = ClampScrollOffset(int.MaxValue, itemCount, itemStride, viewport);
+        if (maxOffset <= 0)
+            return;
+
+        var text = offset <= 0
+            ? "MORE"
+            : offset >= maxOffset
+                ? "TOP"
+                : "SCROLL";
+
+        _text.DrawString(spriteBatch, text, new Vector2(x + ColumnWidth - 54, MenuHeaderY + 9), new Color(165, 180, 200), 1);
     }
 
     private static string GetUpgradeCostText(UpgradeDefinition definition, int currentLevel)

@@ -8,11 +8,13 @@ public sealed class CameraInputController
 {
     private readonly Camera2D _camera;
     private readonly InputManager _input;
+    private readonly Func<Point, bool>? _isMouseOverUi;
 
-    public CameraInputController(Camera2D camera, InputManager input)
+    public CameraInputController(Camera2D camera, InputManager input, Func<Point, bool>? isMouseOverUi = null)
     {
         _camera = camera;
         _input = input;
+        _isMouseOverUi = isMouseOverUi;
     }
 
     public void Update(GameTime gameTime)
@@ -29,7 +31,11 @@ public sealed class CameraInputController
         if (scrollDelta == 0)
             return;
 
-        var mousePosition = new Vector2(_input.CurrentMouse.X, _input.CurrentMouse.Y);
+        var mousePoint = new Point(_input.CurrentMouse.X, _input.CurrentMouse.Y);
+        if (_isMouseOverUi?.Invoke(mousePoint) == true)
+            return;
+
+        var mousePosition = mousePoint.ToVector2();
         _camera.ZoomAtScreenPoint(scrollDelta > 0 ? 1.1f : 1f / 1.1f, mousePosition);
     }
 
@@ -53,6 +59,10 @@ public sealed class CameraInputController
         {
             return;
         }
+
+        var mousePoint = new Point(_input.CurrentMouse.X, _input.CurrentMouse.Y);
+        if (_isMouseOverUi?.Invoke(mousePoint) == true)
+            return;
 
         var current = new Vector2(_input.CurrentMouse.X, _input.CurrentMouse.Y);
         var previous = new Vector2(_input.PreviousMouse.X, _input.PreviousMouse.Y);

@@ -280,3 +280,13 @@ Richiesta utente: aumentare la moltiplicazione del costo a ogni livello di aggio
 ## 2026-06-06 - Step 18B: fixed properties column
 
 The UI now has a fixed right-hand properties panel. MapInputController keeps a SelectedTilePosition in addition to selected building/terrain/cloud references. MapRenderer highlights the selected tile separately from hover/build preview. UiRenderer uses a unified property table for buildings, terrain and clouds, with stable row labels (TYPE, STATE, COST, LIFE, MANAGED, ENERGY IN/OUT, HEAT, RESEARCH, AUTO SELL, BATTERY, etc.). Context buttons are still routed through the same UiRenderer hit-test methods but are anchored in the fixed properties panel.
+
+## 2026-06-06 - Step 18C: scrollable left columns
+
+Added independent mouse-wheel scrolling for the fixed left UI columns BUILD, RESEARCH and UPGRADE. `UiRenderer` now keeps separate scroll offsets for each column, shifts button rectangles accordingly, clamps offsets to visible content height, and shows a small `MORE/TOP/SCROLL` hint in column headers when content overflows. Hit testing now respects the scrolled button positions and ignores off-screen buttons.
+
+`Game1.Update` forwards mouse-wheel deltas to `UiRenderer.HandleScroll(...)`. `CameraInputController` accepts an optional UI hit-test delegate and skips mouse wheel zoom / middle-button pan when the cursor is over UI, so scrolling menus no longer zooms the map.
+
+## 2026-06-06 - Step 18D Game command buttons
+
+Added explicit bottom status-bar command buttons in MonoGame UI: SAVE, LOAD, NEW, VIEW, EXIT. Game1 now handles these clicks through UiRenderer hit testing. NEW reloads the map from Data/maps/default-map.json and creates a fresh GameWorld using the already loaded GameData. VIEW toggles fullscreen/windowed mode and recenters the camera. Existing shortcuts are preserved: F5 save, F9 load, ESC save+exit.
