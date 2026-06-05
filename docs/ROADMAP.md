@@ -183,3 +183,7 @@ Fixed `OfflineProgressResult.None` constructor arguments after adding `Buildings
 Status: prepared.
 
 Cloud unlocking now reveals a small connected group instead of a single tile. The action still starts from one cloud tile, but the system uses `cloudUnlockRadius` and `maxCloudTilesPerUnlock` from `Data/area-unlock.json` to reveal a bounded group of connected cloud cells. This makes expansion on the large 128x80 map less repetitive while keeping the cost and pace configurable.
+
+## Step 15 - Stato operativo edifici più chiaro
+
+Aggiunto uno stato operativo derivato per gli edifici selezionati, distinto dallo stato persistente `Active/Expired/Exploded`. Il pannello edificio ora può mostrare condizioni come `NO ENERGY`, `HEAT WARNING` e `NO HEAT CONVERSION`, oltre ai valori effettivi correnti e ai valori lordi quando un edificio è fermo. Questo rende più chiaro perché un edificio produce, non produce, consuma, vende o accumula calore.

@@ -213,3 +213,7 @@ Fixed `OfflineProgressResult.None` constructor arguments after adding `Buildings
 Implemented area-based cloud unlocking. `AreaUnlockSettings` now includes `CloudUnlockRadius` and `MaxCloudTilesPerUnlock`. `AreaUnlockSystem.UnlockCloud` reveals the clicked cloud plus nearby connected cloud cells within a Manhattan radius, limited by the max tile count. `AreaUnlockResult` now reports `TilesUnlocked` and exposes the revealed tile list while keeping `RevealedTileType` for compatibility with older UI/status logic. The UI cloud panel now shows radius, max tiles, estimated tiles to unlock, and status reports how many tiles were unlocked.
 
 Current default in `Data/area-unlock.json`: radius 2, max 9 tiles per unlock, fixed action cost 2500 money and 25 research.
+
+## Step 15 - Stato operativo edifici
+
+Aggiunto namespace `GridPowerTycoon.Core.Operations` con `BuildingOperationalState`, `BuildingOperationalStatus` e `BuildingOperationalStatusCalculator`. Il calcolatore non modifica il mondo: produce solo diagnostica per UI/test. La UI usa questo stato nel pannello edificio per mostrare `ACTIVE`, `NO ENERGY`, `EXPIRED`, `EXPLODED`, `HEAT WARNING`, `NO HEAT CONVERSION`, output effettivi e output lordi quando l'edificio non sta producendo. Aggiunti test in `tests/GridPowerTycoon.Core.Tests/Operations/BuildingOperationalStatusCalculatorTests.cs`.

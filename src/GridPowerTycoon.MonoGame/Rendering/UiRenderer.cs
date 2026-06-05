@@ -4,6 +4,7 @@ using GridPowerTycoon.Core.Economy;
 using GridPowerTycoon.Core.Expansion;
 using GridPowerTycoon.Core.Research;
 using GridPowerTycoon.Core.Map;
+using GridPowerTycoon.Core.Operations;
 using GridPowerTycoon.Core.Tools;
 using GridPowerTycoon.Core.Upgrades;
 using GridPowerTycoon.Core.World;
@@ -380,8 +381,10 @@ public sealed class UiRenderer
         spriteBatch.Draw(_pixel, panel, new Color(30, 38, 52, 235));
         DrawOutline(spriteBatch, panel, new Color(95, 115, 140), 2);
 
+        var status = BuildingOperationalStatusCalculator.Calculate(_world, instance);
+
         _text.DrawString(spriteBatch, Shorten(definition.Name.ToUpperInvariant(), 28), new Vector2(panel.X + 12, panel.Y + 12), new Color(235, 240, 245), 2);
-        _text.DrawString(spriteBatch, $"STATE {instance.State.ToString().ToUpperInvariant()}", new Vector2(panel.X + 12, panel.Y + 46), GetStateColor(instance.State), 1);
+        _text.DrawString(spriteBatch, $"STATE {status.Label}", new Vector2(panel.X + 12, panel.Y + 46), GetOperationalStateColor(status.State), 1);
 
         var y = panel.Y + 66;
         var effectiveLifetime = UpgradeCalculator.GetLifetimeSeconds(_world, definition);
@@ -393,31 +396,40 @@ public sealed class UiRenderer
         DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"COST ${FormatNumber((double)definition.Cost)}", new Color(255, 225, 120));
         DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"SIZE {definition.Width}X{definition.Height}", new Color(180, 195, 215));
 
-        var energyConsumption = UpgradeCalculator.GetEnergyConsumptionPerSecond(_world, definition);
-        DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"ENERGY IN -{FormatNumber(energyConsumption)}/S", new Color(255, 165, 120));
+        DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"ENERGY IN -{FormatNumber(status.EnergyInputPerSecond)}/S", new Color(255, 165, 120));
 
-        var effectiveEnergy = UpgradeCalculator.GetEnergyPerSecond(_world, definition);
-        DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"ENERGY OUT +{FormatNumber(effectiveEnergy)}/S", new Color(135, 210, 255));
+        var grossEnergy = UpgradeCalculator.GetEnergyPerSecond(_world, definition);
+        DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"ENERGY OUT +{FormatNumber(status.EnergyOutputPerSecond)}/S", new Color(135, 210, 255));
+        if (Math.Abs(status.EnergyOutputPerSecond - grossEnergy) > 0.0001)
+            DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"ENERGY OUT GROSS +{FormatNumber(grossEnergy)}/S", new Color(100, 145, 180));
 
-        DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"HEAT OUT +{FormatNumber(definition.HeatPerSecond)}/S", new Color(245, 145, 55));
+        DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"HEAT OUT +{FormatNumber(status.HeatOutputPerSecond)}/S", new Color(245, 145, 55));
+        if (Math.Abs(status.HeatOutputPerSecond - definition.HeatPerSecond) > 0.0001)
+            DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"HEAT OUT GROSS +{FormatNumber(definition.HeatPerSecond)}/S", new Color(180, 105, 65));
 
         var effectiveHeatConversion = UpgradeCalculator.GetHeatConversionPerSecond(_world, definition);
-        DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"HEAT IN {FormatNumber(effectiveHeatConversion)}/S R{definition.HeatRange}", new Color(70, 220, 190));
-        DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"ENERGY OUT FROM HEAT {FormatNumber(effectiveHeatConversion * _world.HeatSettings.HeatEnergyConversionRate)}/S", new Color(135, 210, 255));
+        DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"HEAT IN CAP {FormatNumber(status.HeatConversionInputPerSecond)}/S R{definition.HeatRange}", new Color(70, 220, 190));
+        DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"ENERGY OUT FROM HEAT {FormatNumber(status.HeatConversionEnergyOutputPerSecond)}/S", new Color(135, 210, 255));
+        if (Math.Abs(status.HeatConversionInputPerSecond - effectiveHeatConversion) > 0.0001)
+            DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"HEAT IN CAP GROSS {FormatNumber(effectiveHeatConversion)}/S", new Color(55, 160, 145));
 
-        var effectiveResearch = UpgradeCalculator.GetResearchPerSecond(_world, definition);
-        DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"RESEARCH OUT +{FormatNumber(effectiveResearch)}/S", new Color(210, 190, 255));
+        var grossResearch = UpgradeCalculator.GetResearchPerSecond(_world, definition);
+        DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"RESEARCH OUT +{FormatNumber(status.ResearchOutputPerSecond)}/S", new Color(210, 190, 255));
+        if (Math.Abs(status.ResearchOutputPerSecond - grossResearch) > 0.0001)
+            DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"RESEARCH OUT GROSS +{FormatNumber(grossResearch)}/S", new Color(150, 125, 200));
 
-        var effectiveAutoSell = UpgradeCalculator.GetAutoSellPerSecond(_world, definition);
-        DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"AUTO SELL IN {FormatNumber(effectiveAutoSell)}/S", new Color(180, 225, 190));
+        var grossAutoSell = UpgradeCalculator.GetAutoSellPerSecond(_world, definition);
+        DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"AUTO SELL ENERGY {FormatNumber(status.AutoSellInputPerSecond)}/S", new Color(180, 225, 190));
+        if (Math.Abs(status.AutoSellInputPerSecond - grossAutoSell) > 0.0001)
+            DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"AUTO SELL GROSS {FormatNumber(grossAutoSell)}/S", new Color(120, 175, 135));
 
-        var effectiveBattery = UpgradeCalculator.GetBatteryCapacity(_world, definition);
-        DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"BATTERY CAP +{FormatNumber(effectiveBattery)}", new Color(240, 205, 70));
+        DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"BATTERY CAP +{FormatNumber(status.BatteryCapacity)}", new Color(240, 205, 70));
 
         if (instance.AccumulatedHeat > 0 || definition.HeatPerSecond > 0)
         {
-            var heatText = $"HEAT STORED {FormatNumber(instance.AccumulatedHeat)}/{FormatNumber(_world.HeatSettings.HeatExplosionThreshold)}";
-            DrawDetailLine(spriteBatch, panel.X + 12, ref y, heatText, GetHeatTextColor(instance.AccumulatedHeat));
+            var heatText = $"HEAT STORED {FormatNumber(status.HeatStored)}/{FormatNumber(status.HeatExplosionThreshold)}";
+            DrawDetailLine(spriteBatch, panel.X + 12, ref y, heatText, GetHeatTextColor(status.HeatStored));
+            DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"HEAT CONVERTER {(status.HasHeatConverterInRange ? "YES" : "NO")}", status.HasHeatConverterInRange ? new Color(150, 235, 150) : new Color(255, 150, 120));
         }
 
         if (instance.State == BuildingState.Expired)
@@ -664,7 +676,7 @@ public sealed class UiRenderer
     private static Rectangle GetSelectedBuildingPanelRectangle(Viewport viewport)
     {
         var width = 360;
-        var height = 286;
+        var height = 356;
         return new Rectangle(Math.Max(SideMenuWidth + 10, viewport.Width - width - 20), Math.Max(TopBarHeight + 10, viewport.Height - height - 58), width, height);
     }
 
@@ -765,13 +777,16 @@ public sealed class UiRenderer
         };
     }
 
-    private static Color GetStateColor(BuildingState state)
+    private static Color GetOperationalStateColor(BuildingOperationalState state)
     {
         return state switch
         {
-            BuildingState.Active => new Color(150, 235, 150),
-            BuildingState.Expired => new Color(255, 210, 95),
-            BuildingState.Exploded => new Color(255, 110, 90),
+            BuildingOperationalState.Active => new Color(150, 235, 150),
+            BuildingOperationalState.NoEnergy => new Color(255, 165, 120),
+            BuildingOperationalState.Expired => new Color(255, 210, 95),
+            BuildingOperationalState.Exploded => new Color(255, 110, 90),
+            BuildingOperationalState.HeatWarning => new Color(245, 145, 55),
+            BuildingOperationalState.NoHeatConversion => new Color(255, 150, 120),
             _ => new Color(230, 238, 245)
         };
     }
