@@ -13,7 +13,7 @@ public static class BuildingOperationalStatusCalculator
 
         var energyInput = UpgradeCalculator.GetEnergyConsumptionPerSecond(world, definition);
         var energyOutput = UpgradeCalculator.GetEnergyPerSecond(world, definition);
-        var heatOutput = definition.HeatPerSecond;
+        var heatOutput = UpgradeCalculator.GetHeatPerSecond(world, definition);
         var heatConversionInput = UpgradeCalculator.GetHeatConversionPerSecond(world, definition);
         var heatConversionEnergyOutput = heatConversionInput * world.HeatSettings.HeatEnergyConversionRate;
         var researchOutput = UpgradeCalculator.GetResearchPerSecond(world, definition);
@@ -56,7 +56,7 @@ public static class BuildingOperationalStatusCalculator
         if (energyInput > 0 && world.Resources.Energy <= 0.0001)
             return BuildingOperationalState.NoEnergy;
 
-        if (definition.HeatPerSecond > 0 && !hasHeatConverter)
+        if (UpgradeCalculator.GetHeatPerSecond(world, definition) > 0 && !hasHeatConverter)
             return BuildingOperationalState.NoHeatConversion;
 
         if (instance.AccumulatedHeat >= world.HeatSettings.HeatWarningThreshold && world.HeatSettings.HeatWarningThreshold > 0)

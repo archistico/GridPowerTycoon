@@ -1,4 +1,3 @@
-using GridPowerTycoon.Core.Buildings;
 using GridPowerTycoon.Core.World;
 
 namespace GridPowerTycoon.Core.Upgrades;
@@ -17,7 +16,8 @@ public sealed class UpgradeSystem
         if (!_world.UpgradeCatalog.TryGet(upgradeId, out var definition))
             return UpgradeFailureReason.UnknownUpgrade;
 
-        if (_world.Upgrades.GetLevel(upgradeId) >= definition.MaxLevel)
+        var currentLevel = _world.Upgrades.GetLevel(upgradeId);
+        if (currentLevel >= definition.MaxLevel)
             return UpgradeFailureReason.MaxLevelReached;
 
         if (!string.IsNullOrWhiteSpace(definition.RequiredResearchId) &&
@@ -26,10 +26,10 @@ public sealed class UpgradeSystem
             return UpgradeFailureReason.MissingResearch;
         }
 
-        if (_world.Resources.Money < definition.CostMoney)
+        if (_world.Resources.Money < GetMoneyCost(definition, currentLevel))
             return UpgradeFailureReason.NotEnoughMoney;
 
-        if (_world.Resources.Research < definition.CostResearch)
+        if (_world.Resources.Research < GetResearchCost(definition, currentLevel))
             return UpgradeFailureReason.NotEnoughResearch;
 
         return UpgradeFailureReason.None;
@@ -42,19 +42,49 @@ public sealed class UpgradeSystem
             return UpgradeResult.Fail(validation);
 
         var definition = _world.UpgradeCatalog.GetRequired(upgradeId);
+        var currentLevel = _world.Upgrades.GetLevel(upgradeId);
+        var moneyCost = GetMoneyCost(definition, currentLevel);
+        var researchCost = GetResearchCost(definition, currentLevel);
 
-        if (!_world.Resources.TrySpendMoney(definition.CostMoney))
+        if (!_world.Resources.TrySpendMoney(moneyCost))
             return UpgradeResult.Fail(UpgradeFailureReason.NotEnoughMoney);
 
-        if (!_world.Resources.TrySpendResearch(definition.CostResearch))
+        if (!_world.Resources.TrySpendResearch(researchCost))
             return UpgradeResult.Fail(UpgradeFailureReason.NotEnoughResearch);
 
-        _world.Upgrades.IncreaseLevel(upgradeId);
+        _world.Upgrades.SetLevel(upgradeId, currentLevel + 1);
 
         if (definition.EffectType == UpgradeEffectType.MultiplyBatteryCapacity)
             RecalculateMaxEnergy();
 
-        return UpgradeResult.Ok(upgradeId);
+        return UpgradeResult.Ok(upgradeId, currentLevel + 1);
+    }
+
+    public static decimal GetMoneyCost(UpgradeDefinition definition, int currentLevel)
+    {
+        if (currentLevel <= 0)
+            return definition.CostMoney;
+
+        return RoundCost(definition.CostMoney * (decimal)Math.Pow(definition.CostGrowthMultiplier, currentLevel));
+    }
+
+    public static double GetResearchCost(UpgradeDefinition definition, int currentLevel)
+    {
+        if (currentLevel <= 0)
+            return definition.CostResearch;
+
+        return Math.Round(definition.CostResearch * Math.Pow(definition.CostGrowthMultiplier, currentLevel), 2);
+    }
+
+    private static decimal RoundCost(decimal value)
+    {
+        if (value < 1000m)
+            return Math.Ceiling(value);
+
+        if (value < 1000000m)
+            return Math.Ceiling(value / 10m) * 10m;
+
+        return Math.Ceiling(value / 1000m) * 1000m;
     }
 
     private void RecalculateMaxEnergy()

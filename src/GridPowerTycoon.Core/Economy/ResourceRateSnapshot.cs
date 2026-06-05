@@ -67,7 +67,7 @@ public sealed class ResourceRateSnapshot
             if (!world.BuildingCatalog.TryGet(instance.DefinitionId, out var definition))
                 continue;
 
-            var heatPerSecond = definition.HeatPerSecond;
+            var heatPerSecond = UpgradeCalculator.GetHeatPerSecond(world, definition);
             if (heatPerSecond <= 0)
                 continue;
 
@@ -172,10 +172,10 @@ public sealed class ResourceRateSnapshot
             if (!world.BuildingCatalog.TryGet(instance.DefinitionId, out var definition))
                 continue;
 
-            if (definition.HeatPerSecond <= 0 && instance.AccumulatedHeat <= 0)
+            if (UpgradeCalculator.GetHeatPerSecond(world, definition) <= 0 && instance.AccumulatedHeat <= 0)
                 continue;
 
-            availableHeatByProducer[instance.Id] = definition.HeatPerSecond + instance.AccumulatedHeat;
+            availableHeatByProducer[instance.Id] = UpgradeCalculator.GetHeatPerSecond(world, definition) + instance.AccumulatedHeat;
         }
 
         var convertedHeat = 0d;

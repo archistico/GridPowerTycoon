@@ -230,16 +230,19 @@ Aggiunto il primo blocco di progressione industriale configurato nei JSON:
 Aggiunte ricerche collegate e primi upgrade specifici. La UI BUILD/RESEARCH/UPGRADE include i nuovi elementi. La formattazione numerica della UI ora usa prefissi SI: k, M, G, T, P, E, Z, Y.
 
 
+## Step 17 - Upgrade multi-livello
 
-## Step 16A - Reactor reference: upgrade repeatable and managers
+Implementazione preparata sul sorgente corrente.
 
-User provided Reactor upgrade and research reference values. These are now documented in `docs/REACTOR_REFERENCE_BALANCE.md`, not applied directly to gameplay JSON.
+Modifiche principali:
+- `UpgradeDefinition` ora contiene `CostGrowthMultiplier`.
+- `UpgradeSystem` calcola costo denaro/ricerca del prossimo livello con `GetMoneyCost` e `GetResearchCost`.
+- `UpgradeResult` ora include `NewLevel`.
+- La UI degli upgrade mostra `LV current/max`, effetto e costo `NEXT`.
+- `UpgradeEffectType` include `MultiplyHeatProduction`.
+- `UpgradeCalculator.GetHeatPerSecond` applica gli upgrade di produzione calore.
+- `HeatSystem`, `ResourceRateSnapshot`, `BuildingOperationalStatusCalculator` e pannello UI usano la produzione calore effettiva.
+- `upgrades.json` è stato aggiornato con upgrade ripetibili e costo crescente.
+- Aggiunti test per upgrade multi-livello e costo crescente.
 
-Important design change identified: upgrades should become repeatable multi-level purchases rather than only one-time purchases. Current `UpgradeState` already tracks levels, so the next implementation should likely evolve `UpgradeDefinition` and `upgrades.json` to support:
-- `baseCostMoney` / `baseCostResearch`, or compatibility aliases from current `costMoney` / `costResearch`;
-- `costGrowthMultiplier`;
-- `effectPerLevel`;
-- UI display of current level, next cost and per-level effect;
-- maxLevel where 0 can mean unlimited/practically unlimited.
-
-Reactor research references also introduce manager unlocks, for example automatic renewal of wind turbines, solar panels and coal plants. Recommended order: first implement upgrade multi-level costs/effects, then add a separate manager renewal system.
+Nota: il container non ha `dotnet`; eseguire build/test localmente.

@@ -15,6 +15,11 @@ public static class UpgradeCalculator
         return definition.ResearchPerSecond * GetBuildingMultiplier(world, definition.Id, UpgradeEffectType.MultiplyResearchProduction);
     }
 
+    public static double GetHeatPerSecond(GameWorld world, BuildingDefinition definition)
+    {
+        return definition.HeatPerSecond * GetBuildingMultiplier(world, definition.Id, UpgradeEffectType.MultiplyHeatProduction);
+    }
+
     public static double GetEnergyConsumptionPerSecond(GameWorld world, BuildingDefinition definition)
     {
         return definition.EnergyConsumptionPerSecond;

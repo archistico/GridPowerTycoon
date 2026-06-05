@@ -60,11 +60,15 @@ public sealed class UiRenderer
         "battery_small_capacity_1",
         "office_small_sell_1",
         "generator_small_conversion_1",
+        "solar_panel_heat_1",
+        "solar_panel_lifetime_1",
         "axes_generation_1",
         "mines_generation_1",
+        "coal_heat_1",
         "coal_lifetime_1",
         "office_large_sell_1",
         "generator_medium_conversion_1",
+        "gas_heat_1",
         "gas_lifetime_1",
         "research_large_output_1"
     };
@@ -350,9 +354,11 @@ public sealed class UiRenderer
             var missingResearch = definition is not null &&
                                   !string.IsNullOrWhiteSpace(definition.RequiredResearchId) &&
                                   !_world.Research.IsCompleted(definition.RequiredResearchId);
+            var nextMoneyCost = definition is null ? 0m : UpgradeSystem.GetMoneyCost(definition, level);
+            var nextResearchCost = definition is null ? 0d : UpgradeSystem.GetResearchCost(definition, level);
             var canAfford = definition is not null &&
-                            _world.Resources.Money >= definition.CostMoney &&
-                            _world.Resources.Research >= definition.CostResearch;
+                            _world.Resources.Money >= nextMoneyCost &&
+                            _world.Resources.Research >= nextResearchCost;
 
             var background = completed
                 ? new Color(50, 85, 62)
@@ -370,14 +376,16 @@ public sealed class UiRenderer
             var status = definition is null
                 ? "?"
                 : completed
-                    ? "DONE"
+                    ? $"MAX LV {level}"
                     : missingResearch
                         ? "REQ RESEARCH"
-                        : GetUpgradeCostText(definition);
+                        : GetUpgradeCostText(definition, level);
 
-            _text.DrawString(spriteBatch, Shorten(name, 22), new Vector2(rect.X + 8, rect.Y + 5), new Color(235, 240, 245), 1);
+            var levelText = definition is null ? "" : $"LV {level}/{definition.MaxLevel}";
+            _text.DrawString(spriteBatch, Shorten(name, 18), new Vector2(rect.X + 8, rect.Y + 5), new Color(235, 240, 245), 1);
+            _text.DrawString(spriteBatch, levelText, new Vector2(rect.Right - 62, rect.Y + 5), new Color(180, 210, 240), 1);
             _text.DrawString(spriteBatch, Shorten(effect, 24), new Vector2(rect.X + 8, rect.Y + 22), new Color(190, 215, 255), 1);
-            _text.DrawString(spriteBatch, status, new Vector2(rect.X + 8, rect.Y + 39), completed ? new Color(160, 245, 175) : new Color(255, 225, 120), 1);
+            _text.DrawString(spriteBatch, Shorten(status, 27), new Vector2(rect.X + 8, rect.Y + 36), completed ? new Color(160, 245, 175) : new Color(255, 225, 120), 1);
         }
     }
 
@@ -419,8 +427,9 @@ public sealed class UiRenderer
             DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"ENERGY OUT GROSS +{FormatNumber(grossEnergy)}/S", new Color(100, 145, 180));
 
         DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"HEAT OUT +{FormatNumber(status.HeatOutputPerSecond)}/S", new Color(245, 145, 55));
-        if (Math.Abs(status.HeatOutputPerSecond - definition.HeatPerSecond) > 0.0001)
-            DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"HEAT OUT GROSS +{FormatNumber(definition.HeatPerSecond)}/S", new Color(180, 105, 65));
+        var grossHeat = UpgradeCalculator.GetHeatPerSecond(_world, definition);
+        if (Math.Abs(status.HeatOutputPerSecond - grossHeat) > 0.0001)
+            DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"HEAT OUT GROSS +{FormatNumber(grossHeat)}/S", new Color(180, 105, 65));
 
         var effectiveHeatConversion = UpgradeCalculator.GetHeatConversionPerSecond(_world, definition);
         DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"HEAT IN CAP {FormatNumber(status.HeatConversionInputPerSecond)}/S R{definition.HeatRange}", new Color(70, 220, 190));
@@ -440,7 +449,7 @@ public sealed class UiRenderer
 
         DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"BATTERY CAP +{FormatNumber(status.BatteryCapacity)}", new Color(240, 205, 70));
 
-        if (instance.AccumulatedHeat > 0 || definition.HeatPerSecond > 0)
+        if (instance.AccumulatedHeat > 0 || UpgradeCalculator.GetHeatPerSecond(_world, definition) > 0)
         {
             var heatText = $"HEAT STORED {FormatNumber(status.HeatStored)}/{FormatNumber(status.HeatExplosionThreshold)}";
             DrawDetailLine(spriteBatch, panel.X + 12, ref y, heatText, GetHeatTextColor(status.HeatStored));
@@ -648,7 +657,7 @@ public sealed class UiRenderer
         if (lastUpgradeResult is not null)
         {
             message = lastUpgradeResult.Success
-                ? $"UPGRADE OK {lastUpgradeResult.UpgradeId}"
+                ? $"UPGRADE OK {lastUpgradeResult.UpgradeId} LV {lastUpgradeResult.NewLevel}"
                 : $"UPGRADE FAILED {lastUpgradeResult.FailureReason}";
         }
 
@@ -743,18 +752,21 @@ public sealed class UiRenderer
 
     private static Rectangle GetUpgradeButtonRectangle(int index)
     {
-        return new Rectangle(GetUpgradeColumnX(), MenuButtonsY + index * 60, ColumnWidth, 56);
+        return new Rectangle(GetUpgradeColumnX(), MenuButtonsY + index * 50, ColumnWidth, 46);
     }
 
-    private static string GetUpgradeCostText(UpgradeDefinition definition)
+    private static string GetUpgradeCostText(UpgradeDefinition definition, int currentLevel)
     {
-        if (definition.CostMoney > 0 && definition.CostResearch > 0)
-            return $"COST ${FormatNumber((double)definition.CostMoney)} R{FormatNumber(definition.CostResearch)}";
+        var moneyCost = UpgradeSystem.GetMoneyCost(definition, currentLevel);
+        var researchCost = UpgradeSystem.GetResearchCost(definition, currentLevel);
 
-        if (definition.CostMoney > 0)
-            return $"COST ${FormatNumber((double)definition.CostMoney)}";
+        if (moneyCost > 0 && researchCost > 0)
+            return $"NEXT ${FormatNumber((double)moneyCost)} R{FormatNumber(researchCost)}";
 
-        return $"COST R{FormatNumber(definition.CostResearch)}";
+        if (moneyCost > 0)
+            return $"NEXT ${FormatNumber((double)moneyCost)}";
+
+        return $"NEXT R{FormatNumber(researchCost)}";
     }
 
     private static string GetUpgradeEffectText(UpgradeDefinition definition)
@@ -768,6 +780,7 @@ public sealed class UiRenderer
             UpgradeEffectType.MultiplyEnergyProduction => $"ENERGY {amount}",
             UpgradeEffectType.MultiplyLifetime => $"LIFE {amount}",
             UpgradeEffectType.MultiplyResearchProduction => $"RESEARCH {amount}",
+            UpgradeEffectType.MultiplyHeatProduction => $"HEAT OUT {amount}",
             UpgradeEffectType.MultiplyBatteryCapacity => $"BATTERY CAP {amount}",
             UpgradeEffectType.MultiplyAutoSell => $"AUTO SELL {amount}",
             UpgradeEffectType.MultiplyHeatConversion => $"HEAT CONV {amount}",

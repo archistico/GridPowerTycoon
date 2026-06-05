@@ -58,6 +58,9 @@ public sealed class UpgradeCatalog
             if (definition.CostResearch < 0)
                 throw new InvalidOperationException($"Upgrade '{definition.Id}' has negative research cost.");
 
+            if (definition.CostGrowthMultiplier < 1)
+                throw new InvalidOperationException($"Upgrade '{definition.Id}' must have costGrowthMultiplier greater than or equal to 1.");
+
             if (definition.Multiplier <= 0)
                 throw new InvalidOperationException($"Upgrade '{definition.Id}' must have a positive multiplier.");
 

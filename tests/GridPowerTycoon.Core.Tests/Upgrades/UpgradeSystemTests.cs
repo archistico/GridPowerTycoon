@@ -81,6 +81,39 @@ public sealed class UpgradeSystemTests
         Assert.Equal(UpgradeFailureReason.MaxLevelReached, second.FailureReason);
     }
 
+
+    [Fact]
+    public void PurchaseMultiLevelUpgrade_ShouldIncreaseLevelAndUseGrowingCost()
+    {
+        var world = CreateWorld(startingMoney: 1000, startingResearch: 0);
+        var system = new UpgradeSystem(world);
+
+        var first = system.Purchase("wind_multi_energy");
+        var second = system.Purchase("wind_multi_energy");
+
+        Assert.True(first.Success);
+        Assert.Equal(1, first.NewLevel);
+        Assert.True(second.Success);
+        Assert.Equal(2, second.NewLevel);
+        Assert.Equal(2, world.Upgrades.GetLevel("wind_multi_energy"));
+        Assert.Equal(1 * Math.Pow(1.5, 2), UpgradeCalculator.GetEnergyPerSecond(world, world.BuildingCatalog.GetRequired("wind_turbine")), 6);
+        Assert.Equal(1000m - 100m - 200m, world.Resources.Money);
+    }
+
+    [Fact]
+    public void PurchaseMultiLevelUpgrade_WhenAtMaxLevel_ShouldFail()
+    {
+        var world = CreateWorld(startingMoney: 1000, startingResearch: 0);
+        var system = new UpgradeSystem(world);
+
+        Assert.True(system.Purchase("wind_multi_energy").Success);
+        Assert.True(system.Purchase("wind_multi_energy").Success);
+        var third = system.Purchase("wind_multi_energy");
+
+        Assert.False(third.Success);
+        Assert.Equal(UpgradeFailureReason.MaxLevelReached, third.FailureReason);
+    }
+
     [Fact]
     public void ToolGenerationUpgrade_ShouldIncreaseAxesRate()
     {
@@ -141,10 +174,21 @@ public sealed class UpgradeSystemTests
                 Multiplier = 1.5,
                 MaxLevel = 1
             },
+
             new UpgradeDefinition
             {
-                Id = "wind_lifetime_1",
-                Name = "Vita Eolico I",
+                Id = "wind_multi_energy",
+                Name = "Eolico multi",
+                TargetBuildingId = "wind_turbine",
+                CostMoney = 100,
+                CostGrowthMultiplier = 2,
+                EffectType = UpgradeEffectType.MultiplyEnergyProduction,
+                Multiplier = 1.5,
+                MaxLevel = 2
+            },
+            new UpgradeDefinition
+            {
+                Id = "wind_lifetime_1",                Name = "Vita Eolico I",
                 TargetBuildingId = "wind_turbine",
                 CostMoney = 100,
                 EffectType = UpgradeEffectType.MultiplyLifetime,

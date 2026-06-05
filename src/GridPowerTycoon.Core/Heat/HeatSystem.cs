@@ -40,14 +40,15 @@ public sealed class HeatSystem
             if (!_world.BuildingCatalog.TryGet(instance.DefinitionId, out var definition))
                 continue;
 
-            if (definition.HeatPerSecond <= 0)
+            var heatPerSecond = UpgradeCalculator.GetHeatPerSecond(_world, definition);
+            if (heatPerSecond <= 0)
                 continue;
 
             var energyConsumption = UpgradeCalculator.GetEnergyConsumptionPerSecond(_world, definition) * deltaSeconds;
             if (!_world.Resources.TrySpendEnergy(energyConsumption))
                 continue;
 
-            instance.AddHeat(definition.HeatPerSecond * deltaSeconds);
+            instance.AddHeat(heatPerSecond * deltaSeconds);
         }
     }
 

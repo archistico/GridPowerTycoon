@@ -62,13 +62,11 @@ Aggiunto il primo blocco di progressione industriale configurato nei JSON:
 Aggiunte ricerche collegate e primi upgrade specifici. La UI BUILD/RESEARCH/UPGRADE include i nuovi elementi. La formattazione numerica della UI ora usa prefissi SI: k, M, G, T, P, E, Z, Y.
 
 
+## Upgrade multi-livello
 
-## Reactor reference: upgrade a livelli e gestori
+Gli upgrade sono stati portati verso il modello idle/tycoon classico: ogni click aumenta il livello e il costo successivo cresce. Per ora la formula è semplice:
 
-I nuovi dati di riferimento mostrano che gli upgrade devono essere pensati come acquisti ripetibili a livelli: livello 0 iniziale, livello 1 dopo il primo acquisto, poi livelli successivi con costo crescente. Questo è più adatto a un idle/tycoon rispetto agli upgrade monouso.
+- effetto effettivo: `multiplier^level`
+- costo prossimo livello: `baseCost * costGrowthMultiplier^currentLevel`
 
-Direzione consigliata per GridPowerTycoon:
-- mantenere gli upgrade attuali funzionanti;
-- convertire `upgrades.json` verso un modello multi-livello con `baseCostMoney`, `costGrowthMultiplier` ed `effectPerLevel`;
-- mostrare nella UI il livello corrente, il prossimo costo e l'effetto del prossimo livello;
-- introdurre in seguito le ricerche gestore per rinnovare automaticamente edifici scaduti.
+Questo rende gli upgrade acquistabili spesso all'inizio, ma progressivamente più costosi. I valori iniziali sono volutamente conservativi e restano modificabili in `Data/upgrades.json`.

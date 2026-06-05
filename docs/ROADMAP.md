@@ -200,13 +200,12 @@ Aggiunto il primo blocco di progressione industriale configurato nei JSON:
 Aggiunte ricerche collegate e primi upgrade specifici. La UI BUILD/RESEARCH/UPGRADE include i nuovi elementi. La formattazione numerica della UI ora usa prefissi SI: k, M, G, T, P, E, Z, Y.
 
 
+## Step 17 - Upgrade multi-livello
 
-## Step 16A - Reactor reference: upgrade ripetibili e gestori
+Stato: preparato.
 
-Stato: documentazione/reference.
+Gli upgrade non sono più limitati al comportamento “comprato una volta”. Ogni `UpgradeDefinition` può ora avere `maxLevel` maggiore di 1 e `costGrowthMultiplier`, che controlla il costo del livello successivo. La UI mostra livello corrente, livello massimo, effetto e costo NEXT.
 
-Aggiunti in `docs/REACTOR_REFERENCE_BALANCE.md` i riferimenti agli upgrade Reactor a livelli e alle ricerche gestore. Questi dati non sono stati applicati automaticamente ai JSON di gioco. La decisione proposta è usare questi valori come guida per il prossimo step tecnico: evolvere l'attuale sistema upgrade da acquisti monouso a upgrade multi-livello con costo crescente.
+Il sistema usa il livello corrente per applicare il moltiplicatore come potenza: un upgrade `1.5` al livello 3 produce un moltiplicatore effettivo `1.5^3`. Il costo del prossimo livello cresce con `costGrowthMultiplier^currentLevel`.
 
-Prossimo step consigliato:
-- `Step 17 - Upgrade multi-livello da JSON`.
-- Successivo: `Step 18 - Gestori automatici per rinnovo edifici scaduti`.
+Sono stati aggiunti upgrade di produzione calore per pannello solare, carbone e gas. Le produzioni di calore ora usano `UpgradeCalculator.GetHeatPerSecond`, quindi gli upgrade di produzione calore hanno effetto su simulazione, riepilogo risorse e pannello edificio.
