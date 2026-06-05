@@ -1,5 +1,6 @@
 using GridPowerTycoon.Core.Build;
 using GridPowerTycoon.Core.Map;
+using GridPowerTycoon.Core.Tools;
 using GridPowerTycoon.Core.World;
 using GridPowerTycoon.MonoGame.Rendering;
 using Microsoft.Xna.Framework;
@@ -17,7 +18,9 @@ public sealed class MapInputController
 
     public GridPosition? HoveredTile { get; private set; }
     public Guid? SelectedMapBuildingId { get; private set; }
+    public GridPosition? SelectedTerrainPosition { get; private set; }
     public BuildResult? LastBuildResult { get; private set; }
+    public TerrainClearResult? LastTerrainClearResult { get; private set; }
 
     public MapInputController(
         GameWorld world,
@@ -49,6 +52,7 @@ public sealed class MapInputController
         if (!_world.Map.Contains(tilePosition))
         {
             SelectedMapBuildingId = null;
+            SelectedTerrainPosition = null;
             return;
         }
 
@@ -56,16 +60,29 @@ public sealed class MapInputController
         if (tile.BuildingId.HasValue)
         {
             SelectedMapBuildingId = tile.BuildingId.Value;
+            SelectedTerrainPosition = null;
             LastBuildResult = null;
+            LastTerrainClearResult = null;
             return;
         }
 
         SelectedMapBuildingId = null;
 
+        if (tile.Type == TileType.Forest || tile.Type == TileType.Mountain)
+        {
+            SelectedTerrainPosition = tilePosition;
+            LastBuildResult = null;
+            LastTerrainClearResult = null;
+            return;
+        }
+
+        SelectedTerrainPosition = null;
+
         if (selectedBuildingId is null)
             return;
 
         LastBuildResult = _buildSystem.Build(selectedBuildingId, tilePosition);
+        LastTerrainClearResult = null;
     }
 
     public void SetLastBuildResult(BuildResult result)
@@ -76,6 +93,20 @@ public sealed class MapInputController
     public void ClearLastBuildResult()
     {
         LastBuildResult = null;
+    }
+
+    public void SetLastTerrainClearResult(TerrainClearResult result)
+    {
+        LastTerrainClearResult = result;
+        LastBuildResult = null;
+
+        if (result.Success)
+            SelectedTerrainPosition = null;
+    }
+
+    public void ClearLastTerrainClearResult()
+    {
+        LastTerrainClearResult = null;
     }
 
     private GridPosition ScreenToTile(Point screenPoint)

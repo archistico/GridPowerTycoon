@@ -2,8 +2,10 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using GridPowerTycoon.Core.Buildings;
 using GridPowerTycoon.Core.Economy;
+using GridPowerTycoon.Core.Heat;
 using GridPowerTycoon.Core.Map;
 using GridPowerTycoon.Core.Research;
+using GridPowerTycoon.Core.Tools;
 
 namespace GridPowerTycoon.Core.Data;
 
@@ -36,6 +38,20 @@ public sealed class GameDataLoader
         return ResearchCatalog.FromDefinitions(data.Researches);
     }
 
+    public HeatSettings LoadHeatSettings(string path)
+    {
+        var settings = LoadJson<HeatSettings>(path, "heat settings");
+        ValidateHeatSettings(settings);
+        return settings;
+    }
+
+    public ToolSettings LoadToolSettings(string path)
+    {
+        var settings = LoadJson<ToolSettings>(path, "tool settings");
+        ValidateToolSettings(settings);
+        return settings;
+    }
+
     public GridMap LoadMap(string path)
     {
         var definition = LoadJson<MapDefinition>(path, "map");
@@ -54,6 +70,43 @@ public sealed class GameDataLoader
             throw new InvalidOperationException($"Unable to read game data file for {description}.");
 
         return data;
+    }
+
+
+    private static void ValidateToolSettings(ToolSettings settings)
+    {
+        if (settings.AxesPerSecond < 0)
+            throw new InvalidOperationException("axesPerSecond cannot be negative.");
+
+        if (settings.MinesPerSecond < 0)
+            throw new InvalidOperationException("minesPerSecond cannot be negative.");
+
+        if (settings.MaxAxes < 0)
+            throw new InvalidOperationException("maxAxes cannot be negative.");
+
+        if (settings.MaxMines < 0)
+            throw new InvalidOperationException("maxMines cannot be negative.");
+
+        if (settings.ForestClearAxesCost < 0)
+            throw new InvalidOperationException("forestClearAxesCost cannot be negative.");
+
+        if (settings.MountainClearMinesCost < 0)
+            throw new InvalidOperationException("mountainClearMinesCost cannot be negative.");
+    }
+
+    private static void ValidateHeatSettings(HeatSettings settings)
+    {
+        if (settings.HeatWarningThreshold < 0)
+            throw new InvalidOperationException("heatWarningThreshold cannot be negative.");
+
+        if (settings.HeatExplosionThreshold <= 0)
+            throw new InvalidOperationException("heatExplosionThreshold must be greater than zero.");
+
+        if (settings.HeatWarningThreshold >= settings.HeatExplosionThreshold)
+            throw new InvalidOperationException("heatWarningThreshold must be lower than heatExplosionThreshold.");
+
+        if (settings.HeatEnergyConversionRate <= 0)
+            throw new InvalidOperationException("heatEnergyConversionRate must be greater than zero.");
     }
 
     private static void ValidateEconomySettings(EconomySettings settings)

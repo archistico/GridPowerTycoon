@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "heatWarningThreshold": 60,
+  "heatExplosionThreshold": 100,
+  "heatEnergyConversionRate": 1
+}

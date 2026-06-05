@@ -93,3 +93,73 @@ public sealed class GameDataLoaderResearchTests
         }
     }
 }
+
+public sealed class GameDataLoaderHeatTests
+{
+    [Fact]
+    public void LoadHeatSettings_ShouldReadHeatSettings()
+    {
+        var file = Path.Combine(Path.GetTempPath(), $"heat-{Guid.NewGuid():N}.json");
+
+        File.WriteAllText(file, """
+        {
+          "version": 1,
+          "heatWarningThreshold": 60,
+          "heatExplosionThreshold": 100,
+          "heatEnergyConversionRate": 1.5
+        }
+        """);
+
+        try
+        {
+            var loader = new GameDataLoader();
+            var settings = loader.LoadHeatSettings(file);
+
+            Assert.Equal(60, settings.HeatWarningThreshold);
+            Assert.Equal(100, settings.HeatExplosionThreshold);
+            Assert.Equal(1.5, settings.HeatEnergyConversionRate);
+        }
+        finally
+        {
+            File.Delete(file);
+        }
+    }
+}
+
+public sealed class GameDataLoaderToolTests
+{
+    [Fact]
+    public void LoadToolSettings_ShouldReadToolSettings()
+    {
+        var file = Path.Combine(Path.GetTempPath(), $"tools-{Guid.NewGuid():N}.json");
+
+        File.WriteAllText(file, """
+        {
+          "version": 1,
+          "axesPerSecond": 0.05,
+          "minesPerSecond": 0.025,
+          "maxAxes": 20,
+          "maxMines": 12,
+          "forestClearAxesCost": 4,
+          "mountainClearMinesCost": 5
+        }
+        """);
+
+        try
+        {
+            var loader = new GameDataLoader();
+            var settings = loader.LoadToolSettings(file);
+
+            Assert.Equal(0.05, settings.AxesPerSecond);
+            Assert.Equal(0.025, settings.MinesPerSecond);
+            Assert.Equal(20, settings.MaxAxes);
+            Assert.Equal(12, settings.MaxMines);
+            Assert.Equal(4, settings.ForestClearAxesCost);
+            Assert.Equal(5, settings.MountainClearMinesCost);
+        }
+        finally
+        {
+            File.Delete(file);
+        }
+    }
+}

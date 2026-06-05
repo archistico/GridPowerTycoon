@@ -6,8 +6,8 @@ public sealed class ResourceState
     public double MaxEnergy { get; private set; }
     public double Research { get; private set; }
     public decimal Money { get; private set; }
-    public int Axes { get; private set; }
-    public int Mines { get; private set; }
+    public double Axes { get; private set; }
+    public double Mines { get; private set; }
 
     public ResourceState(EconomySettings settings)
     {
@@ -88,4 +88,45 @@ public sealed class ResourceState
         if (amount > 0)
             MaxEnergy += amount;
     }
+
+    public void AddAxes(double amount, double maxAxes)
+    {
+        if (amount <= 0)
+            return;
+
+        Axes = Math.Min(Math.Max(0, maxAxes), Axes + amount);
+    }
+
+    public void AddMines(double amount, double maxMines)
+    {
+        if (amount <= 0)
+            return;
+
+        Mines = Math.Min(Math.Max(0, maxMines), Mines + amount);
+    }
+
+    public bool TrySpendAxes(double amount)
+    {
+        if (amount < 0)
+            throw new ArgumentOutOfRangeException(nameof(amount));
+
+        if (Axes < amount)
+            return false;
+
+        Axes -= amount;
+        return true;
+    }
+
+    public bool TrySpendMines(double amount)
+    {
+        if (amount < 0)
+            throw new ArgumentOutOfRangeException(nameof(amount));
+
+        if (Mines < amount)
+            return false;
+
+        Mines -= amount;
+        return true;
+    }
 }
+

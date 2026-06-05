@@ -37,3 +37,13 @@ Expired building replacement stays in `GridPowerTycoon.Core.Build.BuildSystem`, 
 ## Research data
 
 La ricerca è definita esternamente in `Data/research.json`. Il Core mantiene separati `ResearchCatalog`, che contiene le definizioni statiche, e `ResearchState`, che contiene le ricerche completate nella partita corrente. `ResearchSystem` è l'unico punto in cui vengono spesi punti ricerca e completate nuove tecnologie. Gli edifici leggono il requisito da `BuildingDefinition.RequiredResearchId`; `BuildSystem` impedisce la costruzione finché la ricerca richiesta non è completata.
+
+## Heat data and simulation
+
+Heat balance values are externalized in `src/GridPowerTycoon.MonoGame/Data/heat.json`. The Core exposes `HeatSettings` and `HeatSystem`; MonoGame only renders the resulting building state. Heat producers accumulate heat, heat converters absorb heat from active buildings within Chebyshev range and convert it into energy, and buildings exceeding the explosion threshold are marked as exploded.
+
+## Tools e ostacoli naturali
+
+La gestione di asce, mine e pulizia del terreno è nel Core, non nello strato MonoGame. Le quantità e i costi sono configurati in `Data/tools.json`, caricato da `GameDataLoader` dentro `ToolSettings`.
+
+`ToolGenerationSystem` viene aggiornato dalla simulazione e incrementa progressivamente `ResourceState.Axes` e `ResourceState.Mines` rispettando i massimi configurati. `TerrainClearSystem` applica le regole di pulizia: i boschi consumano asce, le montagne consumano mine, e in caso di successo la cella diventa `TileType.Land`.

@@ -52,6 +52,7 @@ public sealed class MapRenderer
             DrawOutline(spriteBatch, inner, new Color(10, 14, 20), 2);
 
             DrawLifetimeBar(spriteBatch, inner, instance, definition);
+            DrawHeatBar(spriteBatch, inner, instance, definition);
 
             if (instance.State == BuildingState.Expired)
             {
@@ -88,6 +89,56 @@ public sealed class MapRenderer
         }
 
         DrawOutline(spriteBatch, barBackground, new Color(8, 12, 18, 230), 1);
+    }
+
+
+    private void DrawHeatBar(SpriteBatch spriteBatch, Rectangle buildingRect, BuildingInstance instance, BuildingDefinition definition)
+    {
+        if (definition.HeatPerSecond <= 0 && instance.AccumulatedHeat <= 0)
+            return;
+
+        var threshold = _world.HeatSettings.HeatExplosionThreshold;
+        if (threshold <= 0)
+            return;
+
+        const int margin = 4;
+        const int height = 5;
+
+        var barBackground = new Rectangle(
+            buildingRect.X + margin,
+            buildingRect.Y + margin,
+            Math.Max(1, buildingRect.Width - margin * 2),
+            height);
+
+        spriteBatch.Draw(_pixel, barBackground, new Color(18, 24, 34, 220));
+
+        var ratio = instance.State == BuildingState.Active
+            ? instance.AccumulatedHeat / threshold
+            : instance.State == BuildingState.Exploded ? 1 : 0;
+
+        var fillWidth = (int)Math.Round(barBackground.Width * Math.Clamp(ratio, 0, 1));
+        if (fillWidth > 0)
+        {
+            var fill = new Rectangle(barBackground.X, barBackground.Y, fillWidth, barBackground.Height);
+            spriteBatch.Draw(_pixel, fill, GetHeatBarColor(ratio));
+        }
+
+        DrawOutline(spriteBatch, barBackground, new Color(8, 12, 18, 230), 1);
+    }
+
+    private Color GetHeatBarColor(double ratio)
+    {
+        var warningRatio = _world.HeatSettings.HeatExplosionThreshold <= 0
+            ? 0.6
+            : _world.HeatSettings.HeatWarningThreshold / _world.HeatSettings.HeatExplosionThreshold;
+
+        if (ratio >= 1)
+            return new Color(255, 70, 55);
+
+        if (ratio >= warningRatio)
+            return new Color(245, 145, 55);
+
+        return new Color(255, 210, 90);
     }
 
     private static Color GetLifetimeBarColor(double ratio)

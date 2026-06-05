@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "axesPerSecond": 0.005,
+  "minesPerSecond": 0.0025,
+  "maxAxes": 20,
+  "maxMines": 20,
+  "forestClearAxesCost": 4,
+  "mountainClearMinesCost": 4
+}

@@ -69,3 +69,33 @@ Aggiornata la TopBar in `UiRenderer`: energia, ricerca e denaro usano `FormatNum
 ## 2026-06-05 - Step 06 UI polish: resource rates
 
 Added `ResourceRateSnapshot` in `GridPowerTycoon.Core/Economy` to compute estimated per-second rates for Energy, Research and Money without mutating the world. `UiRenderer` now shows a second line under ENERGY, RESEARCH and MONEY in the top bar using fixed two-decimal signed values. Energy rate is net for the next second and accounts for storage cap plus auto-sell; Money rate reflects automatic selling only, not manual SELL button clicks.
+
+## 2026-06-05 - Step 07 Heat and Generators
+
+Implemented configurable heat mechanics. Added `HeatSettings` loaded from `Data/heat.json`, `HeatSystem`, tests for heat accumulation/conversion/out-of-range/explosion and integration with simulation. `GameSimulation` now runs lifetime, direct production, heat conversion, then auto-sell. `ResourceRateSnapshot` estimates heat-converted energy for top-bar rates. `MapRenderer` draws a heat bar at the top of heat-producing/overheated buildings. `UiRenderer` shows heat production, conversion capacity/range and accumulated heat in the selected building panel.
+
+## 2026-06-05 - Step 08 Tools e clearing terreno
+
+Aggiunta la gestione degli strumenti naturali:
+
+- nuovo `ToolSettings` caricato da `Data/tools.json`;
+- `ResourceState` ora gestisce `Axes` e `Mines` come valori double, così possono crescere progressivamente nel tempo;
+- nuovo `ToolGenerationSystem`, integrato in `GameSimulation`, che genera asce e mine rispettando i massimi configurati;
+- nuovo `TerrainClearSystem` con `TerrainClearResult` e `TerrainClearFailureReason`;
+- boschi e montagne sono selezionabili dalla mappa;
+- pannello UI terreno con costo e risorse disponibili;
+- pulsante `CLEAR` per trasformare bosco/montagna in `Land`;
+- top bar aggiornata con asce e mine;
+- test per generazione strumenti, pulizia boschi/montagne e caricamento `tools.json`.
+
+File dati aggiunto: `src/GridPowerTycoon.MonoGame/Data/tools.json`.
+
+
+## Step 09A - Bilanciamento strumenti
+
+La generazione strumenti è stata rallentata in `src/GridPowerTycoon.MonoGame/Data/tools.json`:
+
+- `axesPerSecond`: `0.005`;
+- `minesPerSecond`: `0.0025`.
+
+Con costo 4 strumenti per rimuovere un ostacolo, i boschi richiedono circa 13m20s e le montagne circa 26m40s. Aggiunto `docs/BALANCE_NOTES.md` per documentare le scelte di bilanciamento. Il prossimo blocco consigliato è il sistema di upgrade da JSON.

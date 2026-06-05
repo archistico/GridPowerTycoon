@@ -4,6 +4,7 @@ using GridPowerTycoon.Core.Economy;
 using GridPowerTycoon.Core.Research;
 using GridPowerTycoon.Core.Simulation;
 using GridPowerTycoon.Core.World;
+using GridPowerTycoon.Core.Tools;
 using GridPowerTycoon.MonoGame.Input;
 using GridPowerTycoon.MonoGame.Rendering;
 using Microsoft.Xna.Framework;
@@ -22,6 +23,7 @@ public sealed class Game1 : Game
     private BuildSystem _buildSystem = null!;
     private SellSystem _sellSystem = null!;
     private ResearchSystem _researchSystem = null!;
+    private TerrainClearSystem _terrainClearSystem = null!;
     private GameSimulation _simulation = null!;
     private Camera2D _camera = null!;
     private InputManager _input = null!;
@@ -55,13 +57,16 @@ public sealed class Game1 : Game
         var buildings = loader.LoadBuildingCatalog(Path.Combine(dataDirectory, "buildings.json"));
         var economy = loader.LoadEconomySettings(Path.Combine(dataDirectory, "economy.json"));
         var research = loader.LoadResearchCatalog(Path.Combine(dataDirectory, "research.json"));
+        var heat = loader.LoadHeatSettings(Path.Combine(dataDirectory, "heat.json"));
+        var tools = loader.LoadToolSettings(Path.Combine(dataDirectory, "tools.json"));
         var map = loader.LoadMap(Path.Combine(dataDirectory, "maps", "default-map.json"));
-        var data = new GameData(buildings, economy, research);
+        var data = new GameData(buildings, economy, research, heat, tools);
 
         _world = new GameWorld(map, data);
         _buildSystem = new BuildSystem(_world);
         _sellSystem = new SellSystem(_world);
         _researchSystem = new ResearchSystem(_world);
+        _terrainClearSystem = new TerrainClearSystem(_world);
         _simulation = new GameSimulation(_world, _sellSystem);
         _camera = new Camera2D();
         _input = new InputManager();
@@ -124,7 +129,9 @@ public sealed class Game1 : Game
             _selectedBuildingId,
             _mapInput.LastBuildResult,
             _lastResearchResult,
-            _mapInput.SelectedMapBuildingId);
+            _mapInput.SelectedMapBuildingId,
+            _mapInput.SelectedTerrainPosition,
+            _mapInput.LastTerrainClearResult);
 
         _spriteBatch.End();
 
@@ -173,6 +180,15 @@ public sealed class Game1 : Game
         {
             var result = _buildSystem.ReplaceExpired(_mapInput.SelectedMapBuildingId!.Value);
             _mapInput.SetLastBuildResult(result);
+            _lastResearchResult = null;
+            return;
+        }
+
+        if (_input.IsLeftClickPressed() &&
+            _uiRenderer.IsClearTerrainButtonAt(mousePoint, GraphicsDevice.Viewport, _mapInput.SelectedTerrainPosition))
+        {
+            var result = _terrainClearSystem.Clear(_mapInput.SelectedTerrainPosition!.Value);
+            _mapInput.SetLastTerrainClearResult(result);
             _lastResearchResult = null;
             return;
         }

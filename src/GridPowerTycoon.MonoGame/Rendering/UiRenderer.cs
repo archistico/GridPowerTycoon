@@ -2,6 +2,8 @@ using GridPowerTycoon.Core.Build;
 using GridPowerTycoon.Core.Buildings;
 using GridPowerTycoon.Core.Economy;
 using GridPowerTycoon.Core.Research;
+using GridPowerTycoon.Core.Map;
+using GridPowerTycoon.Core.Tools;
 using GridPowerTycoon.Core.World;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -48,7 +50,9 @@ public sealed class UiRenderer
         string? selectedBuildingId,
         BuildResult? lastBuildResult,
         ResearchResult? lastResearchResult,
-        Guid? selectedMapBuildingId)
+        Guid? selectedMapBuildingId,
+        GridPosition? selectedTerrainPosition,
+        TerrainClearResult? lastTerrainClearResult)
     {
         var topBar = GetTopBarRectangle(viewport);
         var sideMenu = GetSideMenuRectangle(viewport);
@@ -60,14 +64,16 @@ public sealed class UiRenderer
         DrawBuildMenu(spriteBatch, selectedBuildingId);
         DrawResearchMenu(spriteBatch);
         DrawSelectedBuildingPanel(spriteBatch, viewport, selectedMapBuildingId);
-        DrawStatus(spriteBatch, viewport, selectedBuildingId, lastBuildResult, lastResearchResult);
+        DrawSelectedTerrainPanel(spriteBatch, viewport, selectedTerrainPosition);
+        DrawStatus(spriteBatch, viewport, selectedBuildingId, lastBuildResult, lastResearchResult, lastTerrainClearResult);
     }
 
     public bool IsMouseOverUi(Point mousePosition, Viewport viewport)
     {
         return GetTopBarRectangle(viewport).Contains(mousePosition) ||
                GetSideMenuRectangle(viewport).Contains(mousePosition) ||
-               GetSelectedBuildingPanelRectangle(viewport).Contains(mousePosition);
+               GetSelectedBuildingPanelRectangle(viewport).Contains(mousePosition) ||
+               GetSelectedTerrainPanelRectangle(viewport).Contains(mousePosition);
     }
 
     public bool IsSellButtonAt(Point mousePosition, Viewport viewport)
@@ -87,6 +93,21 @@ public sealed class UiRenderer
             return false;
 
         return GetReplaceButtonRectangle(viewport).Contains(mousePosition);
+    }
+
+    public bool IsClearTerrainButtonAt(Point mousePosition, Viewport viewport, GridPosition? selectedTerrainPosition)
+    {
+        if (!selectedTerrainPosition.HasValue)
+            return false;
+
+        if (!_world.Map.Contains(selectedTerrainPosition.Value))
+            return false;
+
+        var tile = _world.Map.GetTile(selectedTerrainPosition.Value);
+        if (tile.Type != TileType.Forest && tile.Type != TileType.Mountain)
+            return false;
+
+        return GetClearTerrainButtonRectangle(viewport).Contains(mousePosition);
     }
 
     public bool TryGetBuildingButtonAt(Point mousePosition, out string? buildingId)
@@ -142,12 +163,17 @@ public sealed class UiRenderer
         _text.DrawString(spriteBatch, $"MONEY ${money}", new Vector2(600, 12), new Color(255, 225, 120), 2);
         _text.DrawString(spriteBatch, $"${FormatSignedNumberFixed2((double)rates.MoneyPerSecond)}/S", new Vector2(600, 40), new Color(255, 225, 120), 1);
 
+        _text.DrawString(spriteBatch, $"AXES {FormatNumberFixed2(resources.Axes)}/{_world.ToolSettings.MaxAxes}", new Vector2(818, 12), new Color(210, 235, 190), 1);
+        _text.DrawString(spriteBatch, $"+{FormatNumberFixed2(_world.ToolSettings.AxesPerSecond)}/S", new Vector2(818, 34), new Color(210, 235, 190), 1);
+
+        _text.DrawString(spriteBatch, $"MINES {FormatNumberFixed2(resources.Mines)}/{_world.ToolSettings.MaxMines}", new Vector2(818, 46), new Color(230, 210, 170), 1);
+
         var sellButton = GetSellButtonRectangle(new Viewport(0, 0, topBar.Width, topBar.Height));
         spriteBatch.Draw(_pixel, sellButton, new Color(70, 120, 72));
         DrawOutline(spriteBatch, sellButton, new Color(150, 235, 150), 2);
         _text.DrawString(spriteBatch, "SELL", new Vector2(sellButton.X + 20, sellButton.Y + 12), new Color(235, 250, 235), 2);
 
-        DrawEnergyBar(spriteBatch, new Rectangle(topBar.Width - 260, 18, 230, 22));
+        DrawEnergyBar(spriteBatch, new Rectangle(topBar.Width - 150, 18, 125, 22));
     }
 
     private void DrawEnergyBar(SpriteBatch spriteBatch, Rectangle rect)
@@ -242,20 +268,50 @@ public sealed class UiRenderer
         _text.DrawString(spriteBatch, Shorten(definition.Name.ToUpperInvariant(), 24), new Vector2(panel.X + 12, panel.Y + 12), new Color(235, 240, 245), 2);
         _text.DrawString(spriteBatch, $"STATE {instance.State.ToString().ToUpperInvariant()}", new Vector2(panel.X + 12, panel.Y + 46), GetStateColor(instance.State), 1);
 
+        var y = panel.Y + 66;
         var lifetimeText = definition.LifetimeSeconds <= 0
             ? "LIFE -"
             : $"LIFE {FormatNumber(instance.RemainingLifetimeSeconds)}S/{FormatNumber(definition.LifetimeSeconds)}S";
 
-        _text.DrawString(spriteBatch, lifetimeText, new Vector2(panel.X + 12, panel.Y + 66), new Color(210, 222, 235), 1);
+        _text.DrawString(spriteBatch, lifetimeText, new Vector2(panel.X + 12, y), new Color(210, 222, 235), 1);
+        y += 20;
 
         if (definition.EnergyPerSecond > 0)
-            _text.DrawString(spriteBatch, $"ENERGY +{FormatNumber(definition.EnergyPerSecond)}/S", new Vector2(panel.X + 12, panel.Y + 86), new Color(135, 210, 255), 1);
+        {
+            _text.DrawString(spriteBatch, $"ENERGY +{FormatNumber(definition.EnergyPerSecond)}/S", new Vector2(panel.X + 12, y), new Color(135, 210, 255), 1);
+            y += 20;
+        }
+
+        if (definition.HeatPerSecond > 0)
+        {
+            _text.DrawString(spriteBatch, $"HEAT +{FormatNumber(definition.HeatPerSecond)}/S", new Vector2(panel.X + 12, y), new Color(245, 145, 55), 1);
+            y += 20;
+        }
+
+        if (definition.HeatConversionPerSecond > 0)
+        {
+            _text.DrawString(spriteBatch, $"CONVERT {FormatNumber(definition.HeatConversionPerSecond)}/S R{definition.HeatRange}", new Vector2(panel.X + 12, y), new Color(70, 220, 190), 1);
+            y += 20;
+        }
+
+        if (instance.AccumulatedHeat > 0 || definition.HeatPerSecond > 0)
+        {
+            var heatText = $"HEAT {FormatNumber(instance.AccumulatedHeat)}/{FormatNumber(_world.HeatSettings.HeatExplosionThreshold)}";
+            _text.DrawString(spriteBatch, heatText, new Vector2(panel.X + 12, y), GetHeatTextColor(instance.AccumulatedHeat), 1);
+            y += 20;
+        }
 
         if (definition.ResearchPerSecond > 0)
-            _text.DrawString(spriteBatch, $"RESEARCH +{FormatNumber(definition.ResearchPerSecond)}/S", new Vector2(panel.X + 12, panel.Y + 106), new Color(210, 190, 255), 1);
+        {
+            _text.DrawString(spriteBatch, $"RESEARCH +{FormatNumber(definition.ResearchPerSecond)}/S", new Vector2(panel.X + 12, y), new Color(210, 190, 255), 1);
+            y += 20;
+        }
 
         if (definition.AutoSellPerSecond > 0)
-            _text.DrawString(spriteBatch, $"AUTO SELL {FormatNumber(definition.AutoSellPerSecond)}/S", new Vector2(panel.X + 12, panel.Y + 126), new Color(180, 225, 190), 1);
+        {
+            _text.DrawString(spriteBatch, $"AUTO SELL {FormatNumber(definition.AutoSellPerSecond)}/S", new Vector2(panel.X + 12, y), new Color(180, 225, 190), 1);
+            y += 20;
+        }
 
         if (instance.State == BuildingState.Expired)
         {
@@ -266,7 +322,53 @@ public sealed class UiRenderer
         }
     }
 
-    private void DrawStatus(SpriteBatch spriteBatch, Viewport viewport, string? selectedBuildingId, BuildResult? lastBuildResult, ResearchResult? lastResearchResult)
+    private void DrawSelectedTerrainPanel(SpriteBatch spriteBatch, Viewport viewport, GridPosition? selectedTerrainPosition)
+    {
+        if (!selectedTerrainPosition.HasValue)
+            return;
+
+        if (!_world.Map.Contains(selectedTerrainPosition.Value))
+            return;
+
+        var tile = _world.Map.GetTile(selectedTerrainPosition.Value);
+        if (tile.Type != TileType.Forest && tile.Type != TileType.Mountain)
+            return;
+
+        var panel = GetSelectedTerrainPanelRectangle(viewport);
+        spriteBatch.Draw(_pixel, panel, new Color(30, 38, 52, 235));
+        DrawOutline(spriteBatch, panel, new Color(95, 115, 140), 2);
+
+        var title = tile.Type == TileType.Forest ? "FOREST" : "MOUNTAIN";
+        var costText = tile.Type == TileType.Forest
+            ? $"COST {_world.ToolSettings.ForestClearAxesCost} AXES"
+            : $"COST {_world.ToolSettings.MountainClearMinesCost} MINES";
+
+        var availableText = tile.Type == TileType.Forest
+            ? $"HAVE {FormatNumberFixed2(_world.Resources.Axes)} AXES"
+            : $"HAVE {FormatNumberFixed2(_world.Resources.Mines)} MINES";
+
+        _text.DrawString(spriteBatch, title, new Vector2(panel.X + 12, panel.Y + 12), new Color(235, 240, 245), 2);
+        _text.DrawString(spriteBatch, $"CELL {tile.Position.X},{tile.Position.Y}", new Vector2(panel.X + 12, panel.Y + 48), new Color(210, 222, 235), 1);
+        _text.DrawString(spriteBatch, costText, new Vector2(panel.X + 12, panel.Y + 70), new Color(255, 225, 120), 1);
+        _text.DrawString(spriteBatch, availableText, new Vector2(panel.X + 12, panel.Y + 92), new Color(210, 235, 190), 1);
+
+        var clearButton = GetClearTerrainButtonRectangle(viewport);
+        spriteBatch.Draw(_pixel, clearButton, CanClearTerrain(tile.Type) ? new Color(88, 118, 72) : new Color(80, 80, 84));
+        DrawOutline(spriteBatch, clearButton, CanClearTerrain(tile.Type) ? new Color(180, 235, 135) : new Color(120, 120, 130), 2);
+        _text.DrawString(spriteBatch, "CLEAR", new Vector2(clearButton.X + 12, clearButton.Y + 10), new Color(235, 250, 220), 1);
+    }
+
+    private bool CanClearTerrain(TileType type)
+    {
+        return type switch
+        {
+            TileType.Forest => _world.Resources.Axes >= _world.ToolSettings.ForestClearAxesCost,
+            TileType.Mountain => _world.Resources.Mines >= _world.ToolSettings.MountainClearMinesCost,
+            _ => false
+        };
+    }
+
+    private void DrawStatus(SpriteBatch spriteBatch, Viewport viewport, string? selectedBuildingId, BuildResult? lastBuildResult, ResearchResult? lastResearchResult, TerrainClearResult? lastTerrainClearResult)
     {
         var y = viewport.Height - 34;
         var message = selectedBuildingId is null
@@ -285,6 +387,13 @@ public sealed class UiRenderer
             message = lastBuildResult.Success
                 ? "BUILD OK"
                 : $"BUILD FAILED {lastBuildResult.FailureReason}";
+        }
+
+        if (lastTerrainClearResult is not null)
+        {
+            message = lastTerrainClearResult.Success
+                ? "TERRAIN CLEARED"
+                : $"CLEAR FAILED {lastTerrainClearResult.FailureReason}";
         }
 
         spriteBatch.Draw(_pixel, new Rectangle(SideMenuWidth, viewport.Height - 44, viewport.Width - SideMenuWidth, 44), new Color(25, 31, 42));
@@ -309,17 +418,28 @@ public sealed class UiRenderer
 
     private static Rectangle GetSellButtonRectangle(Viewport viewport)
     {
-        return new Rectangle(viewport.Width - 370, 14, 90, 34);
+        return new Rectangle(viewport.Width - 255, 14, 90, 34);
     }
 
     private static Rectangle GetSelectedBuildingPanelRectangle(Viewport viewport)
     {
-        return new Rectangle(viewport.Width - 330, viewport.Height - 235, 310, 178);
+        return new Rectangle(viewport.Width - 330, viewport.Height - 275, 310, 218);
+    }
+
+    private static Rectangle GetSelectedTerrainPanelRectangle(Viewport viewport)
+    {
+        return new Rectangle(viewport.Width - 330, viewport.Height - 275, 310, 170);
     }
 
     private static Rectangle GetReplaceButtonRectangle(Viewport viewport)
     {
         var panel = GetSelectedBuildingPanelRectangle(viewport);
+        return new Rectangle(panel.X + 12, panel.Bottom - 44, panel.Width - 24, 32);
+    }
+
+    private static Rectangle GetClearTerrainButtonRectangle(Viewport viewport)
+    {
+        var panel = GetSelectedTerrainPanelRectangle(viewport);
         return new Rectangle(panel.X + 12, panel.Bottom - 44, panel.Width - 24, 32);
     }
 
@@ -357,6 +477,17 @@ public sealed class UiRenderer
             BuildingState.Exploded => new Color(255, 110, 90),
             _ => new Color(230, 238, 245)
         };
+    }
+
+    private Color GetHeatTextColor(double accumulatedHeat)
+    {
+        if (accumulatedHeat >= _world.HeatSettings.HeatExplosionThreshold)
+            return new Color(255, 110, 90);
+
+        if (accumulatedHeat >= _world.HeatSettings.HeatWarningThreshold)
+            return new Color(245, 145, 55);
+
+        return new Color(255, 210, 90);
     }
 
     private void DrawOutline(SpriteBatch spriteBatch, Rectangle rect, Color color, int thickness)
