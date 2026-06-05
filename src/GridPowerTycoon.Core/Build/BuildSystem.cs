@@ -56,7 +56,7 @@ public sealed class BuildSystem
         if (!_world.BuildingCatalog.TryGet(instance.DefinitionId, out var definition))
             return BuildResult.Fail(BuildFailureReason.UnknownBuilding);
 
-        if (instance.State != BuildingState.Expired)
+        if (instance.State != BuildingState.Expired && instance.State != BuildingState.Exploded)
             return BuildResult.Fail(BuildFailureReason.BuildingNotExpired);
 
         if (!_world.Resources.TrySpendMoney(definition.Cost))

@@ -2,6 +2,7 @@ using GridPowerTycoon.Core.Buildings;
 using GridPowerTycoon.Core.Economy;
 using GridPowerTycoon.Core.Heat;
 using GridPowerTycoon.Core.Lifetime;
+using GridPowerTycoon.Core.Managers;
 using GridPowerTycoon.Core.Tools;
 using GridPowerTycoon.Core.World;
 
@@ -14,6 +15,7 @@ public sealed class OfflineProgressSystem
     private readonly GameWorld _world;
     private readonly LifetimeSystem _lifetimeSystem;
     private readonly ProductionSystem _productionSystem;
+    private readonly ManagerSystem _managerSystem;
     private readonly HeatSystem _heatSystem;
     private readonly AutoSellSystem _autoSellSystem;
     private readonly ToolGenerationSystem _toolGenerationSystem;
@@ -22,6 +24,7 @@ public sealed class OfflineProgressSystem
     {
         _world = world;
         _lifetimeSystem = new LifetimeSystem(world);
+        _managerSystem = new ManagerSystem(world);
         _productionSystem = new ProductionSystem(world);
         _heatSystem = new HeatSystem(world);
         _autoSellSystem = new AutoSellSystem(world, sellSystem);
@@ -69,6 +72,7 @@ public sealed class OfflineProgressSystem
     private void UpdateStep(double deltaSeconds)
     {
         _lifetimeSystem.Update(deltaSeconds);
+        _managerSystem.Update();
         _productionSystem.Update(deltaSeconds);
         _heatSystem.Update(deltaSeconds, allowExplosions: false);
         _autoSellSystem.Update(deltaSeconds);

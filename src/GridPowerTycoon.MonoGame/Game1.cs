@@ -190,6 +190,10 @@ public sealed class Game1 : Game
         _mapInput.Update(GraphicsDevice.Viewport, _selectedBuildingId);
 
         _simulation.Update(gameTime.ElapsedGameTime.TotalSeconds);
+        if (_simulation.LastManagerRenewalResult.HasRenewals)
+        {
+            _lastSaveLoadMessage = $"MANAGER RENEWED {_simulation.LastManagerRenewalResult.RenewedCount} BUILDING(S) -${FormatCompactMoney((double)_simulation.LastManagerRenewalResult.MoneySpent)}";
+        }
 
         base.Update(gameTime);
     }
@@ -202,7 +206,7 @@ public sealed class Game1 : Game
             samplerState: SamplerState.PointClamp,
             transformMatrix: _camera.GetTransformMatrix());
 
-        _mapRenderer.Draw(_spriteBatch, _mapInput.HoveredTile, _selectedBuildingId, _buildSystem);
+        _mapRenderer.Draw(_spriteBatch, _mapInput.HoveredTile, _mapInput.SelectedTilePosition, _selectedBuildingId, _buildSystem);
 
         _spriteBatch.End();
 
@@ -214,6 +218,7 @@ public sealed class Game1 : Game
             _selectedBuildingId,
             _mapInput.LastBuildResult,
             _lastResearchResult,
+            _mapInput.SelectedTilePosition,
             _mapInput.SelectedMapBuildingId,
             _mapInput.SelectedTerrainPosition,
             _mapInput.SelectedCloudPosition,
@@ -279,6 +284,22 @@ public sealed class Game1 : Game
     private static string FormatMoneyDelta(decimal value)
     {
         return value >= 0 ? $"+${value:0.00}" : $"-${Math.Abs(value):0.00}";
+    }
+
+    private static string FormatCompactMoney(double value)
+    {
+        var abs = Math.Abs(value);
+        var units = new[] { "", "k", "M", "G", "T", "P", "E", "Z", "Y" };
+        var unitIndex = 0;
+
+        while (abs >= 1000d && unitIndex < units.Length - 1)
+        {
+            abs /= 1000d;
+            unitIndex++;
+        }
+
+        var sign = value < 0 ? "-" : "";
+        return $"{sign}{abs:0.##}{units[unitIndex]}";
     }
 
     private void HandleBuildSelectionInput()

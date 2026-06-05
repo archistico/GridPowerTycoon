@@ -209,3 +209,36 @@ Gli upgrade non sono più limitati al comportamento “comprato una volta”. Og
 Il sistema usa il livello corrente per applicare il moltiplicatore come potenza: un upgrade `1.5` al livello 3 produce un moltiplicatore effettivo `1.5^3`. Il costo del prossimo livello cresce con `costGrowthMultiplier^currentLevel`.
 
 Sono stati aggiunti upgrade di produzione calore per pannello solare, carbone e gas. Le produzioni di calore ora usano `UpgradeCalculator.GetHeatPerSecond`, quindi gli upgrade di produzione calore hanno effetto su simulazione, riepilogo risorse e pannello edificio.
+
+## Step 18 - Gestori automatici
+
+Stato: implementato.
+
+Aggiunto il sistema dei gestori automatici collegati alle ricerche. Una ricerca può ora indicare `managedBuildingIds`; quando è completata, gli edifici scaduti di quei tipi vengono rinnovati automaticamente se il giocatore ha abbastanza denaro. La prima implementazione rinnova solo edifici `Expired`, non edifici `Exploded`.
+
+Gestori iniziali:
+
+- Gestore pale eoliche
+- Gestore pannelli solari
+- Gestore carbone
+- Gestore gas
+
+Il rinnovo automatico usa il costo base dell'edificio e la durata effettiva aggiornata dagli upgrade multi-livello.
+
+### Step 17A - Upgrade cost growth balancing
+
+Stato: completato. Aumentati i `costGrowthMultiplier` in `upgrades.json` per rendere gli upgrade multi-livello più costosi e strategici ai livelli successivi.
+
+
+## Step 18A - Restore edifici esplosi
+
+- Corretto il ripristino manuale: il pulsante di ripristino ora è disponibile anche per edifici in stato `Exploded`.
+- Il ripristino manuale paga il costo dell'edificio, azzera il calore accumulato e riporta lo stato ad `Active`.
+- I gestori automatici continuano a non rinnovare edifici esplosi: il ripristino degli esplosi resta una scelta manuale del giocatore.
+
+## Step 18B - Fixed properties panel and persistent tile selection
+
+- Added a fixed properties column on the right side of the screen.
+- The clicked map cell remains selected and highlighted until another cell is selected.
+- Building, terrain and cloud details now use the same property rows, so values stay in predictable positions across different selections.
+- Context actions (REPLACE, RESTORE, CLEAR, UNLOCK) are shown in the fixed properties column.

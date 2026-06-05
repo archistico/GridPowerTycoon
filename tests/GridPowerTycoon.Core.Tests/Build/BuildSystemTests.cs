@@ -167,6 +167,27 @@ public sealed class BuildSystemTests
     }
 
 
+
+    [Fact]
+    public void ReplaceExpired_WhenBuildingIsExploded_ShouldSpendMoneyAndReactivateBuilding()
+    {
+        var world = CreateWorld(startingMoney: 100);
+        var system = new BuildSystem(world);
+        var result = system.Build("wind_turbine", new GridPosition(1, 1));
+        Assert.True(result.Success);
+        var instance = world.BuildingInstances[result.BuildingId!.Value];
+        instance.AddHeat(80);
+        instance.MarkExploded();
+
+        var replace = system.ReplaceExpired(instance.Id);
+
+        Assert.True(replace.Success);
+        Assert.Equal(BuildingState.Active, instance.State);
+        Assert.Equal(60, instance.RemainingLifetimeSeconds);
+        Assert.Equal(0, instance.AccumulatedHeat);
+        Assert.Equal(98, world.Resources.Money);
+    }
+
     [Fact]
     public void Build_WhenResearchIsRequiredButNotCompleted_ShouldFail()
     {

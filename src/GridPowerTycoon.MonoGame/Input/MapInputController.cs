@@ -18,6 +18,7 @@ public sealed class MapInputController
     private readonly Func<Point, bool> _isMouseOverUi;
 
     public GridPosition? HoveredTile { get; private set; }
+    public GridPosition? SelectedTilePosition { get; private set; }
     public Guid? SelectedMapBuildingId { get; private set; }
     public GridPosition? SelectedTerrainPosition { get; private set; }
     public GridPosition? SelectedCloudPosition { get; private set; }
@@ -58,6 +59,7 @@ public sealed class MapInputController
             return;
         }
 
+        SelectedTilePosition = tilePosition;
         var tile = _world.Map.GetTile(tilePosition);
         if (tile.BuildingId.HasValue)
         {
@@ -101,6 +103,13 @@ public sealed class MapInputController
         LastBuildResult = _buildSystem.Build(selectedBuildingId, tilePosition);
         LastTerrainClearResult = null;
         LastAreaUnlockResult = null;
+
+        if (LastBuildResult.Success && LastBuildResult.BuildingId.HasValue)
+        {
+            SelectedMapBuildingId = LastBuildResult.BuildingId.Value;
+            SelectedTerrainPosition = null;
+            SelectedCloudPosition = null;
+        }
     }
 
     public void SetLastBuildResult(BuildResult result)
@@ -147,6 +156,7 @@ public sealed class MapInputController
 
     private void ClearSelection()
     {
+        SelectedTilePosition = null;
         SelectedMapBuildingId = null;
         SelectedTerrainPosition = null;
         SelectedCloudPosition = null;

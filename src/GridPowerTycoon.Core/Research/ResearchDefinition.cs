@@ -7,5 +7,6 @@ public sealed class ResearchDefinition
     public string Description { get; init; } = "";
     public double Cost { get; init; }
     public List<string> UnlockBuildingIds { get; init; } = new();
+    public List<string> ManagedBuildingIds { get; init; } = new();
     public List<string> RequiredResearchIds { get; init; } = new();
 }

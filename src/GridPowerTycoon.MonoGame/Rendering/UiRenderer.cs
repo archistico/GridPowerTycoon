@@ -4,6 +4,7 @@ using GridPowerTycoon.Core.Economy;
 using GridPowerTycoon.Core.Expansion;
 using GridPowerTycoon.Core.Research;
 using GridPowerTycoon.Core.Map;
+using GridPowerTycoon.Core.Managers;
 using GridPowerTycoon.Core.Operations;
 using GridPowerTycoon.Core.Tools;
 using GridPowerTycoon.Core.Upgrades;
@@ -45,10 +46,14 @@ public sealed class UiRenderer
         "office_small",
         "solar_power",
         "generator_small",
+        "wind_turbine_manager",
+        "solar_panel_manager",
         "coal_power",
         "office_large",
         "generator_medium",
         "gas_power",
+        "coal_power_manager",
+        "gas_power_manager",
         "research_large"
     };
 
@@ -90,6 +95,7 @@ public sealed class UiRenderer
         string? selectedBuildingId,
         BuildResult? lastBuildResult,
         ResearchResult? lastResearchResult,
+        GridPosition? selectedTilePosition,
         Guid? selectedMapBuildingId,
         GridPosition? selectedTerrainPosition,
         GridPosition? selectedCloudPosition,
@@ -108,9 +114,7 @@ public sealed class UiRenderer
         DrawBuildMenu(spriteBatch, selectedBuildingId);
         DrawResearchMenu(spriteBatch);
         DrawUpgradeMenu(spriteBatch);
-        DrawSelectedBuildingPanel(spriteBatch, viewport, selectedMapBuildingId);
-        DrawSelectedTerrainPanel(spriteBatch, viewport, selectedTerrainPosition);
-        DrawSelectedCloudPanel(spriteBatch, viewport, selectedCloudPosition);
+        DrawPropertiesPanel(spriteBatch, viewport, selectedTilePosition, selectedMapBuildingId, selectedTerrainPosition, selectedCloudPosition);
         DrawStatus(spriteBatch, viewport, selectedBuildingId, lastBuildResult, lastResearchResult, lastTerrainClearResult, lastAreaUnlockResult, lastUpgradeResult, saveLoadMessage);
     }
 
@@ -118,9 +122,7 @@ public sealed class UiRenderer
     {
         return GetTopBarRectangle(viewport).Contains(mousePosition) ||
                GetSideMenuRectangle(viewport).Contains(mousePosition) ||
-               GetSelectedBuildingPanelRectangle(viewport).Contains(mousePosition) ||
-               GetSelectedTerrainPanelRectangle(viewport).Contains(mousePosition) ||
-               GetSelectedCloudPanelRectangle(viewport).Contains(mousePosition);
+               GetPropertiesPanelRectangle(viewport).Contains(mousePosition);
     }
 
     public bool IsSellButtonAt(Point mousePosition, Viewport viewport)
@@ -136,7 +138,7 @@ public sealed class UiRenderer
         if (!_world.TryGetBuilding(selectedMapBuildingId.Value, out var instance))
             return false;
 
-        if (instance.State != BuildingState.Expired)
+        if (instance.State != BuildingState.Expired && instance.State != BuildingState.Exploded)
             return false;
 
         return GetReplaceButtonRectangle(viewport).Contains(mousePosition);
@@ -389,6 +391,255 @@ public sealed class UiRenderer
         }
     }
 
+
+    private void DrawPropertiesPanel(
+        SpriteBatch spriteBatch,
+        Viewport viewport,
+        GridPosition? selectedTilePosition,
+        Guid? selectedMapBuildingId,
+        GridPosition? selectedTerrainPosition,
+        GridPosition? selectedCloudPosition)
+    {
+        var panel = GetPropertiesPanelRectangle(viewport);
+        spriteBatch.Draw(_pixel, panel, new Color(30, 38, 52, 240));
+        DrawOutline(spriteBatch, panel, new Color(95, 115, 140), 2);
+
+        var title = "PROPERTIES";
+        var subtitle = selectedTilePosition.HasValue
+            ? $"CELL {selectedTilePosition.Value.X},{selectedTilePosition.Value.Y}"
+            : "NO CELL SELECTED";
+
+        var rows = CreateEmptyPropertyRows();
+        Color stateColor = new Color(210, 222, 235);
+        var action = "-";
+
+        if (selectedMapBuildingId.HasValue &&
+            _world.TryGetBuilding(selectedMapBuildingId.Value, out var instance) &&
+            _world.BuildingCatalog.TryGet(instance.DefinitionId, out var definition))
+        {
+            title = Shorten(definition.Name.ToUpperInvariant(), 26);
+            FillBuildingPropertyRows(rows, instance, definition, out stateColor, out action);
+        }
+        else if (selectedTerrainPosition.HasValue && _world.Map.Contains(selectedTerrainPosition.Value))
+        {
+            var tile = _world.Map.GetTile(selectedTerrainPosition.Value);
+            FillTerrainPropertyRows(rows, tile, out stateColor, out action);
+            title = tile.Type == TileType.Forest ? "FOREST" : tile.Type == TileType.Mountain ? "MOUNTAIN" : "TERRAIN";
+        }
+        else if (selectedCloudPosition.HasValue && _world.Map.Contains(selectedCloudPosition.Value))
+        {
+            var tile = _world.Map.GetTile(selectedCloudPosition.Value);
+            FillCloudPropertyRows(rows, tile, selectedCloudPosition.Value, out stateColor, out action);
+            title = "CLOUD AREA";
+        }
+        else if (selectedTilePosition.HasValue && _world.Map.Contains(selectedTilePosition.Value))
+        {
+            var tile = _world.Map.GetTile(selectedTilePosition.Value);
+            rows["TYPE"] = tile.Type.ToString().ToUpperInvariant();
+            rows["STATE"] = tile.Type == TileType.Land ? "FREE" : tile.Type.ToString().ToUpperInvariant();
+            stateColor = tile.Type == TileType.Land ? new Color(150, 235, 150) : new Color(210, 222, 235);
+            title = tile.Type.ToString().ToUpperInvariant();
+        }
+
+        _text.DrawString(spriteBatch, title, new Vector2(panel.X + 14, panel.Y + 14), new Color(235, 240, 245), 2);
+        _text.DrawString(spriteBatch, subtitle, new Vector2(panel.X + 14, panel.Y + 48), new Color(170, 185, 205), 1);
+
+        var y = panel.Y + 74;
+        foreach (var key in PropertyRowKeys)
+        {
+            var value = rows.TryGetValue(key, out var rowValue) ? rowValue : "-";
+            var valueColor = key == "STATE" ? stateColor : GetPropertyValueColor(key);
+            DrawPropertyRow(spriteBatch, panel, ref y, key, value, valueColor);
+        }
+
+        DrawPropertyRow(spriteBatch, panel, ref y, "ACTION", action, new Color(255, 225, 120));
+        DrawContextActionButton(spriteBatch, viewport, selectedMapBuildingId, selectedTerrainPosition, selectedCloudPosition);
+    }
+
+    private static readonly string[] PropertyRowKeys =
+    {
+        "TYPE",
+        "STATE",
+        "COST",
+        "LIFE",
+        "MANAGED",
+        "ENERGY IN",
+        "ENERGY OUT",
+        "HEAT OUT",
+        "HEAT STORED",
+        "HEAT CONV",
+        "RESEARCH OUT",
+        "AUTO SELL",
+        "BATTERY",
+        "SIZE",
+        "REVEAL",
+        "CLEAR COST",
+        "UNLOCK COST"
+    };
+
+    private static Dictionary<string, string> CreateEmptyPropertyRows()
+    {
+        return PropertyRowKeys.ToDictionary(key => key, _ => "-");
+    }
+
+    private void FillBuildingPropertyRows(
+        Dictionary<string, string> rows,
+        BuildingInstance instance,
+        BuildingDefinition definition,
+        out Color stateColor,
+        out string action)
+    {
+        var status = BuildingOperationalStatusCalculator.Calculate(_world, instance);
+        var effectiveLifetime = UpgradeCalculator.GetLifetimeSeconds(_world, definition);
+        var managed = ManagerSystem.IsManaged(_world, definition.Id);
+
+        rows["TYPE"] = definition.Category.ToString().ToUpperInvariant();
+        rows["STATE"] = status.Label;
+        rows["COST"] = "$" + FormatNumber((double)definition.Cost);
+        rows["LIFE"] = effectiveLifetime <= 0 ? "-" : $"{Math.Ceiling(instance.RemainingLifetimeSeconds):0}S / {effectiveLifetime:0}S";
+        rows["MANAGED"] = managed ? "YES" : "NO";
+        rows["ENERGY IN"] = status.EnergyInputPerSecond > 0 ? $"-{FormatNumber(status.EnergyInputPerSecond)}/S" : "-";
+        rows["ENERGY OUT"] = FormatEffectiveGross(status.EnergyOutputPerSecond, UpgradeCalculator.GetEnergyPerSecond(_world, definition));
+        rows["HEAT OUT"] = FormatEffectiveGross(status.HeatOutputPerSecond, UpgradeCalculator.GetHeatPerSecond(_world, definition));
+        rows["HEAT STORED"] = (instance.AccumulatedHeat > 0 || UpgradeCalculator.GetHeatPerSecond(_world, definition) > 0)
+            ? $"{FormatNumber(status.HeatStored)} / {FormatNumber(status.HeatExplosionThreshold)}"
+            : "-";
+        rows["HEAT CONV"] = UpgradeCalculator.GetHeatConversionPerSecond(_world, definition) > 0
+            ? $"{FormatNumber(status.HeatConversionInputPerSecond)}/S R{definition.HeatRange} -> {FormatNumber(status.HeatConversionEnergyOutputPerSecond)}/S"
+            : "-";
+        rows["RESEARCH OUT"] = FormatEffectiveGross(status.ResearchOutputPerSecond, UpgradeCalculator.GetResearchPerSecond(_world, definition));
+        rows["AUTO SELL"] = FormatEffectiveGross(status.AutoSellInputPerSecond, UpgradeCalculator.GetAutoSellPerSecond(_world, definition));
+        rows["BATTERY"] = status.BatteryCapacity > 0 ? "+" + FormatNumber(status.BatteryCapacity) : "-";
+        rows["SIZE"] = $"{definition.Width} X {definition.Height}";
+
+        stateColor = GetOperationalStateColor(status.State);
+        action = instance.State == BuildingState.Exploded
+            ? "RESTORE AVAILABLE"
+            : instance.State == BuildingState.Expired
+                ? "REPLACE AVAILABLE"
+                : "-";
+    }
+
+    private void FillTerrainPropertyRows(Dictionary<string, string> rows, Tile tile, out Color stateColor, out string action)
+    {
+        rows["TYPE"] = tile.Type.ToString().ToUpperInvariant();
+        rows["STATE"] = "BLOCKED";
+        rows["SIZE"] = "1 X 1";
+
+        if (tile.Type == TileType.Forest)
+        {
+            rows["CLEAR COST"] = $"{_world.ToolSettings.ForestClearAxesCost} AXES";
+            action = _world.Resources.Axes >= _world.ToolSettings.ForestClearAxesCost ? "CLEAR AVAILABLE" : "NEED AXES";
+        }
+        else if (tile.Type == TileType.Mountain)
+        {
+            rows["CLEAR COST"] = $"{_world.ToolSettings.MountainClearMinesCost} MINES";
+            action = _world.Resources.Mines >= _world.ToolSettings.MountainClearMinesCost ? "CLEAR AVAILABLE" : "NEED MINES";
+        }
+        else
+        {
+            action = "-";
+        }
+
+        stateColor = new Color(255, 210, 95);
+    }
+
+    private void FillCloudPropertyRows(Dictionary<string, string> rows, Tile tile, GridPosition position, out Color stateColor, out string action)
+    {
+        var revealText = tile.CoveredType.HasValue
+            ? tile.CoveredType.Value.ToString().ToUpperInvariant()
+            : "UNKNOWN";
+        var tilesToUnlock = CountUnlockableCloudTiles(position);
+
+        rows["TYPE"] = "CLOUD";
+        rows["STATE"] = "LOCKED";
+        rows["SIZE"] = "1 X 1";
+        rows["REVEAL"] = $"{revealText}, {tilesToUnlock} TILE(S)";
+        rows["UNLOCK COST"] = $"${FormatNumber((double)_world.AreaUnlockSettings.CloudUnlockMoneyCost)} + R{FormatNumber(_world.AreaUnlockSettings.CloudUnlockResearchCost)}";
+        action = CanUnlockCloud() ? "UNLOCK AVAILABLE" : "NEED RESOURCES";
+        stateColor = new Color(145, 155, 170);
+    }
+
+    private static string FormatEffectiveGross(double effective, double gross)
+    {
+        if (gross <= 0 && effective <= 0)
+            return "-";
+
+        if (Math.Abs(effective - gross) > 0.0001)
+            return $"+{FormatNumber(effective)}/S ({FormatNumber(gross)})";
+
+        return $"+{FormatNumber(effective)}/S";
+    }
+
+    private void DrawPropertyRow(SpriteBatch spriteBatch, Rectangle panel, ref int y, string label, string value, Color valueColor)
+    {
+        var row = new Rectangle(panel.X + 10, y - 3, panel.Width - 20, 18);
+        if (((y - panel.Y) / 18) % 2 == 0)
+            spriteBatch.Draw(_pixel, row, new Color(36, 45, 60, 120));
+
+        _text.DrawString(spriteBatch, label, new Vector2(panel.X + 14, y), new Color(155, 170, 190), 1);
+        _text.DrawString(spriteBatch, Shorten(value, 26), new Vector2(panel.X + 146, y), valueColor, 1);
+        y += 20;
+    }
+
+    private void DrawContextActionButton(SpriteBatch spriteBatch, Viewport viewport, Guid? selectedMapBuildingId, GridPosition? selectedTerrainPosition, GridPosition? selectedCloudPosition)
+    {
+        if (selectedMapBuildingId.HasValue && _world.TryGetBuilding(selectedMapBuildingId.Value, out var instance))
+        {
+            if (instance.State == BuildingState.Expired || instance.State == BuildingState.Exploded)
+            {
+                var replaceButton = GetReplaceButtonRectangle(viewport);
+                spriteBatch.Draw(_pixel, replaceButton, instance.State == BuildingState.Exploded ? new Color(118, 72, 72) : new Color(88, 118, 72));
+                DrawOutline(spriteBatch, replaceButton, instance.State == BuildingState.Exploded ? new Color(245, 150, 140) : new Color(180, 235, 135), 2);
+                var label = instance.State == BuildingState.Exploded ? "RESTORE" : "REPLACE";
+                _text.DrawString(spriteBatch, label, new Vector2(replaceButton.X + 12, replaceButton.Y + 10), new Color(235, 250, 220), 1);
+            }
+
+            return;
+        }
+
+        if (selectedTerrainPosition.HasValue && _world.Map.Contains(selectedTerrainPosition.Value))
+        {
+            var tile = _world.Map.GetTile(selectedTerrainPosition.Value);
+            if (tile.Type == TileType.Forest || tile.Type == TileType.Mountain)
+            {
+                var clearButton = GetClearTerrainButtonRectangle(viewport);
+                spriteBatch.Draw(_pixel, clearButton, new Color(88, 118, 72));
+                DrawOutline(spriteBatch, clearButton, new Color(180, 235, 135), 2);
+                _text.DrawString(spriteBatch, "CLEAR", new Vector2(clearButton.X + 12, clearButton.Y + 10), new Color(235, 250, 220), 1);
+            }
+
+            return;
+        }
+
+        if (selectedCloudPosition.HasValue && _world.Map.Contains(selectedCloudPosition.Value))
+        {
+            var tile = _world.Map.GetTile(selectedCloudPosition.Value);
+            if (tile.Type == TileType.Cloud)
+            {
+                var unlockButton = GetUnlockCloudButtonRectangle(viewport);
+                spriteBatch.Draw(_pixel, unlockButton, CanUnlockCloud() ? new Color(88, 118, 72) : new Color(80, 80, 84));
+                DrawOutline(spriteBatch, unlockButton, CanUnlockCloud() ? new Color(180, 235, 135) : new Color(120, 120, 130), 2);
+                _text.DrawString(spriteBatch, "UNLOCK", new Vector2(unlockButton.X + 12, unlockButton.Y + 10), new Color(235, 250, 220), 1);
+            }
+        }
+    }
+
+    private static Color GetPropertyValueColor(string key)
+    {
+        return key switch
+        {
+            "COST" or "UNLOCK COST" or "ACTION" => new Color(255, 225, 120),
+            "ENERGY IN" => new Color(255, 165, 120),
+            "ENERGY OUT" or "HEAT CONV" => new Color(135, 210, 255),
+            "HEAT OUT" or "HEAT STORED" => new Color(245, 145, 55),
+            "RESEARCH OUT" => new Color(210, 190, 255),
+            "AUTO SELL" => new Color(180, 225, 190),
+            "BATTERY" => new Color(240, 205, 70),
+            _ => new Color(210, 222, 235)
+        };
+    }
+
     private void DrawSelectedBuildingPanel(SpriteBatch spriteBatch, Viewport viewport, Guid? selectedMapBuildingId)
     {
         if (!selectedMapBuildingId.HasValue)
@@ -418,6 +669,7 @@ public sealed class UiRenderer
         DrawDetailLine(spriteBatch, panel.X + 12, ref y, lifetimeText, new Color(210, 222, 235));
         DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"COST ${FormatNumber((double)definition.Cost)}", new Color(255, 225, 120));
         DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"SIZE {definition.Width}X{definition.Height}", new Color(180, 195, 215));
+        DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"MANAGED {(ManagerSystem.IsManaged(_world, definition.Id) ? "YES" : "NO")}", ManagerSystem.IsManaged(_world, definition.Id) ? new Color(150, 235, 150) : new Color(150, 160, 175));
 
         DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"ENERGY IN -{FormatNumber(status.EnergyInputPerSecond)}/S", new Color(255, 165, 120));
 
@@ -456,12 +708,13 @@ public sealed class UiRenderer
             DrawDetailLine(spriteBatch, panel.X + 12, ref y, $"HEAT CONVERTER {(status.HasHeatConverterInRange ? "YES" : "NO")}", status.HasHeatConverterInRange ? new Color(150, 235, 150) : new Color(255, 150, 120));
         }
 
-        if (instance.State == BuildingState.Expired)
+        if (instance.State == BuildingState.Expired || instance.State == BuildingState.Exploded)
         {
             var replaceButton = GetReplaceButtonRectangle(viewport);
-            spriteBatch.Draw(_pixel, replaceButton, new Color(88, 118, 72));
-            DrawOutline(spriteBatch, replaceButton, new Color(180, 235, 135), 2);
-            _text.DrawString(spriteBatch, $"REPLACE ${FormatNumber((double)definition.Cost)}", new Vector2(replaceButton.X + 12, replaceButton.Y + 10), new Color(235, 250, 220), 1);
+            spriteBatch.Draw(_pixel, replaceButton, instance.State == BuildingState.Exploded ? new Color(118, 72, 72) : new Color(88, 118, 72));
+            DrawOutline(spriteBatch, replaceButton, instance.State == BuildingState.Exploded ? new Color(245, 150, 140) : new Color(180, 235, 135), 2);
+            var label = instance.State == BuildingState.Exploded ? "RESTORE" : "REPLACE";
+            _text.DrawString(spriteBatch, $"{label} ${FormatNumber((double)definition.Cost)}", new Vector2(replaceButton.X + 12, replaceButton.Y + 10), new Color(235, 250, 220), 1);
         }
     }
 
@@ -664,9 +917,10 @@ public sealed class UiRenderer
         if (!string.IsNullOrWhiteSpace(saveLoadMessage))
             message = saveLoadMessage;
 
-        spriteBatch.Draw(_pixel, new Rectangle(SideMenuWidth, viewport.Height - 44, Math.Max(0, viewport.Width - SideMenuWidth), 44), new Color(25, 31, 42));
+        var properties = GetPropertiesPanelRectangle(viewport);
+        spriteBatch.Draw(_pixel, new Rectangle(SideMenuWidth, viewport.Height - 44, Math.Max(0, properties.X - SideMenuWidth), 44), new Color(25, 31, 42));
         _text.DrawString(spriteBatch, message, new Vector2(SideMenuWidth + 14, y), new Color(230, 238, 245), 1);
-        _text.DrawString(spriteBatch, "F5 SAVE  F9 LOAD  ESC SAVE+EXIT", new Vector2(Math.Max(SideMenuWidth + 360, viewport.Width - 300), y), new Color(170, 185, 205), 1);
+        _text.DrawString(spriteBatch, "F5 SAVE  F9 LOAD  ESC SAVE+EXIT", new Vector2(Math.Max(SideMenuWidth + 360, GetPropertiesPanelRectangle(viewport).X - 300), y), new Color(170, 185, 205), 1);
     }
 
     private bool IsBuildingUnlocked(BuildingDefinition definition)
@@ -687,7 +941,8 @@ public sealed class UiRenderer
 
     private static Rectangle GetSellButtonRectangle(Viewport viewport)
     {
-        return new Rectangle(Math.Max(10, viewport.Width - 104), 19, 88, 36);
+        var properties = GetPropertiesPanelRectangle(viewport);
+        return new Rectangle(Math.Max(10, properties.X - 104), 19, 88, 36);
     }
 
     private static Rectangle GetEnergyFillBarRectangle(Viewport viewport)
@@ -697,26 +952,20 @@ public sealed class UiRenderer
         return new Rectangle(Math.Max(10, sellButton.X - width - 14), 21, width, 32);
     }
 
-    private static Rectangle GetSelectedBuildingPanelRectangle(Viewport viewport)
+    public const int PropertiesPanelWidth = 380;
+
+    private static Rectangle GetPropertiesPanelRectangle(Viewport viewport)
     {
-        var width = 360;
-        var height = 356;
-        return new Rectangle(Math.Max(SideMenuWidth + 10, viewport.Width - width - 20), Math.Max(TopBarHeight + 10, viewport.Height - height - 58), width, height);
+        var width = Math.Min(PropertiesPanelWidth, Math.Max(280, viewport.Width - SideMenuWidth - 120));
+        var x = Math.Max(SideMenuWidth + 20, viewport.Width - width);
+        var y = TopBarHeight;
+        var height = Math.Max(0, viewport.Height - TopBarHeight - 44);
+        return new Rectangle(x, y, width, height);
     }
 
-    private static Rectangle GetSelectedTerrainPanelRectangle(Viewport viewport)
-    {
-        var width = 330;
-        var height = 170;
-        return new Rectangle(Math.Max(SideMenuWidth + 10, viewport.Width - width - 20), Math.Max(TopBarHeight + 10, viewport.Height - height - 58), width, height);
-    }
-
-    private static Rectangle GetSelectedCloudPanelRectangle(Viewport viewport)
-    {
-        var width = 330;
-        var height = 242;
-        return new Rectangle(Math.Max(SideMenuWidth + 10, viewport.Width - width - 20), Math.Max(TopBarHeight + 10, viewport.Height - height - 58), width, height);
-    }
+    private static Rectangle GetSelectedBuildingPanelRectangle(Viewport viewport) => GetPropertiesPanelRectangle(viewport);
+    private static Rectangle GetSelectedTerrainPanelRectangle(Viewport viewport) => GetPropertiesPanelRectangle(viewport);
+    private static Rectangle GetSelectedCloudPanelRectangle(Viewport viewport) => GetPropertiesPanelRectangle(viewport);
 
     private static Rectangle GetReplaceButtonRectangle(Viewport viewport)
     {

@@ -12,7 +12,7 @@
       "multiplier": 1.5,
       "requiredResearchId": null,
       "maxLevel": 50,
-      "costGrowthMultiplier": 1.65
+      "costGrowthMultiplier": 2.15
     },
     {
       "id": "wind_turbine_lifetime_1",
@@ -25,7 +25,7 @@
       "multiplier": 2.0,
       "requiredResearchId": null,
       "maxLevel": 50,
-      "costGrowthMultiplier": 1.75
+      "costGrowthMultiplier": 2.2
     },
     {
       "id": "research_small_output_1",
@@ -38,7 +38,7 @@
       "multiplier": 1.25,
       "requiredResearchId": null,
       "maxLevel": 50,
-      "costGrowthMultiplier": 1.7
+      "costGrowthMultiplier": 2.2
     },
     {
       "id": "battery_small_capacity_1",
@@ -51,7 +51,7 @@
       "multiplier": 1.5,
       "requiredResearchId": "battery",
       "maxLevel": 50,
-      "costGrowthMultiplier": 1.7
+      "costGrowthMultiplier": 2.15
     },
     {
       "id": "office_small_sell_1",
@@ -64,7 +64,7 @@
       "multiplier": 1.5,
       "requiredResearchId": "office_small",
       "maxLevel": 50,
-      "costGrowthMultiplier": 1.7
+      "costGrowthMultiplier": 2.2
     },
     {
       "id": "generator_small_conversion_1",
@@ -77,7 +77,7 @@
       "multiplier": 1.25,
       "requiredResearchId": "generator_small",
       "maxLevel": 50,
-      "costGrowthMultiplier": 1.7
+      "costGrowthMultiplier": 2.2
     },
     {
       "id": "solar_panel_heat_1",
@@ -86,7 +86,7 @@
       "targetBuildingId": "solar_panel",
       "costMoney": 1000,
       "costResearch": 0,
-      "costGrowthMultiplier": 1.75,
+      "costGrowthMultiplier": 2.25,
       "effectType": "MultiplyHeatProduction",
       "multiplier": 1.5,
       "requiredResearchId": "solar_power",
@@ -99,7 +99,7 @@
       "targetBuildingId": "solar_panel",
       "costMoney": 10000,
       "costResearch": 0,
-      "costGrowthMultiplier": 1.8,
+      "costGrowthMultiplier": 2.3,
       "effectType": "MultiplyLifetime",
       "multiplier": 2.0,
       "requiredResearchId": "solar_power",
@@ -116,7 +116,7 @@
       "multiplier": 1.25,
       "requiredResearchId": null,
       "maxLevel": 25,
-      "costGrowthMultiplier": 1.8
+      "costGrowthMultiplier": 2.35
     },
     {
       "id": "mines_generation_1",
@@ -129,7 +129,7 @@
       "multiplier": 1.25,
       "requiredResearchId": null,
       "maxLevel": 25,
-      "costGrowthMultiplier": 1.8
+      "costGrowthMultiplier": 2.35
     },
     {
       "id": "coal_heat_1",
@@ -138,7 +138,7 @@
       "targetBuildingId": "coal_power_plant",
       "costMoney": 125000,
       "costResearch": 0,
-      "costGrowthMultiplier": 1.8,
+      "costGrowthMultiplier": 2.35,
       "effectType": "MultiplyHeatProduction",
       "multiplier": 1.5,
       "requiredResearchId": "coal_power",
@@ -155,7 +155,7 @@
       "multiplier": 2.0,
       "requiredResearchId": "coal_power",
       "maxLevel": 50,
-      "costGrowthMultiplier": 1.8
+      "costGrowthMultiplier": 2.45
     },
     {
       "id": "office_large_sell_1",
@@ -168,7 +168,7 @@
       "multiplier": 1.5,
       "requiredResearchId": "office_large",
       "maxLevel": 50,
-      "costGrowthMultiplier": 1.75
+      "costGrowthMultiplier": 2.35
     },
     {
       "id": "generator_medium_conversion_1",
@@ -181,7 +181,7 @@
       "multiplier": 1.5,
       "requiredResearchId": "generator_medium",
       "maxLevel": 50,
-      "costGrowthMultiplier": 1.75
+      "costGrowthMultiplier": 2.35
     },
     {
       "id": "gas_heat_1",
@@ -190,7 +190,7 @@
       "targetBuildingId": "gas_power_plant",
       "costMoney": 20000000,
       "costResearch": 0,
-      "costGrowthMultiplier": 1.85,
+      "costGrowthMultiplier": 2.5,
       "effectType": "MultiplyHeatProduction",
       "multiplier": 1.5,
       "requiredResearchId": "gas_power",
@@ -207,7 +207,7 @@
       "multiplier": 2.0,
       "requiredResearchId": "gas_power",
       "maxLevel": 50,
-      "costGrowthMultiplier": 1.85
+      "costGrowthMultiplier": 2.6
     },
     {
       "id": "research_large_output_1",
@@ -220,7 +220,7 @@
       "multiplier": 1.25,
       "requiredResearchId": "research_large",
       "maxLevel": 50,
-      "costGrowthMultiplier": 1.75
+      "costGrowthMultiplier": 2.35
     }
   ]
 }

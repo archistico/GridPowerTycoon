@@ -70,3 +70,7 @@ Gli upgrade sono stati portati verso il modello idle/tycoon classico: ogni click
 - costo prossimo livello: `baseCost * costGrowthMultiplier^currentLevel`
 
 Questo rende gli upgrade acquistabili spesso all'inizio, ma progressivamente più costosi. I valori iniziali sono volutamente conservativi e restano modificabili in `Data/upgrades.json`.
+
+## 2026-06-06 - Crescita costi upgrade più rapida
+
+Gli upgrade multi-livello avevano moltiplicatori di costo ancora troppo permissivi, in genere tra 1.65 e 1.85. Sono stati aumentati indicativamente tra 2.15 e 2.60, con crescita più aggressiva sugli upgrade di durata e sugli edifici mid-game. Questo mantiene convenienti i primi livelli ma rende progressivamente più importante scegliere se investire in upgrade, nuovi edifici, ricerca o sblocco mappa.

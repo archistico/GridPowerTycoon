@@ -9,7 +9,8 @@
       "unlockBuildingIds": [
         "battery_small"
       ],
-      "requiredResearchIds": []
+      "requiredResearchIds": [],
+      "managedBuildingIds": []
     },
     {
       "id": "office_small",
@@ -19,7 +20,8 @@
       "unlockBuildingIds": [
         "office_small"
       ],
-      "requiredResearchIds": []
+      "requiredResearchIds": [],
+      "managedBuildingIds": []
     },
     {
       "id": "solar_power",
@@ -29,7 +31,8 @@
       "unlockBuildingIds": [
         "solar_panel"
       ],
-      "requiredResearchIds": []
+      "requiredResearchIds": [],
+      "managedBuildingIds": []
     },
     {
       "id": "generator_small",
@@ -41,7 +44,8 @@
       ],
       "requiredResearchIds": [
         "solar_power"
-      ]
+      ],
+      "managedBuildingIds": []
     },
     {
       "id": "coal_power",
@@ -53,7 +57,8 @@
       ],
       "requiredResearchIds": [
         "generator_small"
-      ]
+      ],
+      "managedBuildingIds": []
     },
     {
       "id": "office_large",
@@ -65,7 +70,8 @@
       ],
       "requiredResearchIds": [
         "office_small"
-      ]
+      ],
+      "managedBuildingIds": []
     },
     {
       "id": "generator_medium",
@@ -77,7 +83,8 @@
       ],
       "requiredResearchIds": [
         "coal_power"
-      ]
+      ],
+      "managedBuildingIds": []
     },
     {
       "id": "gas_power",
@@ -89,7 +96,8 @@
       ],
       "requiredResearchIds": [
         "generator_medium"
-      ]
+      ],
+      "managedBuildingIds": []
     },
     {
       "id": "research_large",
@@ -98,6 +106,57 @@
       "cost": 25000,
       "unlockBuildingIds": [
         "research_large"
+      ],
+      "requiredResearchIds": [
+        "gas_power"
+      ],
+      "managedBuildingIds": []
+    },
+    {
+      "id": "wind_turbine_manager",
+      "name": "Gestore pale eoliche",
+      "description": "Rinnova automaticamente le pale eoliche scadute se hai denaro sufficiente.",
+      "cost": 300,
+      "unlockBuildingIds": [],
+      "managedBuildingIds": [
+        "wind_turbine"
+      ],
+      "requiredResearchIds": []
+    },
+    {
+      "id": "solar_panel_manager",
+      "name": "Gestore pannelli solari",
+      "description": "Rinnova automaticamente i pannelli solari scaduti se hai denaro sufficiente.",
+      "cost": 1000,
+      "unlockBuildingIds": [],
+      "managedBuildingIds": [
+        "solar_panel"
+      ],
+      "requiredResearchIds": [
+        "solar_power"
+      ]
+    },
+    {
+      "id": "coal_power_manager",
+      "name": "Gestore carbone",
+      "description": "Rinnova automaticamente le centrali a carbone scadute se hai denaro sufficiente.",
+      "cost": 15000,
+      "unlockBuildingIds": [],
+      "managedBuildingIds": [
+        "coal_power_plant"
+      ],
+      "requiredResearchIds": [
+        "coal_power"
+      ]
+    },
+    {
+      "id": "gas_power_manager",
+      "name": "Gestore gas",
+      "description": "Rinnova automaticamente le centrali a gas scadute se hai denaro sufficiente.",
+      "cost": 1000000,
+      "unlockBuildingIds": [],
+      "managedBuildingIds": [
+        "gas_power_plant"
       ],
       "requiredResearchIds": [
         "gas_power"

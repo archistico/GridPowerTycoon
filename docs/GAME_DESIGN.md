@@ -32,3 +32,9 @@ Aggiunto il primo blocco di progressione industriale configurato nei JSON:
 
 Aggiunte ricerche collegate e primi upgrade specifici. La UI BUILD/RESEARCH/UPGRADE include i nuovi elementi. La formattazione numerica della UI ora usa prefissi SI: k, M, G, T, P, E, Z, Y.
 
+
+## Gestori automatici
+
+I gestori automatici sono sblocchi di ricerca che riducono la manutenzione manuale. Quando un edificio con vita limitata scade, il gestore può rinnovarlo automaticamente pagando il costo dell'edificio, purché il giocatore abbia denaro sufficiente.
+
+I gestori rinnovano solo edifici scaduti. Gli edifici esplosi restano distrutti e devono essere gestiti in modo diverso in una futura fase di gameplay.

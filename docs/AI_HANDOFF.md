@@ -246,3 +246,37 @@ Modifiche principali:
 - Aggiunti test per upgrade multi-livello e costo crescente.
 
 Nota: il container non ha `dotnet`; eseguire build/test localmente.
+
+## Step 18 - Gestori automatici
+
+Implementato `GridPowerTycoon.Core.Managers` con `ManagerSystem` e `ManagerRenewalResult`.
+
+Le ricerche supportano ora il campo `managedBuildingIds`. Quando una ricerca è completata, ogni edificio scaduto con `DefinitionId` incluso in quel campo può essere rinnovato automaticamente se ci sono soldi sufficienti. Gli edifici esplosi non vengono rinnovati automaticamente.
+
+`GameSimulation` esegue ora l'ordine:
+
+1. LifetimeSystem
+2. ManagerSystem
+3. ProductionSystem
+4. HeatSystem
+5. AutoSellSystem
+6. ToolGenerationSystem
+
+Anche `OfflineProgressSystem` applica il manager system dopo la scadenza degli edifici, così i gestori funzionano durante il guadagno offline.
+
+La UI mostra `MANAGED YES/NO` nel pannello edificio e visualizza un messaggio quando un manager rinnova uno o più edifici.
+
+## 2026-06-06 - Step 17A Upgrade cost growth balancing
+
+Richiesta utente: aumentare la moltiplicazione del costo a ogni livello di aggiornamento. Modificato `src/GridPowerTycoon.MonoGame/Data/upgrades.json`, alzando i `costGrowthMultiplier` da ~1.65-1.85 a ~2.15-2.60. Nessuna modifica di logica richiesta; il sistema multi-livello usa già `baseCost * costGrowthMultiplier ^ currentLevel`.
+
+
+## Step 18A - Restore edifici esplosi
+
+- Corretto il ripristino manuale: il pulsante di ripristino ora è disponibile anche per edifici in stato `Exploded`.
+- Il ripristino manuale paga il costo dell'edificio, azzera il calore accumulato e riporta lo stato ad `Active`.
+- I gestori automatici continuano a non rinnovare edifici esplosi: il ripristino degli esplosi resta una scelta manuale del giocatore.
+
+## 2026-06-06 - Step 18B: fixed properties column
+
+The UI now has a fixed right-hand properties panel. MapInputController keeps a SelectedTilePosition in addition to selected building/terrain/cloud references. MapRenderer highlights the selected tile separately from hover/build preview. UiRenderer uses a unified property table for buildings, terrain and clouds, with stable row labels (TYPE, STATE, COST, LIFE, MANAGED, ENERGY IN/OUT, HEAT, RESEARCH, AUTO SELL, BATTERY, etc.). Context buttons are still routed through the same UiRenderer hit-test methods but are anchored in the fixed properties panel.

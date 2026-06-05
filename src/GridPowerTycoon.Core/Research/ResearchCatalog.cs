@@ -60,6 +60,9 @@ public sealed class ResearchCatalog
 
             if (definition.UnlockBuildingIds.Any(string.IsNullOrWhiteSpace))
                 throw new InvalidOperationException($"Research '{definition.Id}' has an empty unlock building id.");
+
+            if (definition.ManagedBuildingIds.Any(string.IsNullOrWhiteSpace))
+                throw new InvalidOperationException($"Research '{definition.Id}' has an empty managed building id.");
         }
     }
 }

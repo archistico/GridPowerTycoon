@@ -21,10 +21,11 @@ public sealed class MapRenderer
         _pixel = pixel;
     }
 
-    public void Draw(SpriteBatch spriteBatch, GridPosition? hoveredTile, string? selectedBuildingId, BuildSystem buildSystem)
+    public void Draw(SpriteBatch spriteBatch, GridPosition? hoveredTile, GridPosition? selectedTile, string? selectedBuildingId, BuildSystem buildSystem)
     {
         DrawTiles(spriteBatch);
         DrawBuildings(spriteBatch);
+        DrawSelectedTile(spriteBatch, selectedTile);
         DrawHoverAndBuildPreview(spriteBatch, hoveredTile, selectedBuildingId, buildSystem);
     }
 
@@ -152,6 +153,21 @@ public sealed class MapRenderer
             return new Color(235, 180, 70);
 
         return new Color(110, 220, 120);
+    }
+
+
+    private void DrawSelectedTile(SpriteBatch spriteBatch, GridPosition? selectedTile)
+    {
+        if (selectedTile is null)
+            return;
+
+        var position = selectedTile.Value;
+        if (!_world.Map.Contains(position))
+            return;
+
+        var rect = GetTileRectangle(position);
+        DrawOutline(spriteBatch, rect, new Color(255, 240, 120, 255), 4);
+        DrawOutline(spriteBatch, new Rectangle(rect.X + 4, rect.Y + 4, rect.Width - 8, rect.Height - 8), new Color(20, 24, 32, 220), 2);
     }
 
     private void DrawHoverAndBuildPreview(SpriteBatch spriteBatch, GridPosition? hoveredTile, string? selectedBuildingId, BuildSystem buildSystem)
