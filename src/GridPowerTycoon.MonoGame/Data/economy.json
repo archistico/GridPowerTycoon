@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "startingMoney": 1,
+  "startingEnergy": 0,
+  "startingMaxEnergy": 100,
+  "startingResearch": 0,
+  "energySellValue": 1,
+  "manualSellMultiplier": 1,
+  "autoSellMultiplier": 1,
+  "maxOfflineSeconds": 7200,
+  "startingAxes": 0,
+  "startingMines": 0
+}
