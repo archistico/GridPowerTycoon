@@ -342,3 +342,11 @@ Prosegue la Milestone 19 sulla leggibilità UI. Il pannello laterale sinistro è
 Stato: preparato.
 
 BUILD, RESEARCH e UPGRADE ora mostrano badge sintetici di disponibilità nella prima riga del pulsante. La riga costo/stato è stata resa più descrittiva, così il pannello sinistro comunica immediatamente se un elemento è pronto, attivo, completato, bloccato o non acquistabile per mancanza di risorse.
+
+## 2026-06-06 - Step 19D: descrizioni operative nel pannello sinistro
+
+Stato: preparato.
+
+Prosegue la Milestone 19. I pulsanti BUILD ora usano una riga di effetto principale più esplicita: produzione energia, produzione calore, conversione calore, storage, ricerca o vendita automatica vengono descritti direttamente con verbo e quantità. La quarta riga non ripete più soltanto la descrizione lunga del catalogo, ma fornisce un'indicazione operativa breve, per esempio se un generatore ha bisogno di calore vicino, se un produttore di calore richiede un generatore o se una batteria serve a evitare sprechi di energia.
+
+Anche RESEARCH e UPGRADE sono stati resi più operativi: le ricerche distinguono meglio nuovi edifici e automazioni, mentre gli upgrade mostrano chiaramente il target dell'effetto. Lo scopo è far capire il valore pratico di ogni pulsante senza dover aprire il pannello proprietà.

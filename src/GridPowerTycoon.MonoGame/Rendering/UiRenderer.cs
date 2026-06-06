@@ -408,15 +408,14 @@ public sealed class UiRenderer
                     : canAfford
                         ? $"READY - BUILD COST ${FormatNumber((double)definition.Cost)}"
                         : $"NEED MONEY - ${FormatNumber((double)definition.Cost)}";
-            var netText = definition is null ? "NET ENERGY ?" : $"NET ENERGY {FormatNetEnergy(definition)}";
-            var heatText = definition is null ? "HEAT ?" : GetBuildButtonHeatText(definition);
-            var purposeText = definition is null ? id : GetBuildingPurposeText(definition);
+            var primaryText = definition is null ? "MAIN EFFECT ?" : GetBuildButtonMainEffectText(definition);
+            var supportText = definition is null ? id : GetBuildButtonSupportText(definition);
 
             _text.DrawString(spriteBatch, Shorten(name, 12), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonTitleY), textColor, 2);
             DrawMenuStateBadge(spriteBatch, rect, stateText, stateColor, new Color(245, 248, 252));
             _text.DrawString(spriteBatch, Shorten(costText, 35), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonMetaY), costColor, 1);
-            _text.DrawString(spriteBatch, Shorten($"{netText} | {heatText}", 36), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonPrimaryY), new Color(170, 210, 235), 1);
-            _text.DrawString(spriteBatch, Shorten(purposeText, 36), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonPurposeY), isLocked ? new Color(135, 140, 150) : new Color(175, 188, 205), 1);
+            _text.DrawString(spriteBatch, Shorten(primaryText, 36), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonPrimaryY), new Color(170, 210, 235), 1);
+            _text.DrawString(spriteBatch, Shorten(supportText, 36), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonPurposeY), isLocked ? new Color(135, 140, 150) : new Color(175, 188, 205), 1);
         }
     }
 
@@ -478,7 +477,7 @@ public sealed class UiRenderer
                             ? $"READY - COST R{cost}"
                             : $"NEED RESEARCH - R{cost}";
             var unlockText = definition is null ? "" : GetResearchUnlockText(definition);
-            var description = definition is null ? id : GetResearchPurposeText(definition);
+            var description = definition is null ? id : GetResearchActionText(definition);
 
             _text.DrawString(spriteBatch, Shorten(name, 12), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonTitleY), new Color(235, 240, 245), 2);
             DrawMenuStateBadge(spriteBatch, rect, stateText, stateColor, new Color(245, 248, 252));
@@ -527,6 +526,7 @@ public sealed class UiRenderer
 
             var name = definition?.Name ?? id;
             var effect = definition is null ? "?" : GetUpgradeEffectText(definition);
+            var targetText = definition is null ? "" : GetUpgradeTargetText(definition);
             var stateText = definition is null
                 ? "?"
                 : completed
@@ -561,7 +561,7 @@ public sealed class UiRenderer
             _text.DrawString(spriteBatch, levelText, new Vector2(rect.Right - 62, rect.Y + MenuButtonMetaY), new Color(180, 210, 240), 1);
             _text.DrawString(spriteBatch, Shorten(effect, 22), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonMetaY), new Color(190, 215, 255), 1);
             _text.DrawString(spriteBatch, Shorten(status, 36), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonPrimaryY), completed ? new Color(160, 245, 175) : new Color(255, 225, 120), 1);
-            _text.DrawString(spriteBatch, Shorten(GetUpgradePurposeText(definition), 36), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonPurposeY), new Color(175, 188, 205), 1);
+            _text.DrawString(spriteBatch, Shorten(targetText, 36), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonPurposeY), new Color(175, 188, 205), 1);
         }
     }
 
@@ -842,18 +842,71 @@ public sealed class UiRenderer
             : "REQ RESEARCH";
     }
 
-    private string GetBuildButtonHeatText(BuildingDefinition definition)
+    private string GetBuildButtonMainEffectText(BuildingDefinition definition)
     {
+        var energyOut = UpgradeCalculator.GetEnergyPerSecond(_world, definition);
         var heatOut = UpgradeCalculator.GetHeatPerSecond(_world, definition);
+        var researchOut = UpgradeCalculator.GetResearchPerSecond(_world, definition);
+        var batteryCapacity = UpgradeCalculator.GetBatteryCapacity(_world, definition);
+        var autoSell = UpgradeCalculator.GetAutoSellPerSecond(_world, definition);
         var heatIn = UpgradeCalculator.GetHeatConversionPerSecond(_world, definition);
+        var energyIn = UpgradeCalculator.GetEnergyConsumptionPerSecond(_world, definition);
 
-        if (heatOut > 0)
-            return $"HEAT +{FormatNumber(heatOut)}/S";
+        if (energyOut > 0)
+            return $"PRODUCES {FormatNumber(energyOut)}/S ENERGY";
 
         if (heatIn > 0)
-            return $"HEAT IN {FormatNumber(heatIn)}/S";
+            return $"CONVERTS {FormatNumber(heatIn)}/S HEAT";
 
-        return "NO HEAT";
+        if (heatOut > 0)
+            return $"PRODUCES {FormatNumber(heatOut)}/S HEAT";
+
+        if (researchOut > 0)
+            return $"PRODUCES R{FormatNumber(researchOut)}/S";
+
+        if (batteryCapacity > 0)
+            return $"ADDS {FormatNumber(batteryCapacity)} STORAGE";
+
+        if (autoSell > 0)
+            return $"SELLS {FormatNumber(autoSell)}/S ENERGY";
+
+        if (energyIn > 0)
+            return $"USES {FormatNumber(energyIn)}/S ENERGY";
+
+        return $"NET ENERGY {FormatNetEnergy(definition)}";
+    }
+
+    private string GetBuildButtonSupportText(BuildingDefinition definition)
+    {
+        var energyIn = UpgradeCalculator.GetEnergyConsumptionPerSecond(_world, definition);
+        var heatOut = UpgradeCalculator.GetHeatPerSecond(_world, definition);
+        var heatIn = UpgradeCalculator.GetHeatConversionPerSecond(_world, definition);
+        var netEnergy = FormatNetEnergy(definition);
+
+        if (heatIn > 0)
+        {
+            var range = Math.Max(0, definition.HeatRange);
+            return range > 0
+                ? $"NEEDS HEAT NEARBY, RANGE {range}"
+                : "NEEDS STORED HEAT";
+        }
+
+        if (heatOut > 0)
+            return "NEEDS GENERATOR TO USE HEAT";
+
+        if (energyIn > 0)
+            return $"USES {FormatNumber(energyIn)}/S ENERGY";
+
+        if (definition.BatteryCapacity > 0)
+            return "PREVENTS ENERGY WASTE";
+
+        if (definition.AutoSellPerSecond > 0)
+            return "TURNS STORED ENERGY INTO MONEY";
+
+        if (definition.ResearchPerSecond > 0)
+            return "UNLOCKS NEW TECHNOLOGIES";
+
+        return $"NET ENERGY {netEnergy} | NO HEAT";
     }
 
     private static string GetBuildingPurposeText(BuildingDefinition definition)
@@ -909,21 +962,45 @@ public sealed class UiRenderer
             : "REQ RESEARCH";
     }
 
-    private static string GetResearchPurposeText(ResearchDefinition definition)
+    private string GetResearchActionText(ResearchDefinition definition)
     {
+        if (definition.UnlockBuildingIds.Count > 0)
+        {
+            var firstId = definition.UnlockBuildingIds[0];
+            var firstName = _world.BuildingCatalog.TryGet(firstId, out var building) ? building.Name : firstId;
+            return definition.UnlockBuildingIds.Count == 1
+                ? "NEW BUILDING " + firstName
+                : $"NEW BUILDINGS {definition.UnlockBuildingIds.Count}";
+        }
+
+        if (definition.ManagedBuildingIds.Count > 0)
+        {
+            var firstId = definition.ManagedBuildingIds[0];
+            var firstName = _world.BuildingCatalog.TryGet(firstId, out var building) ? building.Name : firstId;
+            return definition.ManagedBuildingIds.Count == 1
+                ? "AUTO MANAGES " + firstName
+                : $"AUTO MANAGES {definition.ManagedBuildingIds.Count} BUILDINGS";
+        }
+
         return string.IsNullOrWhiteSpace(definition.Description)
-            ? "Research upgrade."
+            ? "IMPROVES THE GRID"
             : definition.Description;
     }
 
-    private static string GetUpgradePurposeText(UpgradeDefinition? definition)
+    private string GetUpgradeTargetText(UpgradeDefinition definition)
     {
-        if (definition is null)
-            return "Upgrade.";
+        if (!string.IsNullOrWhiteSpace(definition.TargetBuildingId) &&
+            _world.BuildingCatalog.TryGet(definition.TargetBuildingId, out var building))
+        {
+            return "TARGET " + building.Name;
+        }
 
-        return string.IsNullOrWhiteSpace(definition.Description)
-            ? "Improves selected building."
-            : definition.Description;
+        return definition.EffectType switch
+        {
+            UpgradeEffectType.MultiplyToolAxesGeneration => "TARGET AXES PRODUCTION",
+            UpgradeEffectType.MultiplyToolMinesGeneration => "TARGET MINES PRODUCTION",
+            _ => string.IsNullOrWhiteSpace(definition.Description) ? "IMPROVES THE GRID" : definition.Description
+        };
     }
 
     private string GetNextUpgradeCostText(BuildingDefinition definition)

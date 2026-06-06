@@ -370,3 +370,9 @@ I titoli dei pulsanti nelle tre colonne ora sono disegnati a scala 2, così nomi
 Rifinita la leggibilità delle tre colonne laterali aggiungendo badge di stato direttamente nella prima riga dei pulsanti. BUILD ora distingue visivamente `READY`, `ACTIVE`, `LOCKED` e `NEED $`; RESEARCH distingue `READY`, `DONE`, `LOCKED` e `NEED R`; UPGRADE distingue `READY`, `MAX`, `LOCKED` e `NEED`. Le righe di costo/stato sono state rese più esplicite, usando testi come `READY - BUILD COST ...`, `NEED MONEY - ...`, `LOCKED - ...`, `DONE - RESEARCH COMPLETED` e `NEED RESOURCES - ...`.
 
 L'obiettivo è ridurre l'ambiguità del pannello sinistro: il giocatore deve capire subito se un'azione è disponibile, già completata, bloccata da ricerca o non acquistabile per risorse insufficienti, senza dover cliccare o leggere la status bar.
+
+## 2026-06-06 - Step 19D: descrizioni operative pannello sinistro
+
+Rifinite le righe informative dei pulsanti laterali. In `UiRenderer`, BUILD non usa più una combinazione generica `NET ENERGY | HEAT` come informazione principale, ma una frase operativa calcolata dai valori effettivi con upgrade correnti: `PRODUCES ... ENERGY`, `PRODUCES ... HEAT`, `CONVERTS ... HEAT`, `ADDS ... STORAGE`, `PRODUCES R...`, `SELLS ... ENERGY` o `USES ... ENERGY`. La riga di supporto spiega il ruolo pratico: generatori che necessitano calore vicino, produttori di calore che richiedono un generatore, batterie che evitano sprechi, uffici che convertono energia accumulata in denaro e centri ricerca che sbloccano tecnologie.
+
+RESEARCH usa ora `GetResearchActionText(...)` per chiarire se la ricerca crea un nuovo edificio o abilita automazioni. UPGRADE usa `GetUpgradeTargetText(...)` per mostrare il bersaglio dell'upgrade invece di ripetere una descrizione lunga spesso meno utile nel pulsante. Questo step non modifica regole di gioco o bilanciamento, solo la leggibilità del pannello sinistro.
