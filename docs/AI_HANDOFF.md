@@ -594,3 +594,42 @@ La sezione `RESEARCH` del pannello sinistro a colonna unica è stata portata all
   - failure message style;
   - heat feedback semantics.
 - No code, simulation, economy, balance or save-data logic was changed.
+
+## Step 22A - Manager visibility in properties
+
+- Started Milestone 22 automation/manager work.
+- Added a `MANAGER` row to selected building properties in `UiRenderer.cs`.
+- The row shows:
+  - `-` for buildings that have no manager research;
+  - `UNLOCK: <research name>` for buildings that can be managed but whose manager is not unlocked yet;
+  - `ACTIVE: <research name>` for buildings currently covered by an unlocked manager.
+- No manager behavior, simulation, economy, balance or save-data logic was changed.
+
+## Step 22B - Manager renewal feedback
+
+- Improved manager feedback in `Game1.cs`.
+- The status bar now reports both successful automatic renewals and manager failures caused by insufficient money.
+- Added anti-spam tracking so repeated identical manager failures do not continuously overwrite newer user feedback.
+- Examples:
+  - `MANAGER RENEWED 2 BUILDING(S) -$20`
+  - `MANAGER RENEWED 1 -$10 | NEED MONEY FOR 3`
+  - `MANAGER NEEDS MONEY FOR 2 EXPIRED BUILDING(S)`
+- No manager behavior, simulation rules, economy, balance or save-data logic was changed.
+
+## Step 22C - Manager map badge
+
+- Added a small `M` badge to managed buildings in `MapRenderer.cs`.
+- The badge is drawn at the bottom-left of the building tile and does not replace operational badges such as `E/G/H/T/X`.
+- The badge uses `ManagerSystem.IsManaged`, the same manager check used by the properties panel.
+- No manager behavior, simulation, economy, balance or save-data logic was changed.
+
+## Step 22D - Manager research impact text
+
+- Improved manager research card details in `UiRenderer.cs`.
+- Manager research cards now show the impact on the current world:
+  - `WILL MANAGE 0 BUILT`
+  - `WILL MANAGE 3 BUILT`
+  - `MANAGING 5 BUILT`
+  - `MANAGING 5 BUILT | EXPIRED 2`
+- The count is based on current building instances whose definition id appears in the research `managedBuildingIds`.
+- No manager behavior, simulation, economy, balance or save-data logic was changed.

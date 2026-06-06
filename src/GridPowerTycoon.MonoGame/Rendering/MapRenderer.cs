@@ -1,6 +1,7 @@
 using GridPowerTycoon.Core.Build;
 using GridPowerTycoon.Core.Buildings;
 using GridPowerTycoon.Core.Map;
+using GridPowerTycoon.Core.Managers;
 using GridPowerTycoon.Core.Operations;
 using GridPowerTycoon.Core.Upgrades;
 using GridPowerTycoon.Core.World;
@@ -69,6 +70,7 @@ public sealed class MapRenderer
 
             var status = BuildingOperationalStatusCalculator.Calculate(_world, instance);
             DrawOperationalBadge(spriteBatch, inner, status);
+            DrawManagerBadge(spriteBatch, inner, instance);
 
             if (instance.State == BuildingState.Expired)
             {
@@ -169,6 +171,17 @@ public sealed class MapRenderer
         return new Color(110, 220, 120);
     }
 
+
+    private void DrawManagerBadge(SpriteBatch spriteBatch, Rectangle buildingRect, BuildingInstance instance)
+    {
+        if (!ManagerSystem.IsManaged(_world, instance.DefinitionId))
+            return;
+
+        var rect = new Rectangle(buildingRect.X + 4, buildingRect.Bottom - 18, 14, 14);
+        spriteBatch.Draw(_pixel, rect, new Color(35, 90, 55, 235));
+        DrawOutline(spriteBatch, rect, new Color(145, 235, 160), 1);
+        _text.DrawString(spriteBatch, "M", new Vector2(rect.X + 3, rect.Y + 4), new Color(225, 255, 225), 1);
+    }
 
     private void DrawOperationalBadge(SpriteBatch spriteBatch, Rectangle buildingRect, BuildingOperationalStatus status)
     {

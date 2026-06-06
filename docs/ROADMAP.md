@@ -535,3 +535,32 @@ Completed:
 - documented Milestone 21 feedback rules in `docs/FEEDBACK_SYSTEM.md`;
 - recorded badge meanings, `ISSUE` semantics, heat feedback and status bar priority;
 - no code changes.
+
+### Step 22A - Manager visibility in properties
+
+Completed:
+- properties panel now shows which manager research controls a building;
+- managed and not-yet-managed states are easier to distinguish;
+- no gameplay logic changes.
+
+### Step 22B - Manager renewal feedback
+
+Completed:
+- status bar now reports automatic manager renewals;
+- status bar now reports managed expired buildings that cannot be renewed due to missing money;
+- repeated identical manager messages are throttled;
+- no gameplay logic changes.
+
+### Step 22C - Manager map badge
+
+Completed:
+- managed buildings now show a compact `M` badge on the map;
+- manager badge remains separate from operational problem badges;
+- no gameplay logic changes.
+
+### Step 22D - Manager research impact text
+
+Completed:
+- manager research cards now show how many built structures they will manage or already manage;
+- expired covered buildings are reported directly on the manager research card;
+- no gameplay logic changes.

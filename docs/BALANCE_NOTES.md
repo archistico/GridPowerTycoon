@@ -339,3 +339,45 @@ This pass consolidates Milestone 21.
 A new `docs/FEEDBACK_SYSTEM.md` file records how the game communicates operational state to the player: map badges, properties panel `ISSUE`, heat risk, status bar priority and failure message style.
 
 This is a documentation-only step.
+
+## Step 22A - Manager visibility in properties
+
+This pass starts the automation/manager milestone.
+
+The properties panel now includes a `MANAGER` row. It explains whether the selected building has a related manager research and whether that manager is already active.
+
+Examples:
+- `-` means no manager exists for this building.
+- `UNLOCK: Gestore pale eoliche` means the building can be managed after the related research.
+- `ACTIVE: Gestore pale eoliche` means the manager already covers this building.
+
+This is a readability/UI step only.
+
+## Step 22B - Manager renewal feedback
+
+This pass improves automation feedback.
+
+Manager renewals already existed in the simulation. The UI now makes them visible:
+- successful renewals show how many buildings were renewed and how much money was spent;
+- failed renewals show how many managed expired buildings could not be renewed because money was missing;
+- identical repeated manager failures are not allowed to continuously overwrite newer feedback.
+
+This is a feedback step only.
+
+## Step 22C - Manager map badge
+
+Managed buildings now show a compact `M` badge directly on the map. This makes automation coverage visible without selecting each building.
+
+The `M` badge is a readability-only marker and does not affect manager behavior.
+
+## Step 22D - Manager research impact text
+
+Manager research cards now show their current impact. Instead of only saying that they provide automatic management, they report how many existing buildings are affected and how many covered buildings are expired.
+
+Examples:
+- `WILL MANAGE 0 BUILT`
+- `WILL MANAGE 3 BUILT`
+- `MANAGING 5 BUILT`
+- `MANAGING 5 BUILT | EXPIRED 2`
+
+This is a UI/readability step only.

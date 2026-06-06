@@ -115,3 +115,13 @@ The map badges and properties panel use `BuildingOperationalStatusCalculator`, s
 - expired/exploded visual markers.
 
 No save-data schema is involved in these feedback features.
+
+## Manager badge
+
+Milestone 22 adds a compact `M` badge on the map for buildings currently covered by an unlocked manager.
+
+The `M` badge is separate from operational problem badges:
+- `M` means automatic renewal is available for that building type;
+- `E/G/H/T/X` still describe operational problems or lifecycle states.
+
+A managed building can still show both a manager badge and an operational problem badge.

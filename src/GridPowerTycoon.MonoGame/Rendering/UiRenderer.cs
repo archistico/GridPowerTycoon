@@ -768,6 +768,7 @@ public sealed class UiRenderer
         "PAYBACK",
         "LIFE",
         "MANAGED",
+        "MANAGER",
         "ENERGY IN",
         "ENERGY OUT",
         "HEAT OUT",
@@ -811,6 +812,7 @@ public sealed class UiRenderer
         rows["PAYBACK"] = FormatPayback(definition.Cost, GetEstimatedMoneyPerSecond(status));
         rows["LIFE"] = FormatLifetime(instance.RemainingLifetimeSeconds, effectiveLifetime);
         rows["MANAGED"] = managed ? "YES" : "NO";
+        rows["MANAGER"] = GetManagerStatusText(definition.Id, managed);
         rows["ENERGY IN"] = status.EnergyInputPerSecond > 0 ? $"-{FormatNumber(status.EnergyInputPerSecond)}/S" : "-";
         rows["ENERGY OUT"] = FormatEffectiveGross(status.EnergyOutputPerSecond, UpgradeCalculator.GetEnergyPerSecond(_world, definition));
         rows["HEAT OUT"] = FormatEffectiveGross(status.HeatOutputPerSecond, UpgradeCalculator.GetHeatPerSecond(_world, definition));
@@ -836,6 +838,20 @@ public sealed class UiRenderer
             action = _world.Resources.Money >= definition.Cost ? "REPLACE OR DEMOLISH" : "NEED MONEY TO REPLACE";
         else
             action = "DEMOLISH AVAILABLE";
+    }
+
+    private string GetManagerStatusText(string buildingDefinitionId, bool managed)
+    {
+        var managerResearch = _world.ResearchCatalog.All
+            .FirstOrDefault(research => research.ManagedBuildingIds.Any(id =>
+                string.Equals(id, buildingDefinitionId, StringComparison.OrdinalIgnoreCase)));
+
+        if (managerResearch is null)
+            return "-";
+
+        return managed
+            ? "ACTIVE: " + managerResearch.Name
+            : "UNLOCK: " + managerResearch.Name;
     }
 
     private static string GetHeatRiskText(BuildingOperationalStatus status)
@@ -1218,22 +1234,35 @@ public sealed class UiRenderer
         }
 
         if (definition.ManagedBuildingIds.Count > 0)
-        {
-            var names = definition.ManagedBuildingIds
-                .Select(id => _world.BuildingCatalog.TryGet(id, out var building) ? building.Name : id)
-                .Take(2)
-                .ToList();
-
-            if (definition.ManagedBuildingIds.Count > 2)
-                return "AUTO MANAGEMENT " + string.Join(", ", names) + $" +{definition.ManagedBuildingIds.Count - 2}";
-
-            return "AUTO MANAGEMENT " + string.Join(", ", names);
-        }
+            return GetManagerResearchDetailText(definition);
 
         if (!string.IsNullOrWhiteSpace(definition.Description))
             return definition.Description.ToUpperInvariant();
 
         return "RESEARCH IMPROVEMENT";
+    }
+
+    private string GetManagerResearchDetailText(ResearchDefinition definition)
+    {
+        var builtCount = _world.BuildingInstances.Values.Count(instance =>
+            definition.ManagedBuildingIds.Any(id =>
+                string.Equals(id, instance.DefinitionId, StringComparison.OrdinalIgnoreCase)));
+
+        var expiredCount = _world.BuildingInstances.Values.Count(instance =>
+            instance.State == BuildingState.Expired &&
+            definition.ManagedBuildingIds.Any(id =>
+                string.Equals(id, instance.DefinitionId, StringComparison.OrdinalIgnoreCase)));
+
+        var completed = _world.Research.IsCompleted(definition.Id);
+        var prefix = completed ? "MANAGING" : "WILL MANAGE";
+
+        if (builtCount <= 0)
+            return prefix + " 0 BUILT";
+
+        if (expiredCount > 0)
+            return $"{prefix} {builtCount} BUILT | EXPIRED {expiredCount}";
+
+        return $"{prefix} {builtCount} BUILT";
     }
 
     private string GetUpgradeTargetText(UpgradeDefinition definition)
@@ -1465,7 +1494,7 @@ public sealed class UiRenderer
         {
             "TYPE" or "PURPOSE" or "STATE" or "ISSUE" or "BUILD TOOL" => new Color(175, 190, 210),
             "BUILD COST" or "NEXT UPGRADE" or "MONEY/S" or "PAYBACK" => new Color(205, 190, 150),
-            "LIFE" or "MANAGED" => new Color(170, 195, 170),
+            "LIFE" or "MANAGED" or "MANAGER" => new Color(170, 195, 170),
             "ENERGY IN" or "ENERGY OUT" or "NET ENERGY" or "BATTERY" => new Color(145, 195, 225),
             "HEAT OUT" or "HEAT STORED" or "HEAT RISK" or "HEAT IN" or "HEAT TO ENERGY" => new Color(220, 150, 95),
             "RESEARCH OUT" or "AUTO SELL" => new Color(195, 175, 225),
@@ -1578,6 +1607,7 @@ public sealed class UiRenderer
             "RESEARCH OUT" => new Color(210, 190, 255),
             "AUTO SELL" => new Color(180, 225, 190),
             "BATTERY" => new Color(240, 205, 70),
+            "MANAGER" => new Color(170, 230, 170),
             _ => new Color(210, 222, 235)
         };
     }

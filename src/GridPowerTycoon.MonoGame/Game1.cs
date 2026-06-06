@@ -2,6 +2,7 @@ using GridPowerTycoon.Core.Build;
 using GridPowerTycoon.Core.Data;
 using GridPowerTycoon.Core.Economy;
 using GridPowerTycoon.Core.Expansion;
+using GridPowerTycoon.Core.Managers;
 using GridPowerTycoon.Core.Research;
 using GridPowerTycoon.Core.Simulation;
 using GridPowerTycoon.Core.Save;
@@ -47,6 +48,7 @@ public sealed class Game1 : Game
     private Guid? _pendingDemolishBuildingId;
     private ResearchResult? _lastResearchResult;
     private UpgradeResult? _lastUpgradeResult;
+    private string? _lastManagerRenewalSignature;
 
     public Game1()
     {
@@ -211,12 +213,38 @@ public sealed class Game1 : Game
         }
 
         _simulation.Update(gameTime.ElapsedGameTime.TotalSeconds);
-        if (_simulation.LastManagerRenewalResult.HasRenewals)
-        {
-            _lastSaveLoadMessage = $"MANAGER RENEWED {_simulation.LastManagerRenewalResult.RenewedCount} BUILDING(S) -${FormatCompactMoney((double)_simulation.LastManagerRenewalResult.MoneySpent)}";
-        }
+        UpdateManagerRenewalFeedback(_simulation.LastManagerRenewalResult);
 
         base.Update(gameTime);
+    }
+
+    private void UpdateManagerRenewalFeedback(ManagerRenewalResult result)
+    {
+        if (result.RenewedCount <= 0 && result.NotEnoughMoneyCount <= 0)
+        {
+            _lastManagerRenewalSignature = null;
+            return;
+        }
+
+        var signature = $"{result.RenewedCount}:{result.NotEnoughMoneyCount}:{result.MoneySpent}";
+        if (string.Equals(signature, _lastManagerRenewalSignature, StringComparison.Ordinal))
+            return;
+
+        _lastManagerRenewalSignature = signature;
+        _lastSaveLoadMessage = FormatManagerRenewal(result);
+    }
+
+    private static string FormatManagerRenewal(ManagerRenewalResult result)
+    {
+        if (result.RenewedCount > 0 && result.NotEnoughMoneyCount > 0)
+        {
+            return $"MANAGER RENEWED {result.RenewedCount} -${FormatCompactMoney((double)result.MoneySpent)} | NEED MONEY FOR {result.NotEnoughMoneyCount}";
+        }
+
+        if (result.RenewedCount > 0)
+            return $"MANAGER RENEWED {result.RenewedCount} BUILDING(S) -${FormatCompactMoney((double)result.MoneySpent)}";
+
+        return $"MANAGER NEEDS MONEY FOR {result.NotEnoughMoneyCount} EXPIRED BUILDING(S)";
     }
 
     protected override void Draw(GameTime gameTime)
@@ -292,6 +320,7 @@ public sealed class Game1 : Game
         CenterCameraOnInitialIsland();
         _lastResearchResult = null;
         _lastUpgradeResult = null;
+        _lastManagerRenewalSignature = null;
         _lastSaveLoadMessage = "GAME LOADED";
     }
 
@@ -307,6 +336,7 @@ public sealed class Game1 : Game
         _pendingDemolishBuildingId = null;
         _lastResearchResult = null;
         _lastUpgradeResult = null;
+        _lastManagerRenewalSignature = null;
         _lastSaveLoadMessage = "NEW GAME STARTED";
     }
 
