@@ -17,15 +17,20 @@ namespace GridPowerTycoon.MonoGame.Rendering;
 public sealed class UiRenderer
 {
     public const int TopBarHeight = 74;
-    public const int SideMenuWidth = 650;
+    public const int SideMenuWidth = 740;
 
     private const int PanelMargin = 12;
-    private const int ColumnWidth = 200;
+    private const int ColumnWidth = 230;
     private const int ColumnGap = 12;
     private const int MenuHeaderY = TopBarHeight + 14;
     private const int MenuButtonsY = TopBarHeight + 48;
-    private const int MenuButtonHeight = 66;
-    private const int MenuButtonStride = 74;
+    private const int MenuButtonHeight = 72;
+    private const int MenuButtonStride = 80;
+    private const int MenuButtonTextX = 8;
+    private const int MenuButtonTitleY = 5;
+    private const int MenuButtonMetaY = 24;
+    private const int MenuButtonPrimaryY = 40;
+    private const int MenuButtonPurposeY = 56;
 
     private static readonly string[] BuildButtonIds =
     {
@@ -321,9 +326,9 @@ public sealed class UiRenderer
 
     private void DrawTopMetric(SpriteBatch spriteBatch, int x, string label, string value, string rate, Color accentColor)
     {
-        _text.DrawString(spriteBatch, label, new Vector2(x, 9), new Color(230, 238, 245), 1);
-        _text.DrawString(spriteBatch, value, new Vector2(x, 25), accentColor, 2);
-        _text.DrawString(spriteBatch, rate, new Vector2(x, 54), accentColor, 1);
+        _text.DrawString(spriteBatch, label, new Vector2(x, 7), new Color(230, 238, 245), 2);
+        _text.DrawString(spriteBatch, value, new Vector2(x, 29), accentColor, 2);
+        _text.DrawString(spriteBatch, rate, new Vector2(x, 56), accentColor, 1);
     }
 
     private void DrawEnergyFillBar(SpriteBatch spriteBatch, Rectangle rect)
@@ -366,16 +371,31 @@ public sealed class UiRenderer
             spriteBatch.Draw(_pixel, rect, isSelected ? new Color(67, 86, 110) : new Color(48, 60, 76));
             DrawOutline(spriteBatch, rect, isSelected ? new Color(255, 220, 80) : new Color(74, 88, 108), isSelected ? 3 : 1);
 
-            var iconRect = new Rectangle(rect.X + 8, rect.Y + 8, 28, 28);
-            var iconColor = definition is null ? Color.Magenta : GetBuildingColor(definition.Category);
+            var categoryColor = definition is null ? Color.Magenta : GetBuildingColor(definition.Category);
             if (isLocked)
-                iconColor = new Color(90, 95, 105);
-            spriteBatch.Draw(_pixel, iconRect, iconColor);
-            DrawOutline(spriteBatch, iconRect, new Color(15, 20, 28), 1);
+                categoryColor = new Color(90, 95, 105);
+            spriteBatch.Draw(_pixel, new Rectangle(rect.X, rect.Y, 5, rect.Height), categoryColor);
 
-            var indexText = (i + 1).ToString();
             var name = definition?.Name ?? id;
             var textColor = isLocked ? new Color(150, 155, 165) : new Color(235, 240, 245);
+            var stateText = definition is null
+                ? "?"
+                : isSelected
+                    ? "ACTIVE"
+                    : isLocked
+                        ? "LOCKED"
+                        : canAfford
+                            ? "READY"
+                            : "NEED $";
+            var stateColor = definition is null
+                ? new Color(120, 80, 130)
+                : isSelected
+                    ? new Color(255, 220, 80)
+                    : isLocked
+                        ? new Color(85, 90, 100)
+                        : canAfford
+                            ? new Color(80, 135, 90)
+                            : new Color(145, 70, 60);
             var costColor = isLocked
                 ? new Color(255, 150, 120)
                 : canAfford
@@ -384,18 +404,19 @@ public sealed class UiRenderer
             var costText = definition is null
                 ? "BUILD COST ?"
                 : isLocked
-                    ? "LOCKED"
+                    ? "LOCKED - " + GetBuildLockedText(definition)
                     : canAfford
-                        ? $"BUILD COST ${FormatNumber((double)definition.Cost)}"
-                        : $"NEED ${FormatNumber((double)definition.Cost)}";
+                        ? $"READY - BUILD COST ${FormatNumber((double)definition.Cost)}"
+                        : $"NEED MONEY - ${FormatNumber((double)definition.Cost)}";
             var netText = definition is null ? "NET ENERGY ?" : $"NET ENERGY {FormatNetEnergy(definition)}";
             var heatText = definition is null ? "HEAT ?" : GetBuildButtonHeatText(definition);
             var purposeText = definition is null ? id : GetBuildingPurposeText(definition);
 
-            _text.DrawString(spriteBatch, $"{indexText} {Shorten(name, 17)}", new Vector2(rect.X + 44, rect.Y + 6), textColor, 1);
-            _text.DrawString(spriteBatch, Shorten(costText, 24), new Vector2(rect.X + 44, rect.Y + 21), costColor, 1);
-            _text.DrawString(spriteBatch, Shorten($"{netText} | {heatText}", 30), new Vector2(rect.X + 8, rect.Y + 39), new Color(170, 210, 235), 1);
-            _text.DrawString(spriteBatch, Shorten(purposeText, 30), new Vector2(rect.X + 8, rect.Y + 53), isLocked ? new Color(135, 140, 150) : new Color(175, 188, 205), 1);
+            _text.DrawString(spriteBatch, Shorten(name, 12), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonTitleY), textColor, 2);
+            DrawMenuStateBadge(spriteBatch, rect, stateText, stateColor, new Color(245, 248, 252));
+            _text.DrawString(spriteBatch, Shorten(costText, 35), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonMetaY), costColor, 1);
+            _text.DrawString(spriteBatch, Shorten($"{netText} | {heatText}", 36), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonPrimaryY), new Color(170, 210, 235), 1);
+            _text.DrawString(spriteBatch, Shorten(purposeText, 36), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonPurposeY), isLocked ? new Color(135, 140, 150) : new Color(175, 188, 205), 1);
         }
     }
 
@@ -429,14 +450,41 @@ public sealed class UiRenderer
 
             var name = definition?.Name ?? id;
             var cost = definition is null ? "?" : FormatNumber(definition.Cost);
-            var status = completed ? "DONE" : missingPrereq ? "REQ RESEARCH" : canAfford ? $"COST R{cost}" : $"NEED R{cost}";
+            var stateText = definition is null
+                ? "?"
+                : completed
+                    ? "DONE"
+                    : missingPrereq
+                        ? "LOCKED"
+                        : canAfford
+                            ? "READY"
+                            : "NEED R";
+            var stateColor = definition is null
+                ? new Color(120, 80, 130)
+                : completed
+                    ? new Color(65, 135, 80)
+                    : missingPrereq
+                        ? new Color(85, 90, 100)
+                        : canAfford
+                            ? new Color(95, 85, 145)
+                            : new Color(125, 85, 145);
+            var status = definition is null
+                ? "?"
+                : completed
+                    ? "DONE - RESEARCH COMPLETED"
+                    : missingPrereq
+                        ? "LOCKED - " + GetResearchPrerequisiteText(definition)
+                        : canAfford
+                            ? $"READY - COST R{cost}"
+                            : $"NEED RESEARCH - R{cost}";
             var unlockText = definition is null ? "" : GetResearchUnlockText(definition);
             var description = definition is null ? id : GetResearchPurposeText(definition);
 
-            _text.DrawString(spriteBatch, Shorten(name, 23), new Vector2(rect.X + 8, rect.Y + 6), new Color(235, 240, 245), 1);
-            _text.DrawString(spriteBatch, Shorten(status, 26), new Vector2(rect.X + 8, rect.Y + 21), completed ? new Color(160, 245, 175) : new Color(210, 190, 255), 1);
-            _text.DrawString(spriteBatch, Shorten(unlockText, 30), new Vector2(rect.X + 8, rect.Y + 39), new Color(190, 215, 255), 1);
-            _text.DrawString(spriteBatch, Shorten(description, 30), new Vector2(rect.X + 8, rect.Y + 53), new Color(175, 188, 205), 1);
+            _text.DrawString(spriteBatch, Shorten(name, 12), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonTitleY), new Color(235, 240, 245), 2);
+            DrawMenuStateBadge(spriteBatch, rect, stateText, stateColor, new Color(245, 248, 252));
+            _text.DrawString(spriteBatch, Shorten(status, 35), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonMetaY), completed ? new Color(160, 245, 175) : new Color(210, 190, 255), 1);
+            _text.DrawString(spriteBatch, Shorten(unlockText, 36), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonPrimaryY), new Color(190, 215, 255), 1);
+            _text.DrawString(spriteBatch, Shorten(description, 36), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonPurposeY), new Color(175, 188, 205), 1);
         }
     }
 
@@ -479,21 +527,53 @@ public sealed class UiRenderer
 
             var name = definition?.Name ?? id;
             var effect = definition is null ? "?" : GetUpgradeEffectText(definition);
+            var stateText = definition is null
+                ? "?"
+                : completed
+                    ? "MAX"
+                    : missingResearch
+                        ? "LOCKED"
+                        : canAfford
+                            ? "READY"
+                            : "NEED";
+            var stateColor = definition is null
+                ? new Color(120, 80, 130)
+                : completed
+                    ? new Color(65, 135, 80)
+                    : missingResearch
+                        ? new Color(85, 90, 100)
+                        : canAfford
+                            ? new Color(95, 85, 145)
+                            : new Color(145, 95, 65);
             var status = definition is null
                 ? "?"
                 : completed
-                    ? $"MAX LV {level}"
+                    ? $"MAX LEVEL {level}"
                     : missingResearch
-                        ? "REQ RESEARCH"
-                        : GetUpgradeCostText(definition, level);
+                        ? "LOCKED - REQ RESEARCH"
+                        : canAfford
+                            ? "READY - " + GetUpgradeCostText(definition, level)
+                            : "NEED RESOURCES - " + GetUpgradeCostText(definition, level);
 
             var levelText = definition is null ? "" : $"LV {level}/{definition.MaxLevel}";
-            _text.DrawString(spriteBatch, Shorten(name, 18), new Vector2(rect.X + 8, rect.Y + 6), new Color(235, 240, 245), 1);
-            _text.DrawString(spriteBatch, levelText, new Vector2(rect.Right - 62, rect.Y + 6), new Color(180, 210, 240), 1);
-            _text.DrawString(spriteBatch, Shorten(effect, 24), new Vector2(rect.X + 8, rect.Y + 21), new Color(190, 215, 255), 1);
-            _text.DrawString(spriteBatch, Shorten(status, 27), new Vector2(rect.X + 8, rect.Y + 39), completed ? new Color(160, 245, 175) : new Color(255, 225, 120), 1);
-            _text.DrawString(spriteBatch, Shorten(GetUpgradePurposeText(definition), 30), new Vector2(rect.X + 8, rect.Y + 53), new Color(175, 188, 205), 1);
+            _text.DrawString(spriteBatch, Shorten(name, 12), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonTitleY), new Color(235, 240, 245), 2);
+            DrawMenuStateBadge(spriteBatch, rect, stateText, stateColor, new Color(245, 248, 252));
+            _text.DrawString(spriteBatch, levelText, new Vector2(rect.Right - 62, rect.Y + MenuButtonMetaY), new Color(180, 210, 240), 1);
+            _text.DrawString(spriteBatch, Shorten(effect, 22), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonMetaY), new Color(190, 215, 255), 1);
+            _text.DrawString(spriteBatch, Shorten(status, 36), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonPrimaryY), completed ? new Color(160, 245, 175) : new Color(255, 225, 120), 1);
+            _text.DrawString(spriteBatch, Shorten(GetUpgradePurposeText(definition), 36), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonPurposeY), new Color(175, 188, 205), 1);
         }
+    }
+
+
+    private void DrawMenuStateBadge(SpriteBatch spriteBatch, Rectangle buttonRect, string text, Color fillColor, Color textColor)
+    {
+        var badgeWidth = Math.Clamp(text.Length * 7 + 10, 42, 82);
+        var badge = new Rectangle(buttonRect.Right - badgeWidth - 6, buttonRect.Y + 6, badgeWidth, 15);
+
+        spriteBatch.Draw(_pixel, badge, fillColor);
+        DrawOutline(spriteBatch, badge, new Color(205, 215, 225), 1);
+        _text.DrawString(spriteBatch, text, new Vector2(badge.X + 5, badge.Y + 4), textColor, 1);
     }
 
 
@@ -751,6 +831,17 @@ public sealed class UiRenderer
         };
     }
 
+
+    private string GetBuildLockedText(BuildingDefinition definition)
+    {
+        if (string.IsNullOrWhiteSpace(definition.RequiredResearchId))
+            return "LOCKED";
+
+        return _world.ResearchCatalog.TryGet(definition.RequiredResearchId, out var research)
+            ? "REQ " + research.Name
+            : "REQ RESEARCH";
+    }
+
     private string GetBuildButtonHeatText(BuildingDefinition definition)
     {
         var heatOut = UpgradeCalculator.GetHeatPerSecond(_world, definition);
@@ -804,6 +895,18 @@ public sealed class UiRenderer
         }
 
         return "IMPROVES GRID";
+    }
+
+
+    private string GetResearchPrerequisiteText(ResearchDefinition definition)
+    {
+        var missingId = definition.RequiredResearchIds.FirstOrDefault(x => !_world.Research.IsCompleted(x));
+        if (string.IsNullOrWhiteSpace(missingId))
+            return "REQ RESEARCH";
+
+        return _world.ResearchCatalog.TryGet(missingId, out var research)
+            ? "REQ " + research.Name
+            : "REQ RESEARCH";
     }
 
     private static string GetResearchPurposeText(ResearchDefinition definition)

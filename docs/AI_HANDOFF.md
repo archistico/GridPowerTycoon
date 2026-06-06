@@ -350,3 +350,23 @@ Anche `RESEARCH` ora mostra più contesto direttamente nel pulsante: stato/costo
 Il testo UI non usa un font TrueType: viene disegnato da `PixelTextRenderer`, un renderer bitmap 5x7 interno basato su una tabella manuale di glifi. Per questo motivo i caratteri non presenti nella tabella venivano sostituiti con `?`, in particolare apostrofo, apostrofo tipografico, lettere accentate italiane e separatori usati nei testi recenti.
 
 Aggiunti glifi per apostrofo dritto, apostrofo tipografico, barra verticale, underscore e vocali accentate maiuscole più comuni (`À`, `Á`, `È`, `É`, `Ì`, `Í`, `Ò`, `Ó`, `Ù`, `Ú`). Poiché `DrawString` converte i caratteri con `char.ToUpperInvariant`, questi glifi coprono anche le corrispondenti lettere minuscole presenti nei JSON (`à`, `è`, `ù`, ecc.).
+
+## 2026-06-06 - Step 19A: normalizzazione pannello sinistro
+
+Avviata la Milestone 19 sulla leggibilità UI. Le tre colonne del pannello sinistro continuano a usare la stessa altezza e lo stesso passo di scroll, ma ora condividono anche coordinate interne comuni per titolo, riga stato/costo, riga effetto primario e descrizione. Questo riduce gli allineamenti divergenti tra BUILD, RESEARCH e UPGRADE.
+
+La colonna BUILD è stata resa più simile alla colonna UPGRADE: rimosso il riquadro icona grande che accorciava troppo nome e costo, sostituito da una barra verticale colorata di categoria. I pulsanti edificio hanno quindi più spazio per mostrare nome, `BUILD COST`/`NEED`/requisito ricerca, `NET ENERGY`, impatto sul calore e descrizione breve. Gli edifici bloccati indicano la ricerca richiesta quando disponibile.
+
+La colonna RESEARCH ora mostra il prerequisito specifico mancante invece del generico `REQ RESEARCH`, quando il dato è disponibile nel catalogo. Le righe interne sono allineate alle stesse coordinate usate dalle altre colonne.
+
+## 2026-06-06 - Step 19B: colonne sinistre più larghe e titoli più leggibili
+
+Allargato il pannello laterale sinistro per dare più respiro alle tre colonne `BUILD`, `RESEARCH` e `UPGRADE`. La larghezza colonna passa a 230 px e il pannello laterale a 740 px; i pulsanti restano uniformi tra le tre colonne, ma crescono leggermente in altezza per ospitare una prima riga più grande.
+
+I titoli dei pulsanti nelle tre colonne ora sono disegnati a scala 2, così nomi come `PALA EOLICA` e `BATTERIA` risultano più evidenti. In BUILD è stata rimossa la numerazione testuale davanti al nome (`1 PALA EOLICA` diventa `PALA EOLICA`), lasciando il pulsante più pulito. Anche le etichette delle risorse in alto (`ENERGY`, `RESEARCH`, `MONEY`, `AXES`, `MINES`) sono state aumentate per essere più leggibili a colpo d'occhio.
+
+## 2026-06-06 - Step 19C: stati leggibili nel pannello sinistro
+
+Rifinita la leggibilità delle tre colonne laterali aggiungendo badge di stato direttamente nella prima riga dei pulsanti. BUILD ora distingue visivamente `READY`, `ACTIVE`, `LOCKED` e `NEED $`; RESEARCH distingue `READY`, `DONE`, `LOCKED` e `NEED R`; UPGRADE distingue `READY`, `MAX`, `LOCKED` e `NEED`. Le righe di costo/stato sono state rese più esplicite, usando testi come `READY - BUILD COST ...`, `NEED MONEY - ...`, `LOCKED - ...`, `DONE - RESEARCH COMPLETED` e `NEED RESOURCES - ...`.
+
+L'obiettivo è ridurre l'ambiguità del pannello sinistro: il giocatore deve capire subito se un'azione è disponibile, già completata, bloccata da ricerca o non acquistabile per risorse insufficienti, senza dover cliccare o leggere la status bar.

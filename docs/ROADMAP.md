@@ -324,3 +324,21 @@ Le colonne `BUILD`, `RESEARCH` e `UPGRADE` hanno ora pulsanti della stessa altez
 Stato: preparato.
 
 Corretto il renderer testo pixel interno: apostrofi, apostrofo tipografico, lettere accentate italiane e alcuni separatori usati nei testi della UI non vengono più mostrati come `?`. Il gioco non usa un font esterno, ma una tabella di glifi 5x7 in `PixelTextRenderer`; la tabella è stata estesa per supportare meglio i testi italiani nel pannello sinistro e nel pannello proprietà.
+
+## 2026-06-06 - Step 19A: normalizzazione pannello sinistro
+
+Stato: preparato.
+
+Inizio Milestone 19. BUILD, RESEARCH e UPGRADE mantengono pulsanti uniformi, ma ora usano anche una griglia interna comune per le quattro righe informative. BUILD è stato riallineato allo stile più chiaro degli UPGRADE: niente icona grande che sottrae spazio al testo, barra verticale di categoria, costo/requisito più leggibile, energia netta, calore e descrizione. RESEARCH indica il prerequisito specifico mancante quando possibile.
+
+## 2026-06-06 - Step 19B: colonne sinistre più larghe e titoli più leggibili
+
+Stato: preparato.
+
+Prosegue la Milestone 19 sulla leggibilità UI. Il pannello laterale sinistro è stato allargato e i titoli dei pulsanti BUILD/RESEARCH/UPGRADE sono ora più grandi. In BUILD è stata rimossa la numerazione davanti al nome edificio, così la prima riga mostra direttamente il nome leggibile della costruzione. Anche le etichette delle risorse nella barra superiore sono state rese più visibili.
+
+## 2026-06-06 - Step 19C: stati leggibili nel pannello sinistro
+
+Stato: preparato.
+
+BUILD, RESEARCH e UPGRADE ora mostrano badge sintetici di disponibilità nella prima riga del pulsante. La riga costo/stato è stata resa più descrittiva, così il pannello sinistro comunica immediatamente se un elemento è pronto, attivo, completato, bloccato o non acquistabile per mancanza di risorse.
