@@ -61,7 +61,8 @@ public sealed class UiRenderer
         "generator_medium",
         "gas_power_plant",
         "research_large",
-        "data_center"
+        "data_center",
+        "nuclear_reactor"
     };
 
     private static readonly string[] ResearchButtonIds =
@@ -84,7 +85,8 @@ public sealed class UiRenderer
         "coal_power_manager",
         "gas_power_manager",
         "research_large",
-        "data_center"
+        "data_center",
+        "nuclear_power"
     };
 
     private static readonly string[] UpgradeButtonIds =
@@ -105,7 +107,9 @@ public sealed class UiRenderer
         "generator_medium_conversion_1",
         "gas_heat_1",
         "gas_lifetime_1",
-        "research_large_output_1"
+        "research_large_output_1",
+        "nuclear_heat_1",
+        "nuclear_lifetime_1"
     };
 
     private readonly GameWorld _world;
@@ -138,6 +142,7 @@ public sealed class UiRenderer
         AreaUnlockResult? lastAreaUnlockResult,
         UpgradeResult? lastUpgradeResult,
         string? saveLoadMessage,
+        string saveDataInfo,
         bool showHelpPanel,
         Guid? pendingDemolishBuildingId)
     {
@@ -158,7 +163,7 @@ public sealed class UiRenderer
         DrawPropertiesPanel(spriteBatch, viewport, selectedBuildingId, selectedTilePosition, selectedMapBuildingId, selectedTerrainPosition, selectedCloudPosition, pendingDemolishBuildingId);
         DrawEarlyChecklist(spriteBatch, viewport);
         DrawHelpPanel(spriteBatch, viewport, showHelpPanel);
-        DrawStatus(spriteBatch, viewport, selectedBuildingId, selectedMapBuildingId, lastBuildResult, lastResearchResult, lastTerrainClearResult, lastAreaUnlockResult, lastUpgradeResult, saveLoadMessage, pendingDemolishBuildingId);
+        DrawStatus(spriteBatch, viewport, selectedBuildingId, selectedMapBuildingId, lastBuildResult, lastResearchResult, lastTerrainClearResult, lastAreaUnlockResult, lastUpgradeResult, saveLoadMessage, saveDataInfo, pendingDemolishBuildingId);
     }
 
     public bool IsMouseOverUi(Point mousePosition, Viewport viewport)
@@ -419,14 +424,24 @@ public sealed class UiRenderer
 
     private void DrawFutureSectionButtons(SpriteBatch spriteBatch, Viewport viewport)
     {
-        var x = GetUpgradeTabButtonRectangle(viewport).Right + 12;
-        var maxRight = GetNewGameButtonRectangle(viewport).X - 12;
+        var x = GetFutureSectionButtonsStartX(viewport);
+        var maxRight = GetFutureSectionButtonsMaxRight(viewport);
         var y = TopBarHeight + 5;
         const int gap = 8;
 
         DrawFutureSectionButtonIfFits(spriteBatch, "STATS", 72, ref x, y, maxRight, gap);
-        DrawFutureSectionButtonIfFits(spriteBatch, "HELP", 64, ref x, y, maxRight, gap);
+        DrawHelpSectionButtonIfFits(spriteBatch, ref x, y, maxRight, gap);
         DrawFutureSectionButtonIfFits(spriteBatch, "SETTINGS", 96, ref x, y, maxRight, gap);
+    }
+
+    private void DrawHelpSectionButtonIfFits(SpriteBatch spriteBatch, ref int x, int y, int maxRight, int gap)
+    {
+        var rect = new Rectangle(x, y, 64, 28);
+        if (rect.Right > maxRight)
+            return;
+
+        DrawSmallCommandButton(spriteBatch, rect, "HELP", new Color(70, 70, 96));
+        x = rect.Right + gap;
     }
 
     private void DrawFutureSectionButtonIfFits(SpriteBatch spriteBatch, string label, int width, ref int x, int y, int maxRight, int gap)
@@ -2099,7 +2114,7 @@ public sealed class UiRenderer
         y += 18;
         DrawHelpLine(spriteBatch, x, ref y, "-", "LEFT CLICK SELECT / BUILD / ACTION BUTTONS");
         DrawHelpLine(spriteBatch, x, ref y, "-", "RIGHT CLICK CANCELS ACTIVE BUILD TOOL");
-        DrawHelpLine(spriteBatch, x, ref y, "-", "1-0 SELECT BUILDINGS, F5 SAVE, F9 LOAD");
+        DrawHelpLine(spriteBatch, x, ref y, "-", "1-0 SELECT BUILDINGS, F5 SAVE, F6 AUTOSAVE, F9 LOAD");
         DrawHelpLine(spriteBatch, x, ref y, "-", "VIEW TO TOGGLE FULLSCREEN");
     }
 
@@ -2110,7 +2125,7 @@ public sealed class UiRenderer
         y += 18;
     }
 
-    private void DrawStatus(SpriteBatch spriteBatch, Viewport viewport, string? selectedBuildingId, Guid? selectedMapBuildingId, BuildResult? lastBuildResult, ResearchResult? lastResearchResult, TerrainClearResult? lastTerrainClearResult, AreaUnlockResult? lastAreaUnlockResult, UpgradeResult? lastUpgradeResult, string? saveLoadMessage, Guid? pendingDemolishBuildingId)
+    private void DrawStatus(SpriteBatch spriteBatch, Viewport viewport, string? selectedBuildingId, Guid? selectedMapBuildingId, BuildResult? lastBuildResult, ResearchResult? lastResearchResult, TerrainClearResult? lastTerrainClearResult, AreaUnlockResult? lastAreaUnlockResult, UpgradeResult? lastUpgradeResult, string? saveLoadMessage, string saveDataInfo, Guid? pendingDemolishBuildingId)
     {
         var statusBar = GetStatusBarRectangle(viewport);
         var y = statusBar.Y + 14;
@@ -2164,8 +2179,23 @@ public sealed class UiRenderer
 
         spriteBatch.Draw(_pixel, statusBar, new Color(25, 31, 42));
         DrawOutline(spriteBatch, statusBar, new Color(55, 67, 84), 1);
-        _text.DrawString(spriteBatch, Shorten(message, 90), new Vector2(statusBar.X + 14, y), new Color(230, 238, 245), 1);
+        _text.DrawString(spriteBatch, Shorten(message, 82), new Vector2(statusBar.X + 14, y), new Color(230, 238, 245), 1);
+        DrawSaveDataInfo(spriteBatch, statusBar, saveDataInfo);
         DrawStatusBadgeLegend(spriteBatch, statusBar);
+    }
+
+
+    private void DrawSaveDataInfo(SpriteBatch spriteBatch, Rectangle statusBar, string saveDataInfo)
+    {
+        if (string.IsNullOrWhiteSpace(saveDataInfo) || statusBar.Width < 980)
+            return;
+
+        var text = Shorten(saveDataInfo, 46);
+        var estimatedWidth = text.Length * 6;
+        var x = Math.Max(statusBar.X + 520, statusBar.Right - estimatedWidth - 18);
+        var y = statusBar.Y + 14;
+
+        _text.DrawString(spriteBatch, text, new Vector2(x, y), new Color(165, 180, 200), 1);
     }
 
     private string GetCurrentBottleneckHint()
@@ -2368,7 +2398,6 @@ public sealed class UiRenderer
         DrawSmallCommandButton(spriteBatch, GetLoadButtonRectangle(viewport), "LOAD", new Color(54, 78, 103));
         DrawSmallCommandButton(spriteBatch, GetNewGameButtonRectangle(viewport), "NEW", new Color(74, 64, 96));
         DrawSmallCommandButton(spriteBatch, GetToggleFullscreenButtonRectangle(viewport), "VIEW", new Color(66, 82, 78));
-        DrawSmallCommandButton(spriteBatch, GetHelpButtonRectangle(viewport), "HELP", new Color(70, 70, 96));
         DrawSmallCommandButton(spriteBatch, GetExitButtonRectangle(viewport), "EXIT", new Color(96, 58, 58));
     }
 
@@ -2461,21 +2490,40 @@ public sealed class UiRenderer
 
     private static Rectangle GetHelpButtonRectangle(Viewport viewport)
     {
-        var view = GetToggleFullscreenButtonRectangle(viewport);
-        return new Rectangle(view.Right + 8, view.Y, 56, 28);
+        var x = GetFutureSectionButtonsStartX(viewport);
+        var y = TopBarHeight + 5;
+        var maxRight = GetFutureSectionButtonsMaxRight(viewport);
+        const int gap = 8;
+
+        var stats = new Rectangle(x, y, 72, 28);
+        if (stats.Right <= maxRight)
+            x = stats.Right + gap;
+
+        var help = new Rectangle(x, y, 64, 28);
+        return help.Right <= maxRight ? help : Rectangle.Empty;
     }
 
     private static Rectangle GetExitButtonRectangle(Viewport viewport)
     {
-        var help = GetHelpButtonRectangle(viewport);
-        return new Rectangle(help.Right + 8, help.Y, 56, 28);
+        var view = GetToggleFullscreenButtonRectangle(viewport);
+        return new Rectangle(view.Right + 8, view.Y, 56, 28);
     }
 
     private static int GetGameCommandButtonsStartX(Viewport viewport)
     {
         var properties = GetPropertiesPanelRectangle(viewport);
-        const int totalWidth = 48 + 8 + 56 + 8 + 56 + 8 + 56 + 8 + 56 + 8 + 56;
+        const int totalWidth = 48 + 8 + 56 + 8 + 56 + 8 + 56 + 8 + 56;
         return Math.Max(GetUpgradeTabButtonRectangle(viewport).Right + 24, properties.X - totalWidth - 16);
+    }
+
+    private static int GetFutureSectionButtonsStartX(Viewport viewport)
+    {
+        return GetUpgradeTabButtonRectangle(viewport).Right + 12;
+    }
+
+    private static int GetFutureSectionButtonsMaxRight(Viewport viewport)
+    {
+        return GetNewGameButtonRectangle(viewport).X - 12;
     }
 
     public const int PropertiesPanelWidth = 380;

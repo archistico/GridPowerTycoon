@@ -453,7 +453,8 @@ public sealed class ProgressionAdvisor
     {
         return HasUnlockedAndUnbuilt("coal_power_plant") ||
                HasUnlockedAndUnbuilt("generator_medium") ||
-               HasUnlockedAndUnbuilt("gas_power_plant");
+               HasUnlockedAndUnbuilt("gas_power_plant") ||
+               HasUnlockedAndUnbuilt("nuclear_reactor");
     }
 
     private bool HasUnlockedAndUnbuilt(string buildingDefinitionId)

@@ -38,10 +38,14 @@ public sealed class Game1 : Game
     private MapRenderer _mapRenderer = null!;
     private UiRenderer _uiRenderer = null!;
     private SaveGameService _saveGameService = null!;
+    private readonly SaveDirtyState _saveDirtyState = new();
+    private readonly AutoSaveState _autoSaveState = new(TimeSpan.FromSeconds(60));
     private GameData _gameData = null!;
     private string _savePath = string.Empty;
     private string _dataDirectory = string.Empty;
     private string? _lastSaveLoadMessage;
+    private string _saveDataInfo = string.Empty;
+    private double _secondsSinceCleanSnapshot;
     private bool _showHelpPanel;
 
     private string? _selectedBuildingId;
@@ -99,24 +103,39 @@ public sealed class Game1 : Game
         _gameData = new GameData(buildings, economy, research, heat, tools, upgrades, areaUnlock);
         _saveGameService = new SaveGameService();
         _savePath = Path.Combine(AppContext.BaseDirectory, "Saves", "savegame.json");
+        _saveDataInfo = FormatCurrentSaveDataInfo(null);
 
         var world = new GameWorld(map, _gameData);
         OfflineProgressResult? offlineProgress = null;
 
-        if (File.Exists(_savePath))
+        if (HasAnySaveFile())
         {
-            var save = _saveGameService.LoadSaveFromFile(_savePath);
-            world = _saveGameService.RestoreWorld(save, _gameData);
-            offlineProgress = new OfflineProgressSystem(world, new SellSystem(world))
-                .Apply(save.SavedAt, DateTimeOffset.UtcNow);
+            try
+            {
+                var loadResult = _saveGameService.LoadFromFileWithBackup(_savePath, _gameData);
+                world = loadResult.World;
+                _saveDataInfo = FormatCurrentSaveDataInfo(loadResult.Summary);
+                _lastSaveLoadMessage = loadResult.LoadedFromBackup ? "MAIN SAVE FAILED - BACKUP LOADED" : null;
+                offlineProgress = new OfflineProgressSystem(world, new SellSystem(world))
+                    .Apply(loadResult.Save.SavedAt, DateTimeOffset.UtcNow);
+            }
+            catch (Exception)
+            {
+                _saveDataInfo = FormatCurrentSaveDataInfo(null);
+                _lastSaveLoadMessage = "SAVE LOAD FAILED - NEW GAME STARTED";
+            }
         }
 
         ConfigureWorld(world);
+        MarkSaveClean();
 
         if (offlineProgress is not null && offlineProgress.HasProgress)
         {
             _lastSaveLoadMessage = FormatOfflineProgress(offlineProgress);
-            _saveGameService.SaveToFile(_world, _savePath);
+            var savedAt = DateTimeOffset.UtcNow;
+            _saveGameService.SaveToFile(_world, _savePath, savedAt);
+            _saveDataInfo = FormatCurrentSaveDataInfo(new SaveGameSummary(SaveGame.CurrentVersion, GameData.CurrentVersion, savedAt));
+            MarkSaveClean();
         }
 
         _camera = new Camera2D();
@@ -184,8 +203,11 @@ public sealed class Game1 : Game
 
         if (_input.IsKeyPressed(Keys.Escape))
         {
-            SaveCurrentGame();
-            Exit();
+            if (RequestDirtyAction(PendingDirtyAction.Exit))
+            {
+                SaveCurrentGame();
+                Exit();
+            }
         }
 
         if (_input.IsKeyPressed(Keys.F5))
@@ -193,6 +215,9 @@ public sealed class Game1 : Game
 
         if (_input.IsKeyPressed(Keys.F9))
             LoadCurrentGame();
+
+        if (_input.IsKeyPressed(Keys.F6))
+            ToggleAutoSave();
 
         if (_input.IsKeyPressed(Keys.H))
             ToggleHelpPanel();
@@ -202,7 +227,10 @@ public sealed class Game1 : Game
         HandleBuildSelectionInput();
 
         _cameraInput.Update(gameTime);
+        var previousBuildResult = _mapInput.LastBuildResult;
         _mapInput.Update(GraphicsDevice.Viewport, _selectedBuildingId);
+        if (!ReferenceEquals(previousBuildResult, _mapInput.LastBuildResult) && _mapInput.LastBuildResult?.Success == true)
+            MarkWorldDirty();
         if (_input.IsLeftClickPressed() && !_uiRenderer.IsMouseOverUi(new Point(_input.CurrentMouse.X, _input.CurrentMouse.Y), GraphicsDevice.Viewport))
         {
             if (_pendingDemolishBuildingId.HasValue)
@@ -216,8 +244,11 @@ public sealed class Game1 : Game
             _selectedBuildingId = null;
         }
 
-        _simulation.Update(gameTime.ElapsedGameTime.TotalSeconds);
+        var elapsedSeconds = gameTime.ElapsedGameTime.TotalSeconds;
+        _simulation.Update(elapsedSeconds);
+        TrackPassiveDirtyTime(elapsedSeconds);
         UpdateManagerRenewalFeedback(_simulation.LastManagerRenewalResult);
+        TryAutoSave(elapsedSeconds);
 
         base.Update(gameTime);
     }
@@ -290,6 +321,7 @@ public sealed class Game1 : Game
             _mapInput.LastAreaUnlockResult,
             _lastUpgradeResult,
             _lastSaveLoadMessage,
+            GetSaveDataInfoForUi(),
             _showHelpPanel,
             _pendingDemolishBuildingId);
 
@@ -316,26 +348,119 @@ public sealed class Game1 : Game
         _graphics.ApplyChanges();
     }
 
+    private static string FormatCurrentSaveDataInfo(SaveGameSummary? summary)
+    {
+        var current = $"SAVE V{SaveGame.CurrentVersion} DATA V{GameData.CurrentVersion}";
+        return summary is null
+            ? current + " UNSAVED SESSION"
+            : summary.FormatCompact();
+    }
+
+    private string GetSaveDataInfoForUi()
+    {
+        return _saveDirtyState.IsDirty ? _saveDataInfo + " MODIFIED" : _saveDataInfo;
+    }
+
+    private void MarkWorldDirty()
+    {
+        _saveDirtyState.MarkDirty();
+    }
+
+    private void MarkSaveClean()
+    {
+        _saveDirtyState.MarkClean();
+        _autoSaveState.ResetTimer();
+        _secondsSinceCleanSnapshot = 0d;
+    }
+
+    private void TrackPassiveDirtyTime(double elapsedSeconds)
+    {
+        if (_saveDirtyState.IsDirty || elapsedSeconds <= 0d)
+            return;
+
+        _secondsSinceCleanSnapshot += elapsedSeconds;
+        if (_secondsSinceCleanSnapshot >= 2d)
+            MarkWorldDirty();
+    }
+
+    private bool RequestDirtyAction(PendingDirtyAction action)
+    {
+        var decision = _saveDirtyState.Request(action);
+        if (decision != DirtyActionDecision.NeedsConfirmation)
+            return true;
+
+        _lastSaveLoadMessage = action == PendingDirtyAction.NewGame
+            ? "UNSAVED CHANGES - CLICK NEW AGAIN TO CONFIRM"
+            : "UNSAVED CHANGES - CLICK EXIT AGAIN TO CONFIRM";
+
+        return false;
+    }
+
     private void SaveCurrentGame()
     {
-        _saveGameService.SaveToFile(_world, _savePath);
-        _lastSaveLoadMessage = "GAME SAVED";
+        SaveCurrentGame("GAME SAVED");
+    }
+
+    private void SaveCurrentGame(string message)
+    {
+        var savedAt = DateTimeOffset.UtcNow;
+        _saveGameService.SaveToFile(_world, _savePath, savedAt);
+        _saveDataInfo = FormatCurrentSaveDataInfo(new SaveGameSummary(SaveGame.CurrentVersion, GameData.CurrentVersion, savedAt));
+        MarkSaveClean();
+        _lastSaveLoadMessage = message;
+    }
+
+    private void TryAutoSave(double elapsedSeconds)
+    {
+        if (!_autoSaveState.Tick(TimeSpan.FromSeconds(elapsedSeconds), _saveDirtyState.IsDirty))
+            return;
+
+        try
+        {
+            SaveCurrentGame("AUTOSAVED");
+        }
+        catch (Exception)
+        {
+            _autoSaveState.ResetTimer();
+            _lastSaveLoadMessage = "AUTOSAVE FAILED";
+        }
+    }
+
+    private void ToggleAutoSave()
+    {
+        _autoSaveState.SetEnabled(!_autoSaveState.IsEnabled);
+        _lastSaveLoadMessage = _autoSaveState.IsEnabled ? "AUTOSAVE ON" : "AUTOSAVE OFF";
     }
 
     private void LoadCurrentGame()
     {
-        if (!File.Exists(_savePath))
+        if (!HasAnySaveFile())
         {
             _lastSaveLoadMessage = "NO SAVE FOUND";
             return;
         }
 
-        ConfigureWorld(_saveGameService.LoadFromFile(_savePath, _gameData));
-        CenterCameraOnInitialIsland();
-        _lastResearchResult = null;
-        _lastUpgradeResult = null;
-        _lastManagerRenewalSignature = null;
-        _lastSaveLoadMessage = "GAME LOADED";
+        try
+        {
+            var loadResult = _saveGameService.LoadFromFileWithBackup(_savePath, _gameData);
+            ConfigureWorld(loadResult.World);
+            _saveDataInfo = FormatCurrentSaveDataInfo(loadResult.Summary);
+            CenterCameraOnInitialIsland();
+            _lastResearchResult = null;
+            _lastUpgradeResult = null;
+            _lastManagerRenewalSignature = null;
+            MarkSaveClean();
+            _lastSaveLoadMessage = loadResult.LoadedFromBackup ? "MAIN SAVE FAILED - BACKUP LOADED" : "GAME LOADED";
+        }
+        catch (Exception)
+        {
+            _lastSaveLoadMessage = "SAVE LOAD FAILED";
+        }
+    }
+
+    private bool HasAnySaveFile()
+    {
+        return File.Exists(_savePath) || File.Exists(SaveGameService.GetBackupPath(_savePath));
     }
 
     private void StartNewGame()
@@ -351,6 +476,8 @@ public sealed class Game1 : Game
         _lastResearchResult = null;
         _lastUpgradeResult = null;
         _lastManagerRenewalSignature = null;
+        _saveDataInfo = FormatCurrentSaveDataInfo(null);
+        MarkSaveClean();
         _lastSaveLoadMessage = "NEW GAME STARTED";
     }
 
@@ -471,6 +598,7 @@ public sealed class Game1 : Game
         if (_input.IsLeftClickPressed() && _uiRenderer.IsSellButtonAt(mousePoint, GraphicsDevice.Viewport))
         {
             _sellSystem.SellAll();
+            MarkWorldDirty();
             _pendingDemolishBuildingId = null;
             return;
         }
@@ -491,7 +619,9 @@ public sealed class Game1 : Game
 
         if (_input.IsLeftClickPressed() && _uiRenderer.IsNewGameButtonAt(mousePoint, GraphicsDevice.Viewport))
         {
-            StartNewGame();
+            if (RequestDirtyAction(PendingDirtyAction.NewGame))
+                StartNewGame();
+
             _pendingDemolishBuildingId = null;
             return;
         }
@@ -512,8 +642,12 @@ public sealed class Game1 : Game
 
         if (_input.IsLeftClickPressed() && _uiRenderer.IsExitButtonAt(mousePoint, GraphicsDevice.Viewport))
         {
-            SaveCurrentGame();
-            Exit();
+            if (RequestDirtyAction(PendingDirtyAction.Exit))
+            {
+                SaveCurrentGame();
+                Exit();
+            }
+
             return;
         }
 
@@ -521,6 +655,9 @@ public sealed class Game1 : Game
             _uiRenderer.TryGetResearchButtonAt(mousePoint, GraphicsDevice.Viewport, _activeLeftPanelMode, out var clickedResearchId))
         {
             _lastResearchResult = _researchSystem.Complete(clickedResearchId);
+            if (_lastResearchResult.Success)
+                MarkWorldDirty();
+
             _lastUpgradeResult = null;
             _pendingDemolishBuildingId = null;
             _mapInput.ClearLastBuildResult();
@@ -532,6 +669,9 @@ public sealed class Game1 : Game
             _uiRenderer.TryGetUpgradeButtonAt(mousePoint, GraphicsDevice.Viewport, _activeLeftPanelMode, out var clickedUpgradeId))
         {
             _lastUpgradeResult = _upgradeSystem.Purchase(clickedUpgradeId);
+            if (_lastUpgradeResult.Success)
+                MarkWorldDirty();
+
             _lastResearchResult = null;
             _pendingDemolishBuildingId = null;
             _mapInput.ClearLastBuildResult();
@@ -543,6 +683,9 @@ public sealed class Game1 : Game
             _uiRenderer.IsReplaceButtonAt(mousePoint, GraphicsDevice.Viewport, _mapInput.SelectedMapBuildingId))
         {
             var result = _buildSystem.ReplaceExpired(_mapInput.SelectedMapBuildingId!.Value);
+            if (result.Success)
+                MarkWorldDirty();
+
             _mapInput.SetLastBuildResult(result);
             _lastResearchResult = null;
             _lastUpgradeResult = null;
@@ -564,6 +707,9 @@ public sealed class Game1 : Game
             }
 
             var result = _buildSystem.Demolish(buildingId);
+            if (result.Success)
+                MarkWorldDirty();
+
             _mapInput.SetLastBuildResult(result);
             if (result.Success)
                 _mapInput.ClearSelectedBuilding();
@@ -578,6 +724,9 @@ public sealed class Game1 : Game
             _uiRenderer.IsClearTerrainButtonAt(mousePoint, GraphicsDevice.Viewport, _mapInput.SelectedTerrainPosition))
         {
             var result = _terrainClearSystem.Clear(_mapInput.SelectedTerrainPosition!.Value);
+            if (result.Success)
+                MarkWorldDirty();
+
             _mapInput.SetLastTerrainClearResult(result);
             _lastResearchResult = null;
             _lastUpgradeResult = null;
@@ -589,6 +738,9 @@ public sealed class Game1 : Game
             _uiRenderer.IsUnlockCloudButtonAt(mousePoint, GraphicsDevice.Viewport, _mapInput.SelectedCloudPosition))
         {
             var result = _areaUnlockSystem.UnlockCloud(_mapInput.SelectedCloudPosition!.Value);
+            if (result.Success)
+                MarkWorldDirty();
+
             _mapInput.SetLastAreaUnlockResult(result);
             _lastResearchResult = null;
             _lastUpgradeResult = null;

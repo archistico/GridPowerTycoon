@@ -358,6 +358,30 @@
       "requiredResearchId": "data_center",
       "unlockLevel": 1,
       "energyConsumptionPerSecond": 80
+    },
+    {
+      "id": "nuclear_reactor",
+      "name": "Reattore nucleare avanzato",
+      "description": "Produzione termica end game. Genera una quantità enorme di calore da convertire, richiede infrastruttura matura e diventa pericoloso se la rete di conversione non è pronta.",
+      "category": "HeatProducer",
+      "cost": 18000000,
+      "width": 3,
+      "height": 3,
+      "energyPerSecond": 0,
+      "heatPerSecond": 9000,
+      "researchPerSecond": 0,
+      "batteryCapacity": 0,
+      "autoSellPerSecond": 0,
+      "heatConversionPerSecond": 0,
+      "heatDissipationPerSecond": 0,
+      "heatRange": 0,
+      "energyEfficiencyBonus": 0,
+      "maintenanceEfficiencyBonus": 0,
+      "toolCapacityBonus": 0,
+      "lifetimeSeconds": 900,
+      "requiredResearchId": "nuclear_power",
+      "unlockLevel": 1,
+      "energyConsumptionPerSecond": 120
     }
   ]
 }

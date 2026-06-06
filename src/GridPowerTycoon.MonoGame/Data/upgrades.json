@@ -221,6 +221,32 @@
       "requiredResearchId": "research_large",
       "maxLevel": 50,
       "costGrowthMultiplier": 2.3
+    },
+    {
+      "id": "nuclear_heat_1",
+      "name": "Reattore nucleare - produzione",
+      "description": "Aumenta la produzione di calore dei reattori nucleari avanzati per livello.",
+      "targetBuildingId": "nuclear_reactor",
+      "costMoney": 22000000,
+      "costResearch": 5000,
+      "effectType": "MultiplyHeatProduction",
+      "multiplier": 1.22,
+      "requiredResearchId": "nuclear_power",
+      "maxLevel": 50,
+      "costGrowthMultiplier": 2.45
+    },
+    {
+      "id": "nuclear_lifetime_1",
+      "name": "Reattore nucleare - durata",
+      "description": "Aumenta la durata operativa dei reattori nucleari avanzati per livello.",
+      "targetBuildingId": "nuclear_reactor",
+      "costMoney": 28000000,
+      "costResearch": 6500,
+      "effectType": "MultiplyLifetime",
+      "multiplier": 1.35,
+      "requiredResearchId": "nuclear_power",
+      "maxLevel": 50,
+      "costGrowthMultiplier": 2.45
     }
   ]
 }

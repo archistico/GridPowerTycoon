@@ -827,78 +827,204 @@ Design role: major energy sink. It gives mature grids a reason to produce large 
 
 ### 26G-pre - New buildings consistency pass
 
-Status: next.
+Status: implemented.
 
-Before adding the nuclear reactor, do a consistency pass over the new Milestone 26 content.
+Before adding the nuclear reactor, the Milestone 26 content received a consistency pass over runtime data and UI ids. The pass added `RuntimeDataConsistencyTests`, which loads the real JSON files used by MonoGame and checks the relationships that previously caused partial Core/UI/data drift.
 
-Scope:
-- verify build button order and research button order;
-- verify that every build button id exists in `buildings.json`;
-- verify that every research button id exists in `research.json`;
-- verify that every `requiredResearchId` in buildings exists;
-- verify that every `unlockBuildingIds` entry in research exists;
-- verify that every `requiredResearchIds` entry in research exists;
-- verify that UI property rows have matching helper methods;
-- verify that the new buildings have clear roles and no duplicated purpose;
-- update docs before gameplay resumes.
+Covered checks:
+- every building `requiredResearchId` exists in `research.json`;
+- every research `unlockBuildingIds` entry exists in `buildings.json`;
+- every research `managedBuildingIds` entry exists in `buildings.json`;
+- every research `requiredResearchIds` prerequisite exists in `research.json`;
+- every upgrade `targetBuildingId` exists in `buildings.json`;
+- every upgrade `requiredResearchId` exists in `research.json`;
+- every UI build button id exists in the building catalog;
+- every UI research button id exists in the research catalog;
+- every building is reachable from the build UI;
+- every research is reachable from the research UI.
 
-This pass is intentionally not a gameplay feature. It exists to avoid the partial Core/UI/test drift that happened during some of the 26B-26C fixes.
+This pass intentionally adds no gameplay feature. Its role is to make the next content step safer.
 
 ### 26G - Nuclear plant / Advanced reactor
 
-Status: planned after 26G-pre.
+Status: done.
 
-Design direction:
-- high-tier heat producer;
-- very high cost;
-- large footprint;
-- high heat output;
-- high infrastructure requirement;
-- requires strong heat conversion and/or heat safety;
-- should not be implemented as just a larger coal plant.
+Implemented content:
+- `nuclear_reactor` building;
+- `nuclear_power` research;
+- `nuclear_heat_1` upgrade;
+- `nuclear_lifetime_1` upgrade;
+- build, research and upgrade UI ids;
+- runtime consistency checks for upgrade UI ids;
+- focused nuclear runtime-data tests.
 
-Suggested prerequisites:
-- `geothermal_power`;
-- `maintenance_center`;
-- `data_center` or `research_large`.
-
-The nuclear plant should arrive only after the player understands heat producers, generators, heat sinks, maintenance, large energy demand and advanced research.
+Design result: the nuclear reactor is a high-tier heat producer, not a direct power producer. It has a 3 x 3 footprint, very high cost, very high heat output, high energy consumption and late prerequisites. It is unlocked only after the player has passed through geothermal power, maintenance and the data-center research path. This keeps it different from a simple larger coal or gas plant: the value is extreme, but the supporting infrastructure requirement is intentionally high.
 
 ### 26H - Milestone 26 final documentation and balance pass
 
-Status: planned after 26G.
+Status: done.
 
-Close Milestone 26 with:
-- final table of all new buildings and roles;
-- updated balance notes;
-- updated game-design notes;
-- updated AI handoff;
-- explicit list of new Core properties introduced during the milestone;
-- final regression checks for data, UI ids and tests.
+Completed:
+- added `docs/MILESTONE_26_BALANCE.md` with final runtime values for all Milestone 26 buildings;
+- documented the heat-chain ratios for solar, coal, geothermal, gas and nuclear producers;
+- recorded the current expansion-tool generation/cap values;
+- closed `docs/MILESTONE_26_STATUS.md`;
+- updated balance notes, game-design notes and AI handoff.
+
+Milestone 26 is now complete. The next work should be stabilization and save/data compatibility, not another production tier.
 
 ## Milestone 27 - Save, stability and quality of life
 
-Status: planned after Milestone 26.
+Status: started.
 
 Goal: stabilize persistence and quality-of-life now that many new properties and buildings have been added.
 
-Recommended order:
-- 27A - Save compatibility check for new building properties;
-- 27B - Visible save/data version information;
-- 27C - Safe handling for missing/renamed buildings or research in old saves;
-- 27D - Confirm NEW and EXIT when the current run has changes;
-- 27E - Optional autosave;
-- 27F - Better SAVE/LOAD feedback;
-- 27G - Regression tests for data loading and save compatibility.
+### 27A - Save compatibility check for new building properties
+
+Status: prepared.
+
+The save format remains at version `1`, now centralized as `SaveGame.CurrentVersion`. Step 27A confirms that the Milestone 26 building-definition properties stay data-driven and are not duplicated into the save payload:
+
+- `EnergyEfficiencyBonus`;
+- `HeatDissipationPerSecond`;
+- `MaintenanceEfficiencyBonus`;
+- `ToolCapacityBonus`.
+
+The save stores only persistent world state and building ids. After restore, the active `GameData` catalog continues to provide the runtime behavior for substations, heat sinks, maintenance centers and tool warehouses. This keeps balancing changes in JSON compatible with existing saves.
+
+Added regression coverage for:
+
+- schema version stability;
+- definition-only property exclusion from save JSON;
+- restored support-building bonuses;
+- 3x3 nuclear reactor footprint persistence;
+- explicit failure on unknown saved building/research/upgrade ids.
+
+`SaveGameService.RestoreWorld` now validates saved ids against the supplied `GameData` before rebuilding the world. A later migration step should turn this guard into a migration policy for renamed or removed ids.
+
+### 27B - Save integrity validation and corrupted JSON handling
+
+Status: prepared.
+
+Step 27B expands the save guard from identifier compatibility to structural integrity. Saves are now rejected before restore if the map has duplicate or missing coordinates, if a building footprint is incomplete, if a tile points to a building outside its footprint, or if an upgrade level is negative or higher than the active upgrade definition allows.
+
+Malformed JSON loaded from disk is converted to a readable save-load failure. MonoGame startup no longer crashes on a bad save file: it falls back to a new game and shows a status message. Manual load keeps the current world and reports `SAVE LOAD FAILED`.
+
+Added `SaveIntegrityTests` for duplicate tiles, incomplete multi-tile footprints, extra tile references, over-max upgrade levels and corrupted JSON.
+
+### 27C - Visible save/data version information
+
+Status: prepared.
+
+Step 27C separates save-schema versioning from runtime data-catalog versioning. `SaveGame.CurrentVersion` remains the save-format version, while `GameData.CurrentVersion` is now stored in the save payload as `DataVersion`. Restore rejects unsupported data versions explicitly, which prepares the project for a real migration policy instead of relying on implicit JSON compatibility.
+
+MonoGame now exposes the current persistence contract in the status bar. A new session shows `SAVE V1 DATA V1 UNSAVED SESSION`; after saving or loading, the status shows the save version, data version and last save timestamp in UTC. This is intentionally small and debug-friendly: it helps verify what is loaded during manual testing without adding a full save-management screen yet.
+
+Added tests cover version exposure, compact summary formatting and explicit unsupported-data-version failure.
+
+
+### 27D - Safe handling for missing/renamed ids in old saves
+
+Status: prepared.
+
+Step 27D adds `SaveIdMigrationMap`, allowing old saved building, research and upgrade ids to be translated to current runtime ids during restore. The default behavior stays strict: unknown ids still fail unless a migration is explicit, and duplicate targets after migration are rejected. No current ids were renamed in this step.
+
+### 27E - Confirm NEW and EXIT when dirty
+
+Status: prepared.
+
+Step 27E adds dirty-state tracking for the active session. The MonoGame status bar appends `MODIFIED` when the current run has changes after the last clean snapshot. Clean snapshots are created after load, save, new game and the offline-progress autosave path; successful gameplay actions mark the session dirty, and passive simulation time also marks it dirty after a short grace interval.
+
+`NEW` and `EXIT` are now protected by a repeat-to-confirm flow when dirty. The first click reports `UNSAVED CHANGES - CLICK NEW AGAIN TO CONFIRM` or `UNSAVED CHANGES - CLICK EXIT AGAIN TO CONFIRM`. Repeating the same action confirms it. Exit still saves before closing after confirmation.
+
+Added `SaveDirtyState` and `SaveDirtyStateTests` so the confirmation policy is covered in Core instead of being embedded only in UI code.
+
+Recommended remaining order:
+- 27F - Optional autosave;
+- 27G - Backup save on write;
+- 27H - Final persistence regression pass.
 
 Milestone 27 should be completed before treating the game as a stable playable release candidate.
 
 ## Stop checkpoint - 2026-06-06
 
 Current stop point:
-- tests passed after Step 26F;
-- Milestone 26 is complete through 26F;
-- next step is 26G-pre, not nuclear yet.
+- Milestone 26 is complete through Step 26H;
+- Milestone 27 has started with Step 27A;
+- local `dotnet test` was reported passing after Step 26G;
+- Step 27A adds save compatibility guards and persistence regression tests;
+- Step 27B adds structural save validation and safe corrupted-JSON handling;
+- Step 27C adds save/data version visibility and a compact runtime status string.
 
-When work resumes, start from:
-`Step 26G-pre - New buildings consistency pass`.
+Recommended next step:
+`Step 27G - Backup save on write`.
+
+## Step 27D - Migrazione sicura degli ID nei salvataggi
+
+Stato: preparato.
+
+Aggiunto `SaveIdMigrationMap` per tradurre vecchi id salvati verso gli id correnti di edifici, ricerche e upgrade durante il restore. Il comportamento predefinito rimane rigoroso: gli id sconosciuti continuano a fallire se non esiste una migrazione esplicita. Se due id salvati finiscono sullo stesso target dopo la migrazione, il caricamento viene bloccato con un errore chiaro per evitare stati doppi o ambigui.
+
+Questo step non rinomina nessun dato attuale; prepara solo l'infrastruttura per futuri refactor dei cataloghi JSON.
+
+
+## 2026-06-06 - Step 27F Optional autosave
+
+Step 27F adds `AutoSaveState` in `GridPowerTycoon.Core.Save`. The class is intentionally small and testable: it accumulates elapsed time only while the game is dirty, triggers an autosave decision when the configured interval is reached, resets after a clean snapshot, and stays inert when disabled.
+
+`Game1` now owns an autosave state configured to 60 seconds and enabled by default. After simulation and dirty-state tracking, the update loop asks the autosave state whether a save is due. When due, MonoGame writes the normal `Saves/savegame.json`, refreshes the compact save/data status string, marks the game clean and reports `AUTOSAVED`. If the write fails, it reports `AUTOSAVE FAILED` without marking the session clean.
+
+Manual save, manual load, explicit new game and the offline-progress save path continue to go through the clean-snapshot flow and therefore reset the autosave timer. Autosave can be toggled at runtime with `F6`, which reports `AUTOSAVE ON` or `AUTOSAVE OFF`.
+
+Added `AutoSaveStateTests` for interval behavior, clean reset, disabled behavior and toggle reset.
+
+Next recommended step: Step 27I - Final persistence regression pass.
+
+## 2026-06-06 - Step 27G Backup save on write
+
+Step 27G strengthens persistence writes without changing gameplay. `SaveGameService.SaveToFile` now serializes the new save to a temporary file, preserves the previous main save as `savegame.backup.json`, and then replaces the main save. This keeps the previous known-good snapshot available whenever a later save overwrites `savegame.json`.
+
+The backup naming rule is centralized in `SaveGameService.GetBackupPath`, so future load-fallback work can use the same path instead of rebuilding it in UI code. Because the behavior lives in Core, manual saves, autosaves and startup offline-progress saves all follow the same write policy.
+
+Tests in `SaveGameServiceTests` verify that the first save does not invent a backup, the second save creates a backup from the previous file, the main file contains the latest snapshot, and the backup file contains the previous snapshot.
+
+Next recommended step: Step 27I - Final persistence regression pass.
+
+
+## Step 27H - Load fallback from backup
+
+Stato: preparato.
+
+Il sistema di salvataggio ora usa il backup generato in scrittura come reale percorso di recupero in lettura. Se il file principale non è leggibile o non può essere ripristinato, il Core tenta `savegame.backup.json`. L'integrazione MonoGame usa lo stesso percorso sia all'avvio sia con il caricamento manuale, mostrando `MAIN SAVE FAILED - BACKUP LOADED` quando il recupero avviene dal backup.
+
+
+## Step 27I - Final persistence regression pass
+
+Stato: preparato.
+
+Questo step chiude il blocco salvataggi/stabilità con test regressivi incrociati. Non cambia il gameplay, ma verifica che le parti introdotte nel Milestone 27 lavorino correttamente insieme: rotazione del backup dopo più salvataggi, caricamento dal backup con migrazione ID attiva e comportamento dell'autosave dopo il superamento della soglia.
+
+Dopo il passaggio dei test, il Milestone 27 può essere considerato completato. Il prossimo milestone consigliato è il 28, dedicato a feedback UX e chiarezza di gioco.
+
+## Milestone 28 - UX and gameplay feedback
+
+Stato: prossimo.
+
+Obiettivo: rendere più leggibili le decisioni del gioco per il giocatore. Ora che il salvataggio è protetto da versioni, validazione, migrazione, backup, fallback e autosave, il lavoro successivo dovrebbe concentrarsi su messaggi, tooltip e pannelli che spiegano perché una costruzione, una ricerca o un upgrade sono disponibili o bloccati.
+
+Primo step consigliato:
+
+```text
+Milestone 28A - Better build/research/upgrade feedback messages
+```
+
+
+## Step 27J - Top menu HELP/EXIT hit-test cleanup
+
+Before entering Milestone 28, the top menu received a small UX consistency fix. The help action now lives on the visible HELP button after UPGRADE, and the invisible HELP hit-test area near EXIT has been removed. The right-side command group now contains only NEW, LOAD, SAVE, VIEW and EXIT.
+
+Next recommended step:
+
+```text
+Milestone 28A - Better build/research/upgrade feedback messages
+```

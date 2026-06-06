@@ -1,11 +1,15 @@
 using GridPowerTycoon.Core.Buildings;
 using GridPowerTycoon.Core.Map;
+using GridPowerTycoon.Core.World;
 
 namespace GridPowerTycoon.Core.Save;
 
 public sealed class SaveGame
 {
-    public int Version { get; init; } = 1;
+    public const int CurrentVersion = 1;
+
+    public int Version { get; init; } = CurrentVersion;
+    public int DataVersion { get; init; } = GameData.CurrentVersion;
     public DateTimeOffset SavedAt { get; init; } = DateTimeOffset.UtcNow;
     public SaveResources Resources { get; init; } = new();
     public SaveMap Map { get; init; } = new();

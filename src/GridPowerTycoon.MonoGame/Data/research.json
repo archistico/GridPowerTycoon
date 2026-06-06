@@ -191,6 +191,21 @@
       "managedBuildingIds": []
     },
     {
+      "id": "nuclear_power",
+      "name": "Reattori nucleari avanzati",
+      "description": "Sblocca il reattore nucleare avanzato, una fonte termica end game ad altissima potenza e alto rischio operativo.",
+      "cost": 25000,
+      "unlockBuildingIds": [
+        "nuclear_reactor"
+      ],
+      "requiredResearchIds": [
+        "geothermal_power",
+        "maintenance_center",
+        "data_center"
+      ],
+      "managedBuildingIds": []
+    },
+    {
       "id": "wind_turbine_manager",
       "name": "Gestore pale eoliche",
       "description": "Rinnova automaticamente le pale eoliche scadute se hai denaro sufficiente.",

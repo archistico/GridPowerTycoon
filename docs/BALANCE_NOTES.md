@@ -628,9 +628,31 @@ Initial values:
 
 Balance intent: late-game energy sink that converts surplus energy into research velocity.
 
+## Step 26G - Nuclear reactor
+
+Added Nuclear reactor balance values.
+
+Initial values:
+- building id: `nuclear_reactor`;
+- cost: $18,000,000;
+- required research: `nuclear_power`;
+- research cost: R25,000;
+- prerequisite research: `geothermal_power`, `maintenance_center`, `data_center`;
+- category: HeatProducer;
+- size: 3 x 3;
+- heat production: 9,000/s;
+- energy consumption: 120/s;
+- lifetime: 900 seconds.
+
+Added upgrades:
+- `nuclear_heat_1`: heat-production multiplier, cost $22,000,000 and R5,000, growth 2.45;
+- `nuclear_lifetime_1`: lifetime multiplier, cost $28,000,000 and R6,500, growth 2.45.
+
+Balance intent: end-game risky heat source. It should require a mature conversion network and enough operational stability to avoid becoming a simple automatic win condition.
+
 ## Milestone 26 pause balance summary
 
-Current balance checkpoint after Step 26F:
+Current balance checkpoint after Step 26G:
 
 | Building | Cost | Research cost | Main effect |
 |---|---:|---:|---|
@@ -640,12 +662,41 @@ Current balance checkpoint after Step 26F:
 | `tool_warehouse_small` | $1,800 | R220 | +25 axes and +25 mines capacity |
 | `geothermal_plant` | $12,000 | R1,600 | 180/s heat, 1.5/s energy input |
 | `data_center` | $250,000 | R8,000 | 120/s research, 80/s energy input |
+| `nuclear_reactor` | $18,000,000 | R25,000 | 9,000/s heat, 120/s energy input |
 
-These values are provisional. Do not rebalance them in isolation before the consistency pass and nuclear design are complete.
+These values are provisional. The next pass should check the full curve from coal to gas to nuclear, rather than rebalancing the reactor in isolation.
 
 Next balance work:
 - verify progression from coal to geothermal;
 - verify that Data center energy demand is reachable but meaningful;
-- verify that heat sink and generator capacity make sense with geothermal;
+- verify that heat sink and generator capacity make sense with geothermal and nuclear;
 - verify that maintenance and managers do not overlap too much;
-- verify that tool warehouse helps expansion without trivializing obstacles.
+- verify that tool warehouse helps expansion without trivializing obstacles;
+- verify that nuclear heat output is powerful but still requires planned conversion capacity.
+
+## Step 26H - Milestone 26 final balance closure
+
+Milestone 26 is now closed as a content block. The definitive runtime balance reference for this milestone is `docs/MILESTONE_26_BALANCE.md`.
+
+The important final decisions are:
+
+- the new buildings are role-based rather than linear upgrades;
+- the Substation, Heat sink, Maintenance center and Tool warehouse add support mechanics;
+- Geothermal, Data center and Nuclear reactor reuse existing mechanics so the game does not fragment into too many special systems;
+- the Nuclear reactor remains a heat producer, not direct electricity;
+- the next milestone should focus on save compatibility and stability.
+
+Current tool values are now faster than the earliest prototype balance: axes generate at `0.025/s`, mines at `0.0125/s`, base caps are `25/25`, clearing a forest costs `3` axes and clearing a mountain costs `4` mines. The Tool warehouse does not increase generation speed; it increases storage capacity by `+25` for both axes and mines.
+
+Current heat-chain reference:
+
+| Producer | Heat/s | Balance meaning |
+|---|---:|---|
+| `solar_panel` | 18 | early heat introduction, one small generator covers it |
+| `coal_power_plant` | 450 | mid-game heat source, medium generator target |
+| `geothermal_plant` | 180 | stable heat source with lower pressure and larger footprint |
+| `gas_power_plant` | 3500 | industrial heat source requiring clustered conversion |
+| `nuclear_reactor` | 9000 | end-game heat source requiring mature support infrastructure |
+
+Do not add another production tier immediately after this. The project now needs a persistence/stability milestone so old saves, new building properties, UI ids and data-version handling remain reliable.
+

@@ -217,9 +217,15 @@ The Data center is a late-game energy sink.
 
 It consumes a large amount of energy and produces research. It does not generate electricity or money directly. Its purpose is to give the player a reason to scale the grid beyond basic selling and storage.
 
+### Nuclear reactor
+
+The Nuclear reactor is the final high-tier heat source of this milestone.
+
+It does not produce electricity directly. It generates very high heat and consumes significant energy, so it only makes sense once the player has a mature grid, advanced research and operational support. This keeps the reactor tied to the core heat-conversion gameplay instead of turning it into a flat late-game power button.
+
 ## Milestone 26 pause point
 
-The first Milestone 26 content block is complete through the Data center.
+The first Milestone 26 content block is complete through the Nuclear reactor.
 
 The current new-building set is intentionally diverse:
 - Substation improves grid efficiency;
@@ -227,8 +233,18 @@ The current new-building set is intentionally diverse:
 - Maintenance center slows operational wear;
 - Tool warehouse improves expansion logistics;
 - Geothermal plant provides stable heat;
-- Data center consumes large energy and produces research.
+- Data center consumes large energy and produces research;
+- Nuclear reactor provides extreme heat output for mature conversion networks.
 
-The next design step is not another building immediately. The next step is a consistency pass that protects the relationship between Core properties, JSON content, UI rows and tests.
+The next design step is the final Milestone 26 balance and documentation pass. The reactor should now be evaluated together with the rest of the heat chain, especially generator capacity, heat safety and late-game research pacing.
 
-The nuclear reactor remains planned as the final high-tier building for this milestone. It should be introduced only after the consistency pass.
+## Milestone 26 final state
+
+Milestone 26 is complete. Its final design contribution is a broader strategic layer around the grid rather than a simple ladder of bigger generators.
+
+The new support buildings create systemic choices. The Substation improves global energy efficiency, the Heat sink trades energy conversion for safety, the Maintenance center slows operational wear and the Tool warehouse makes expansion logistics less wasteful. These buildings do not replace producers; they make the existing producers easier or safer to scale.
+
+The new late-game buildings deliberately remain tied to existing loops. The Geothermal plant is a stable heat source, the Data center turns surplus energy into research and the Nuclear reactor creates extreme heat that must be converted and controlled. This keeps the game centered on grid planning, heat management, storage, selling and research pacing.
+
+The next design priority is not another high-tier building. The next priority is reliability: save compatibility, data-version visibility, safe handling of renamed/missing content and clearer persistence feedback.
+

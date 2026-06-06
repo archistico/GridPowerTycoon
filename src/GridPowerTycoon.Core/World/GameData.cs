@@ -10,6 +10,8 @@ namespace GridPowerTycoon.Core.World;
 
 public sealed class GameData
 {
+    public const int CurrentVersion = 1;
+
     public BuildingCatalog Buildings { get; }
     public EconomySettings Economy { get; }
     public ResearchCatalog Research { get; }

@@ -1,53 +1,32 @@
-# AI Handoff — GridPowerTycoon
+# Roadmap
 
-## Stato attuale
+## Step 01 — Solution e base tecnica
 
-GridPowerTycoon è un gioco 2D top-down a griglia sviluppato in C#/.NET 8 con MonoGame DesktopGL. La struttura segue una separazione simile a OpenCad2D: il progetto `GridPowerTycoon.Core` contiene la logica testabile, mentre `GridPowerTycoon.MonoGame` contiene rendering, input e UI.
+Stato: completato.
 
-## Decisioni principali
+La solution contiene `GridPowerTycoon.Core`, `GridPowerTycoon.MonoGame` e `GridPowerTycoon.Core.Tests`. La mappa, gli edifici e l'economia sono separati dalla parte grafica.
 
-- Il gioco usa MonoGame DesktopGL.
-- La parte Core non deve dipendere da MonoGame.
-- I valori di bilanciamento sono caricati da JSON esterni.
-- La mappa è caricata da `Data/maps/default-map.json`.
-- Gli edifici sono caricati da `Data/buildings.json`.
-- Le impostazioni economiche sono caricate da `Data/economy.json`.
-- La UI iniziale è custom e usa testo pixel disegnato via codice, senza SpriteFont/MGCB obbligatorio in questa fase.
+## Step 02 — BuildSystem Core
 
-## Completato
+Stato: completato.
 
-- Solution iniziale.
-- Mappa con `GridMap`, `Tile`, `TileType`, `GridPosition`.
-- Loader JSON per edifici, economia e mappa.
-- BuildSystem Core con risultati espliciti.
-- Test del Core passati localmente dall'utente fino allo Step 02.
-- Collegamento BuildSystem a MonoGame:
-  - selezione edifici dal menu laterale;
-  - selezione con tasti 1-4;
-  - click sulla mappa per costruire;
-  - preview verde/rossa sulla cella;
-  - rendering degli edifici costruiti;
-  - feedback testuale del risultato di costruzione.
+Il Core permette di costruire edifici sulla mappa tramite `BuildSystem`, con controllo su denaro, celle fuori mappa, celle non edificabili e celle occupate. Le batterie applicano immediatamente l'aumento di capacità energetica.
 
-## Prossimo step consigliato
+## Step 03 — Collegamento BuildSystem a MonoGame
 
-Implementare la simulazione base:
+Stato: completato in questa modifica.
 
-- `ProductionSystem`;
-- `LifetimeSystem`;
-- `SellSystem`;
-- `AutoSellSystem`;
-- energia prodotta dalle pale eoliche;
-- ricerca prodotta dai centri di ricerca;
-- vita residua e stato `Expired`;
-- bottone o tasto per vendere energia;
-- test automatici per produzione/vendita/scadenza.
+La schermata MonoGame ora permette di selezionare gli edifici iniziali dal menu laterale o con i tasti `1`, `2`, `3`, `4`. Il click sulla griglia chiama `BuildSystem.Build(...)`. La mappa mostra gli edifici costruiti, evidenzia la cella sotto il mouse e mostra una preview verde/rossa in base alla possibilità di costruire.
 
-## 2026-06-05 — Step 04 preparato: simulazione base
+## Prossimo step — Produzione, vendita e vita edifici
 
-Aggiunti `ProductionSystem`, `LifetimeSystem`, `SellSystem`, `AutoSellSystem` e `GameSimulation`. `GameWorld` espone ora `EconomySettings` perché i sistemi di vendita devono leggere `EnergySellValue`, `ManualSellMultiplier` e `AutoSellMultiplier` dal JSON economia. `ResourceState` ora restituisce la quantità effettivamente rimossa da `RemoveEnergy` e fornisce `RemoveAllEnergy`.
+Il prossimo blocco deve introdurre la simulazione base: produzione energia, produzione ricerca, scadenza edifici, vendita manuale e vendita automatica degli uffici.
 
-MonoGame istanzia `SellSystem` e `GameSimulation`; ad ogni frame aggiorna la simulazione. La TopBar mostra un pulsante `SELL`, cliccabile per vendere tutta l'energia. Gli uffici (`AutoSellPerSecond`) vendono automaticamente energia se attivi. Gli edifici scaduti non producono più.
+## Step 04 — Simulazione base produzione/vendita
+
+Stato: preparato.
+
+Questo step introduce la prima simulazione economica continua: gli edifici attivi producono energia e ricerca, gli edifici con durata residua scadono, il tasto SELL vende tutta l'energia accumulata e gli uffici vendono automaticamente una quota di energia al secondo. I valori continuano a provenire da JSON tramite `BuildingDefinition` ed `EconomySettings`.
 
 
 ## Fix JSON enum converter
@@ -56,106 +35,101 @@ MonoGame istanzia `SellSystem` e `GameSimulation`; ad ogni frame aggiorna la sim
 
 ## Step 06 - Ricerca e sblocco edifici
 
-Aggiunto il sistema ricerca configurabile da `Data/research.json`. Il Core ora contiene `ResearchDefinition`, `ResearchCatalog`, `ResearchState`, `ResearchSystem`, `ResearchResult` e `ResearchFailureReason`. `GameData` e `GameWorld` espongono il catalogo ricerca e lo stato ricerche completate. `BuildSystem` ora blocca gli edifici con `requiredResearchId` non ancora completata restituendo `BuildFailureReason.ResearchRequired`.
+Stato: implementato.
 
-La UI MonoGame mostra nel menu laterale gli edifici bloccati e una sezione `RESEARCH` con le ricerche acquistabili usando i punti ricerca prodotti dai centri di ricerca. Gli edifici inizialmente costruibili sono quelli senza ricerca richiesta, in particolare pala eolica e centro di ricerca piccolo. Batterie, ufficio piccolo, pannello solare e generatore piccolo richiedono ricerca.
+- `research.json` caricato all'avvio.
+- Catalogo e stato ricerca separati nel Core.
+- Sistema ricerca con controlli: ricerca sconosciuta, già completata, prerequisiti mancanti, punti ricerca insufficienti.
+- `BuildSystem` rispetta `requiredResearchId` degli edifici.
+- UI minima per acquistare ricerche e visualizzare edifici bloccati.
 
 ## Step 06 UI polish - Barre vita e valori stabili
 
-Aggiunta in `MapRenderer` la visualizzazione della vita residua per tutti gli edifici con durata (`LifetimeSeconds > 0`). La barra è disegnata nella parte bassa del rettangolo dell'edificio e usa colore verde sopra il 50%, giallo sotto il 50%, rosso sotto il 25%. Per edifici scaduti la barra è vuota.
+Stato: implementato.
 
-Aggiornata la TopBar in `UiRenderer`: energia, ricerca e denaro usano `FormatNumberFixed2`, quindi mostrano sempre due decimali anche quando i valori cambiano velocemente. Il formato abbreviato K/M/B resta disponibile ma con due decimali fissi nella TopBar.
+- Gli edifici con `LifetimeSeconds > 0` mostrano ora una barretta di vita nella parte bassa del riquadro edificio.
+- La barra diventa verde/gialla/rossa in base alla durata residua.
+- Gli edifici scaduti mostrano la barra vuota e mantengono la diagonale di stato scaduto.
+- I valori della TopBar (`ENERGY`, `RESEARCH`, `MONEY`) usano sempre due decimali per evitare oscillazioni visive quando cambiano velocemente.
 
-## 2026-06-05 - Step 06 UI polish: resource rates
+## Step 06 UI polish - Resource rates in top bar
 
-Added `ResourceRateSnapshot` in `GridPowerTycoon.Core/Economy` to compute estimated per-second rates for Energy, Research and Money without mutating the world. `UiRenderer` now shows a second line under ENERGY, RESEARCH and MONEY in the top bar using fixed two-decimal signed values. Energy rate is net for the next second and accounts for storage cap plus auto-sell; Money rate reflects automatic selling only, not manual SELL button clicks.
+Added per-second resource rate display below the main top bar counters.
+Energy rate is computed as an estimated net change for the next second, taking into account active producers, max storage cap and automatic selling. Research rate is the sum of active research buildings. Money rate is the estimated automatic-sale income per second.
 
-## 2026-06-05 - Step 07 Heat and Generators
+## Step 07 - Calore e generatori
 
-Implemented configurable heat mechanics. Added `HeatSettings` loaded from `Data/heat.json`, `HeatSystem`, tests for heat accumulation/conversion/out-of-range/explosion and integration with simulation. `GameSimulation` now runs lifetime, direct production, heat conversion, then auto-sell. `ResourceRateSnapshot` estimates heat-converted energy for top-bar rates. `MapRenderer` draws a heat bar at the top of heat-producing/overheated buildings. `UiRenderer` shows heat production, conversion capacity/range and accumulated heat in the selected building panel.
+Stato: implementato in questo pacchetto.
 
-## 2026-06-05 - Step 08 Tools e clearing terreno
+Il gioco ora legge `Data/heat.json` e usa `HeatSystem` per accumulare calore sugli edifici produttori, convertirlo in energia tramite generatori entro raggio configurato e far esplodere gli edifici che superano la soglia di sicurezza. La mappa mostra una barra calore nella parte alta degli edifici che generano o accumulano calore; il pannello edificio mostra calore prodotto, conversione, raggio e calore accumulato.
 
-Aggiunta la gestione degli strumenti naturali:
+## Step 08 - Tools e pulizia ostacoli naturali
 
-- nuovo `ToolSettings` caricato da `Data/tools.json`;
-- `ResourceState` ora gestisce `Axes` e `Mines` come valori double, così possono crescere progressivamente nel tempo;
-- nuovo `ToolGenerationSystem`, integrato in `GameSimulation`, che genera asce e mine rispettando i massimi configurati;
-- nuovo `TerrainClearSystem` con `TerrainClearResult` e `TerrainClearFailureReason`;
-- boschi e montagne sono selezionabili dalla mappa;
-- pannello UI terreno con costo e risorse disponibili;
-- pulsante `CLEAR` per trasformare bosco/montagna in `Land`;
-- top bar aggiornata con asce e mine;
-- test per generazione strumenti, pulizia boschi/montagne e caricamento `tools.json`.
+Stato: implementato.
 
-File dati aggiunto: `src/GridPowerTycoon.MonoGame/Data/tools.json`.
+Aggiunta la gestione configurabile di asce e mine tramite `Data/tools.json`. Il gioco genera strumenti nel tempo, mostra i contatori nella barra superiore e permette di selezionare boschi/montagne sulla mappa. Il pannello terreno consente di disboscare un bosco spendendo asce o spianare una montagna spendendo mine; la cella diventa terreno libero e quindi edificabile.
 
 
 ## Step 09A - Bilanciamento strumenti
 
-La generazione strumenti è stata rallentata in `src/GridPowerTycoon.MonoGame/Data/tools.json`:
+Stato: implementato.
 
-- `axesPerSecond`: `0.005`;
-- `minesPerSecond`: `0.0025`.
-
-Con costo 4 strumenti per rimuovere un ostacolo, i boschi richiedono circa 13m20s e le montagne circa 26m40s. Aggiunto `docs/BALANCE_NOTES.md` per documentare le scelte di bilanciamento. Il prossimo blocco consigliato è il sistema di upgrade da JSON.
+Rallentata la generazione di asce e mine in `Data/tools.json`: ora le asce crescono a `0.005/s` e le mine a `0.0025/s`. Con i costi attuali, rimuovere un bosco richiede circa 13 minuti e 20 secondi di accumulo, mentre rimuovere una montagna richiede circa 26 minuti e 40 secondi. Aggiunto `docs/BALANCE_NOTES.md` per tracciare le decisioni di bilanciamento.
 
 ## Step 10 - Upgrade da JSON
 
-Aggiunto sistema upgrade configurabile da `src/GridPowerTycoon.MonoGame/Data/upgrades.json`.
+Stato: preparato.
 
-Nuovi namespace/classi Core:
-- `GridPowerTycoon.Core.Upgrades.UpgradeDefinition`
-- `UpgradeCatalogData`
-- `UpgradeCatalog`
-- `UpgradeState`
-- `UpgradeSystem`
-- `UpgradeCalculator`
-- `UpgradeEffectType`
-- `UpgradeResult`
-- `UpgradeFailureReason`
+Obiettivo: introdurre un primo sistema di upgrade esterno ai sorgenti, configurabile da `Data/upgrades.json`.
 
-`GameData` e `GameWorld` ora includono catalogo e stato upgrade. `GameDataLoader` carica anche `upgrades.json`.
+Incluso:
+- `UpgradeDefinition`, `UpgradeCatalog`, `UpgradeState`, `UpgradeSystem`;
+- acquisto upgrade con costo in denaro e/o ricerca;
+- controllo ricerca richiesta e livello massimo;
+- moltiplicatori per energia, durata, ricerca, batterie, vendita automatica, generatori, asce e mine;
+- menu upgrade minimale in MonoGame;
+- test Core per acquisto upgrade e applicazione dei moltiplicatori.
 
-Sistemi aggiornati per usare i valori effettivi:
-- `BuildSystem`: vita edificio e capacità batteria tengono conto degli upgrade;
-- `ProductionSystem`: energia/ricerca tengono conto degli upgrade;
-- `AutoSellSystem`: vendita automatica tiene conto degli upgrade;
-- `HeatSystem`: conversione calore tiene conto degli upgrade;
-- `ToolGenerationSystem`: asce/mine tengono conto degli upgrade;
-- `ResourceRateSnapshot`: mostra rate stimati già aggiornati.
+Nota: gli upgrade di produzione, ricerca, vendita automatica, generatori e strumenti agiscono subito sui calcoli. L'upgrade capacità batterie ricalcola anche la capacità massima esistente. L'upgrade durata vita vale per nuovi edifici e rimpiazzi successivi.
 
-UI MonoGame:
-- pannello `UPGRADES` sulla destra;
-- click su upgrade acquista se requisiti/costi sono soddisfatti;
-- feedback nella status bar.
+## Step 10B - UI polish: tre colonne e dettagli completi
 
-Decisione: l'upgrade durata vita non modifica retroattivamente la vita rimanente degli edifici già costruiti; vale per nuove costruzioni e rimpiazzi.
-
-## Step 10B - UI polish applied
-
-The UI was reorganized after the first upgrades implementation. The left menu is now a three-column layout with BUILD, RESEARCH and UPGRADE columns. Upgrade entries show the affected stat and percentage effect. The top bar displays Energy, Research, Money, Axes and Mines using the same visual hierarchy, each with a per-second rate below it. Building details now include cost, size, all production/consumption values, battery capacity, heat conversion input/output, and integer lifetime seconds. Small generators now explicitly show heat input and energy output. The MonoGame window is resizable through `Window.AllowUserResizing = true` and a client-size handler updates the back buffer.
+Completato:
+- menu sinistro riorganizzato in tre colonne: BUILD, RESEARCH, UPGRADE;
+- pannello upgrade spostato dalla destra al menu sinistro;
+- upgrade descritti con effetto e percentuale;
+- top bar uniformata: Energy, Research, Money, Axes e Mines hanno tutti valore principale e crescita al secondo;
+- pannello edificio più completo: costo, dimensione, vita, output, input, capacità e conversioni;
+- vita mostrata in secondi interi;
+- conversione generatori esplicitata come HEAT IN ed ENERGY OUT;
+- finestra MonoGame ridimensionabile.
 
 ## Step 10C - Top bar energy fill bar
 
-User requested keeping the energy fill bar near SELL because it is useful as a quick visual indicator. `UiRenderer.DrawTopBar` now reserves space before the SELL button, draws the ENERGY/RESEARCH/MONEY/AXES/MINES metrics to the left, and renders a compact `FILL xx%` bar immediately before SELL. The bar is based on `Resources.Energy / Resources.MaxEnergy`.
+- Reintroduced the compact energy fill bar next to the SELL button after the three-column UI polish.
+- The bar shows current stored energy as a percentage of max battery capacity and keeps the SELL action visually connected to available energy.
 
 ## Step 10D - Consumo energia operativo e fullscreen
 
-Introdotto il campo `energyConsumptionPerSecond` in `BuildingDefinition`, letto direttamente da `buildings.json`. `ResourceState` espone ora `TrySpendEnergy`, usato dai sistemi di produzione/ricerca, autosell e calore per alimentare gli edifici che richiedono energia operativa. Se l'energia disponibile non basta, l'edificio salta il proprio output per quel tick invece di produrre/vendere/accumulare calore.
+Stato: implementato in questo pacchetto.
 
-Valori dati iniziali:
-- `wind_turbine`: `batteryCapacity = 10`, così ogni pala aumenta leggermente la capacità energetica massima;
-- `office_small`: `energyConsumptionPerSecond = 0.2`;
-- `research_small`: `energyConsumptionPerSecond = 0.5`.
+- Aggiunto `energyConsumptionPerSecond` alle definizioni edificio.
+- La pala eolica ora aggiunge una piccola capacità batteria (`batteryCapacity: 10`) quando viene costruita.
+- Ufficio piccolo e centro ricerca piccolo consumano energia per funzionare.
+- Gli edifici consumatori saltano il proprio output se non c'è energia sufficiente per coprire il consumo del tick.
+- La TopBar e i rate stimati tengono conto del consumo energetico operativo.
+- Il pannello edificio mostra `ENERGY IN` oltre agli output/costi.
+- Il gioco parte in fullscreen borderless mantenendo la finestra ridimensionabile quando non è fullscreen.
 
-`ResourceRateSnapshot` include `EnergyConsumptionPerSecond` e stima i valori netti considerando produzione, conversione calore, consumi operativi e vendita automatica. `UiRenderer` mostra `ENERGY IN -x/s` nel pannello edificio. `Game1` avvia il gioco in fullscreen borderless tramite `StartFullscreen()`.
+## Step 11 - Sblocco aree coperte da nuvole
 
-## Step 11 - Cloud area unlocks
+Stato: implementato in pacchetto Step 11.
 
-Added configurable cloud-area unlocking. `area-unlock.json` defines `cloudUnlockMoneyCost` and `cloudUnlockResearchCost`. `MapDefinition` now supports optional `hiddenRows`; visible `C` cells remain clouds, while `hiddenRows` stores the real tile revealed after unlocking. `Tile` now stores `CoveredType` and exposes `RevealCoveredType()`.
-
-Core additions: `AreaUnlockSettings`, `AreaUnlockSystem`, `AreaUnlockResult`, `AreaUnlockFailureReason`. Unlocking a cloud spends money/research and reveals the covered tile. UI additions: clicking a cloud opens a cloud panel with cell, revealed terrain, costs, and UNLOCK button. Status bar reports unlock success/failure.
+- Aggiunto `Data/area-unlock.json` per costi di sblocco.
+- Aggiunto supporto `hiddenRows` in `default-map.json`.
+- Le celle visibili come `C` restano nuvole fino allo sblocco.
+- Il Core rivela il terreno reale configurato sotto la nuvola.
+- UI: clic su nuvola, pannello area bloccata, pulsante UNLOCK.
 
 ## Step 11B - Mappa arcipelago più ampia
 - La mappa predefinita è stata portata da 20x12 a 64x40 celle.
@@ -163,45 +137,41 @@ Core additions: `AreaUnlockSettings`, `AreaUnlockSystem`, `AreaUnlockResult`, `A
 - L'isola iniziale resta visibile; le isole successive sono coperte da nuvole e usano `hiddenRows` per rivelare terreno, boschi e montagne allo sblocco.
 - La modifica è solo dati/documentazione: non cambia sistemi Core, input o rendering.
 
-## Step 11C - Large centered archipelago and camera zoom limit
-- Default map expanded from 64x40 to 128x80 cells, giving 4x the previous area.
-- Initial visible island is now centered in the map; surrounding islands remain cloud-covered and reveal their real terrain from hiddenRows.
-- Camera now starts centered on the map/initial island instead of the top-left corner.
-- Camera minimum zoom increased from 0.40 to 0.75 so the player cannot zoom out to see too much of the archipelago at once and must pan to explore.
-- Wind turbine battery capacity contribution reduced from 10 to 5 in buildings.json.
+## Step 11C - Mappa grande centrata e zoom limitato
+Stato: preparato.
 
-## Step 12 - Save/load JSON
+Modifiche:
+- mappa default portata a 128x80 celle, cioè 4x l'area della 64x40;
+- isola iniziale visibile al centro della mappa;
+- isole future coperte da nuvole con terreno reale in hiddenRows;
+- zoom minimo aumentato a 0.75 per obbligare l'esplorazione tramite pan;
+- camera iniziale centrata sull'isola/mappa;
+- capacità batteria della pala eolica ridotta da 10 a 5.
 
-Added `GridPowerTycoon.Core.Save` with `SaveGame`, `SaveResources`, `SaveMap`, `SaveTile`, `SaveBuildingInstance` and `SaveGameService`.
+## Step 12 - Salvataggio e caricamento partita
 
-`SaveGameService.CreateSave(GameWorld)` snapshots resources, full map state, building instances, completed research and upgrade levels. `RestoreWorld(SaveGame, GameData)` rebuilds a `GameWorld` from the save while reusing the current game data catalogs/settings.
+Stato: preparato.
 
-Support methods were added:
-- `ResourceState.Restore(...)` restores resources safely.
-- `BuildingInstance.Restore(...)` recreates instances with lifetime, heat and state.
-- `UpgradeState.SetLevel(...)` restores purchased upgrade levels.
+Aggiunto sistema di salvataggio JSON in `GridPowerTycoon.Core.Save`.
 
-MonoGame integration:
-- Save path: `AppContext.BaseDirectory/Saves/savegame.json`.
-- Startup loads the save if it exists, otherwise starts a new world from `default-map.json`.
-- F5 saves.
-- F9 loads.
-- ESC saves then exits.
-- Bottom status bar shows save/load messages and key hints.
+Il salvataggio conserva:
+- risorse: energia, capacità massima, ricerca, denaro, asce, mine;
+- mappa completa: tipo cella, eventuale terreno coperto sotto le nuvole, edificio presente;
+- edifici: id istanza, definizione, posizione, vita residua, calore accumulato, stato Active/Expired/Exploded;
+- ricerche completate;
+- livelli upgrade acquistati.
 
-Tests added under `tests/GridPowerTycoon.Core.Tests/Save/SaveGameServiceTests.cs` for round-tripping resources, map state, buildings, research and upgrades.
+MonoGame ora usa `Saves/savegame.json` nella cartella di output. Se il file esiste viene caricato all'avvio; con F5 si salva manualmente, con F9 si ricarica, con ESC il gioco salva prima di uscire.
 
 
-## Step 12A
+## Step 12A - Durata pannelli solari
 
-Bilanciamento: il pannello solare ora ha `lifetimeSeconds: 180` in `Data/buildings.json`, invece dei 30 secondi iniziali. La modifica è solo dati/documentazione e non cambia la logica.
+Stato: completato. Il valore `lifetimeSeconds` del pannello solare in `buildings.json` è stato aumentato da 30 a 180 secondi.
 
 ## Step 13 - Offline progress
-- Added `OfflineProgressSystem` and `OfflineProgressResult` in Core.
-- Save files already contained `SavedAt`; startup now reads the save, restores the world, applies capped offline progress using `EconomySettings.MaxOfflineSeconds`, then writes the updated save back to avoid repeated offline gain.
-- Offline progress simulates in 1-second internal steps, so energy consumers, auto-sell, lifetime and tool generation remain consistent.
-- Offline heat conversion runs, but explosions are disabled while the player is away via `HeatSystem.Update(deltaSeconds, allowExplosions: false)`. Buildings can still expire offline.
-- Startup status message summarizes offline energy, research, money, axes, mines and expired buildings.
+Status: implemented.
+
+When a save exists at startup, the game computes the elapsed time since `SavedAt`, caps it with `economy.json` / `maxOfflineSeconds`, applies production, research, auto-selling, lifetime decay and tool generation, then shows a compact summary in the status bar. Heat conversion is applied offline, but explosions are disabled while the player is absent.
 
 
 ## Step 13 fix - OfflineProgressResult None
@@ -210,13 +180,13 @@ Fixed `OfflineProgressResult.None` constructor arguments after adding `Buildings
 
 ## Step 14 - Cloud area group unlock
 
-Implemented area-based cloud unlocking. `AreaUnlockSettings` now includes `CloudUnlockRadius` and `MaxCloudTilesPerUnlock`. `AreaUnlockSystem.UnlockCloud` reveals the clicked cloud plus nearby connected cloud cells within a Manhattan radius, limited by the max tile count. `AreaUnlockResult` now reports `TilesUnlocked` and exposes the revealed tile list while keeping `RevealedTileType` for compatibility with older UI/status logic. The UI cloud panel now shows radius, max tiles, estimated tiles to unlock, and status reports how many tiles were unlocked.
+Status: prepared.
 
-Current default in `Data/area-unlock.json`: radius 2, max 9 tiles per unlock, fixed action cost 2500 money and 25 research.
+Cloud unlocking now reveals a small connected group instead of a single tile. The action still starts from one cloud tile, but the system uses `cloudUnlockRadius` and `maxCloudTilesPerUnlock` from `Data/area-unlock.json` to reveal a bounded group of connected cloud cells. This makes expansion on the large 128x80 map less repetitive while keeping the cost and pace configurable.
 
-## Step 15 - Stato operativo edifici
+## Step 15 - Stato operativo edifici più chiaro
 
-Aggiunto namespace `GridPowerTycoon.Core.Operations` con `BuildingOperationalState`, `BuildingOperationalStatus` e `BuildingOperationalStatusCalculator`. Il calcolatore non modifica il mondo: produce solo diagnostica per UI/test. La UI usa questo stato nel pannello edificio per mostrare `ACTIVE`, `NO ENERGY`, `EXPIRED`, `EXPLODED`, `HEAT WARNING`, `NO HEAT CONVERSION`, output effettivi e output lordi quando l'edificio non sta producendo. Aggiunti test in `tests/GridPowerTycoon.Core.Tests/Operations/BuildingOperationalStatusCalculatorTests.cs`.
+Aggiunto uno stato operativo derivato per gli edifici selezionati, distinto dallo stato persistente `Active/Expired/Exploded`. Il pannello edificio ora può mostrare condizioni come `NO ENERGY`, `HEAT WARNING` e `NO HEAT CONVERSION`, oltre ai valori effettivi correnti e ai valori lordi quando un edificio è fermo. Questo rende più chiaro perché un edificio produce, non produce, consuma, vende o accumula calore.
 ## Step 16 - Primi edifici mid-game
 
 Aggiunto il primo blocco di progressione industriale configurato nei JSON:
@@ -232,43 +202,32 @@ Aggiunte ricerche collegate e primi upgrade specifici. La UI BUILD/RESEARCH/UPGR
 
 ## Step 17 - Upgrade multi-livello
 
-Implementazione preparata sul sorgente corrente.
+Stato: preparato.
 
-Modifiche principali:
-- `UpgradeDefinition` ora contiene `CostGrowthMultiplier`.
-- `UpgradeSystem` calcola costo denaro/ricerca del prossimo livello con `GetMoneyCost` e `GetResearchCost`.
-- `UpgradeResult` ora include `NewLevel`.
-- La UI degli upgrade mostra `LV current/max`, effetto e costo `NEXT`.
-- `UpgradeEffectType` include `MultiplyHeatProduction`.
-- `UpgradeCalculator.GetHeatPerSecond` applica gli upgrade di produzione calore.
-- `HeatSystem`, `ResourceRateSnapshot`, `BuildingOperationalStatusCalculator` e pannello UI usano la produzione calore effettiva.
-- `upgrades.json` è stato aggiornato con upgrade ripetibili e costo crescente.
-- Aggiunti test per upgrade multi-livello e costo crescente.
+Gli upgrade non sono più limitati al comportamento “comprato una volta”. Ogni `UpgradeDefinition` può ora avere `maxLevel` maggiore di 1 e `costGrowthMultiplier`, che controlla il costo del livello successivo. La UI mostra livello corrente, livello massimo, effetto e costo NEXT.
 
-Nota: il container non ha `dotnet`; eseguire build/test localmente.
+Il sistema usa il livello corrente per applicare il moltiplicatore come potenza: un upgrade `1.5` al livello 3 produce un moltiplicatore effettivo `1.5^3`. Il costo del prossimo livello cresce con `costGrowthMultiplier^currentLevel`.
+
+Sono stati aggiunti upgrade di produzione calore per pannello solare, carbone e gas. Le produzioni di calore ora usano `UpgradeCalculator.GetHeatPerSecond`, quindi gli upgrade di produzione calore hanno effetto su simulazione, riepilogo risorse e pannello edificio.
 
 ## Step 18 - Gestori automatici
 
-Implementato `GridPowerTycoon.Core.Managers` con `ManagerSystem` e `ManagerRenewalResult`.
+Stato: implementato.
 
-Le ricerche supportano ora il campo `managedBuildingIds`. Quando una ricerca è completata, ogni edificio scaduto con `DefinitionId` incluso in quel campo può essere rinnovato automaticamente se ci sono soldi sufficienti. Gli edifici esplosi non vengono rinnovati automaticamente.
+Aggiunto il sistema dei gestori automatici collegati alle ricerche. Una ricerca può ora indicare `managedBuildingIds`; quando è completata, gli edifici scaduti di quei tipi vengono rinnovati automaticamente se il giocatore ha abbastanza denaro. La prima implementazione rinnova solo edifici `Expired`, non edifici `Exploded`.
 
-`GameSimulation` esegue ora l'ordine:
+Gestori iniziali:
 
-1. LifetimeSystem
-2. ManagerSystem
-3. ProductionSystem
-4. HeatSystem
-5. AutoSellSystem
-6. ToolGenerationSystem
+- Gestore pale eoliche
+- Gestore pannelli solari
+- Gestore carbone
+- Gestore gas
 
-Anche `OfflineProgressSystem` applica il manager system dopo la scadenza degli edifici, così i gestori funzionano durante il guadagno offline.
+Il rinnovo automatico usa il costo base dell'edificio e la durata effettiva aggiornata dagli upgrade multi-livello.
 
-La UI mostra `MANAGED YES/NO` nel pannello edificio e visualizza un messaggio quando un manager rinnova uno o più edifici.
+### Step 17A - Upgrade cost growth balancing
 
-## 2026-06-06 - Step 17A Upgrade cost growth balancing
-
-Richiesta utente: aumentare la moltiplicazione del costo a ogni livello di aggiornamento. Modificato `src/GridPowerTycoon.MonoGame/Data/upgrades.json`, alzando i `costGrowthMultiplier` da ~1.65-1.85 a ~2.15-2.60. Nessuna modifica di logica richiesta; il sistema multi-livello usa già `baseCost * costGrowthMultiplier ^ currentLevel`.
+Stato: completato. Aumentati i `costGrowthMultiplier` in `upgrades.json` per rendere gli upgrade multi-livello più costosi e strategici ai livelli successivi.
 
 
 ## Step 18A - Restore edifici esplosi
@@ -277,846 +236,809 @@ Richiesta utente: aumentare la moltiplicazione del costo a ogni livello di aggio
 - Il ripristino manuale paga il costo dell'edificio, azzera il calore accumulato e riporta lo stato ad `Active`.
 - I gestori automatici continuano a non rinnovare edifici esplosi: il ripristino degli esplosi resta una scelta manuale del giocatore.
 
-## 2026-06-06 - Step 18B: fixed properties column
+## Step 18B - Fixed properties panel and persistent tile selection
 
-The UI now has a fixed right-hand properties panel. MapInputController keeps a SelectedTilePosition in addition to selected building/terrain/cloud references. MapRenderer highlights the selected tile separately from hover/build preview. UiRenderer uses a unified property table for buildings, terrain and clouds, with stable row labels (TYPE, STATE, COST, LIFE, MANAGED, ENERGY IN/OUT, HEAT, RESEARCH, AUTO SELL, BATTERY, etc.). Context buttons are still routed through the same UiRenderer hit-test methods but are anchored in the fixed properties panel.
+- Added a fixed properties column on the right side of the screen.
+- The clicked map cell remains selected and highlighted until another cell is selected.
+- Building, terrain and cloud details now use the same property rows, so values stay in predictable positions across different selections.
+- Context actions (REPLACE, RESTORE, CLEAR, UNLOCK) are shown in the fixed properties column.
 
-## 2026-06-06 - Step 18C: scrollable left columns
+## Step 18C - Scroll nelle colonne BUILD/RESEARCH/UPGRADE
 
-Added independent mouse-wheel scrolling for the fixed left UI columns BUILD, RESEARCH and UPGRADE. `UiRenderer` now keeps separate scroll offsets for each column, shifts button rectangles accordingly, clamps offsets to visible content height, and shows a small `MORE/TOP/SCROLL` hint in column headers when content overflows. Hit testing now respects the scrolled button positions and ignores off-screen buttons.
+Stato: preparato.
 
-`Game1.Update` forwards mouse-wheel deltas to `UiRenderer.HandleScroll(...)`. `CameraInputController` accepts an optional UI hit-test delegate and skips mouse wheel zoom / middle-button pan when the cursor is over UI, so scrolling menus no longer zooms the map.
+Le tre colonne laterali ora hanno scroll indipendente tramite rotella del mouse. La rotella sopra BUILD, RESEARCH o UPGRADE scorre solo quella colonna e non modifica lo zoom della mappa. I bottoni fuori dall'area visibile non sono cliccabili. La camera ignora zoom e pan del mouse quando il puntatore è sopra la UI, mantenendo separati input mappa e input interfaccia.
 
-## 2026-06-06 - Step 18D Game command buttons
+## Step 18D - Game command buttons
 
-Added explicit bottom status-bar command buttons in MonoGame UI: SAVE, LOAD, NEW, VIEW, EXIT. Game1 now handles these clicks through UiRenderer hit testing. NEW reloads the map from Data/maps/default-map.json and creates a fresh GameWorld using the already loaded GameData. VIEW toggles fullscreen/windowed mode and recenters the camera. Existing shortcuts are preserved: F5 save, F9 load, ESC save+exit.
+Status: prepared.
 
-## 2026-06-06 - Step 18E: demolizione manuale edifici
+Added visible command buttons in the bottom status bar so the game no longer depends only on keyboard shortcuts:
 
-Aggiunta la demolizione manuale degli edifici dal pannello proprietà fisso. Ogni edificio selezionato mostra ora l'azione `DEMOLISH`; gli edifici scaduti o esplosi continuano a mostrare anche `REPLACE`/`RESTORE`. La demolizione rimuove l'istanza dal mondo, libera tutte le celle occupate e annulla gli effetti immediati di capacità batteria, riportando `MaxEnergy` almeno al valore iniziale configurato e clampando l'energia accumulata se necessario.
+- SAVE
+- LOAD
+- NEW
+- VIEW
+- EXIT
 
-Sono stati aggiunti `BuildSystem.Demolish(...)`, `BuildSystem.DemolishAt(...)` e `GameWorld.RemoveBuilding(...)`. La UI MonoGame intercetta il pulsante DEMOLISH e pulisce la selezione edificio lasciando selezionata la cella. Aggiunti test Core per demolizione, liberazione celle multi-tile, riduzione capacità batteria e caso edificio inesistente.
+The old keyboard shortcuts remain available: F5 saves, F9 loads, ESC saves and exits. VIEW toggles fullscreen/windowed mode. NEW starts a fresh world from the current JSON data without immediately overwriting the save file.
 
-## 2026-06-06 - Step 18F: feedback fondi insufficienti
+## Step 18E - Demolizione manuale edifici
 
-Il rinnovo manuale degli edifici scaduti/esplosi ora distingue tra azione disponibile e azione non finanziabile. `BuildSystem` espone `CanReplaceExpired(...)`, così la UI può verificare lo stato prima del click. Nel pannello proprietà il pulsante `REPLACE`/`RESTORE` diventa grigio e non è cliccabile quando il giocatore non ha abbastanza denaro; il testo mostra `NEED $...` e la riga `ACTION` indica che mancano soldi per sostituire/ripristinare.
+Stato: preparato.
 
-La costruzione continua invece a permettere la selezione del tipo edificio anche se al momento non ci sono fondi. Se il giocatore clicca una cella e `BuildSystem.Build(...)` fallisce con `NotEnoughMoney`, `MapInputController` conserva posizione e motivo dell'ultimo fallimento; `MapRenderer` disegna sulla cella un marker rosso con simbolo `$` sbarrato. La status bar continua a mostrare il motivo testuale (`BUILD FAILED NotEnoughMoney`). Nel menu BUILD i costi non finanziabili sono evidenziati come `NEED $...`.
+Il pannello proprietà permette ora di demolire manualmente un edificio selezionato. La demolizione non dà rimborso nella versione attuale: serve soprattutto per correggere layout, liberare celle e sostituire manualmente impianti non più utili. Se l'edificio contribuiva alla capacità batteria, la capacità massima viene ridotta e l'energia accumulata viene ridotta al nuovo massimo se necessario.
 
-## 2026-06-06 - Step 18G: conferma demolizione e proprietà celle vuote
+## Step 18F - Feedback fondi insufficienti
 
-Aggiornata la UX del pannello proprietà. Il pulsante `DEMOLISH` è stato spostato nella parte alta del pannello edificio, subito sotto nome/cella, e non demolisce più al primo click: il primo click arma la conferma e trasforma il pulsante in `CONFIRM DEMOLISH`; il secondo click sullo stesso edificio esegue davvero la demolizione. Cliccare sulla mappa o selezionare un altro edificio annulla la conferma pendente.
+Stato: preparato.
 
-La selezione di uno strumento BUILD ora parte disattivata all'avvio/nuova partita e viene disattivata quando il giocatore clicca un edificio già costruito. Questo permette di ispezionare edifici senza lasciare attivo il tool di costruzione e riduce i click accidentali sulle celle libere. Le celle senza edifici ora mantengono comunque il dettaglio nel pannello proprietà: le celle `Land` sono mostrate come `Plain` con stato `FREE / BUILDABLE`, mentre acqua, foreste, montagne e cloud mantengono una descrizione coerente.
+I pulsanti `REPLACE` e `RESTORE` sono ora disabilitati quando il giocatore non ha denaro sufficiente. Il pannello proprietà mostra chiaramente che servono fondi, invece di lasciare cliccare un'azione destinata a fallire.
 
-Rinominata la riga poco leggibile `HEAT CONV` in `HEAT TO ENERGY`, con valore esplicito `HEAT .../S -> ENERGY .../S R...`.
+Per la costruzione di nuovi edifici è stato aggiunto un feedback visivo diretto sulla mappa: se il click fallisce per `NotEnoughMoney`, sulla cella compare un marker rosso con `$` barrato, mentre la status bar mantiene il messaggio tecnico del fallimento. Anche il menu BUILD evidenzia i costi non finanziabili con `NEED $...`.
+
+## Step 18G - Conferma DEMOLISH e proprietà celle vuote
+
+Stato: preparato.
+
+Il pulsante `DEMOLISH` ora richiede conferma a due click ed è stato spostato in alto nel pannello proprietà dell'edificio, separandolo visivamente da `REPLACE`/`RESTORE`. La conferma viene annullata quando il giocatore clicca sulla mappa o seleziona un altro edificio.
+
+La modalità build non è più preselezionata all'avvio e viene disattivata quando si clicca un edificio già costruito. Le celle vuote hanno ora un pannello proprietà leggibile, inclusa la distinzione `Plain` / `FREE / BUILDABLE`. La riga `HEAT CONV` è stata rinominata in `HEAT TO ENERGY` per chiarire la conversione da calore a energia.
 
 
-## 2026-06-06 - Step 18H: proprietà HEAT IN
+## Step 18H - HEAT IN nel properties panel
 
-Aggiunta la riga `HEAT IN` nel pannello proprietà fisso. Per gli edifici convertitori di calore mostra il consumo/capacità di assorbimento calore al secondo e il raggio operativo, mentre `HEAT TO ENERGY` resta dedicato all'energia prodotta dalla conversione. Questo rende più leggibile la distinzione fra calore prodotto, calore accumulato, calore assorbito e energia ottenuta.
+Stato: preparato.
+
+Il pannello proprietà ora distingue anche `HEAT IN`, utile soprattutto per i convertitori di calore. La riga indica quanto calore l'edificio può assorbire al secondo e il raggio operativo, mentre `HEAT TO ENERGY` mostra solo l'energia generata dalla conversione.
 
 
-## 2026-06-06 - Step 18I: testo HEAT IN più leggibile
+## Step 18I - Testi HEAT IN più leggibili
 
-Resi più espliciti i testi del pannello proprietà per i convertitori di calore. `HEAT IN` ora usa la forma `ABSORBS .../S, RANGE ... CELLS` invece dell'abbreviazione `R...`; `HEAT TO ENERGY` usa `PRODUCES .../S ENERGY`. Aggiornati anche i dettagli estesi degli edifici per evitare abbreviazioni poco chiare.
+Rimosse le abbreviazioni poco chiare nel properties panel dei convertitori di calore. Il raggio non è più mostrato come `R3`, ma come `RANGE 3 CELLS`; la conversione usa testi espliciti come `ABSORBS .../S` e `PRODUCES .../S ENERGY`.
 
 ## 2026-06-06 - Step 18J: build tool cancel e dettagli strumento
 
-Migliorata la sicurezza dello strumento di costruzione attivo. Il giocatore ora può annullare il tool BUILD con click destro; premere di nuovo lo stesso tasto numerico o cliccare di nuovo lo stesso edificio nel menu BUILD disattiva lo strumento invece di lasciarlo armato. Quando un tool BUILD è selezionato, la status bar indica chiaramente `LEFT CLICK BUILD, RIGHT CLICK CANCEL`.
-
-Il pannello proprietà mostra anche il tool di costruzione attivo: se non è selezionata nessuna cella, appare una scheda `BUILD TOOL` con categoria, nome, costo, dimensione e azione consigliata. Se è selezionata una cella vuota, la riga `BUILD TOOL` e l'azione spiegano se si può costruire, se mancano soldi o se la cella non è edificabile. Aggiunto `InputManager.IsRightClickPressed()` per gestire il cancel senza interferire con il click sinistro.
+Aggiunta una gestione più esplicita del tool BUILD attivo. Il click destro annulla lo strumento di costruzione, mentre cliccare di nuovo lo stesso pulsante BUILD o premere di nuovo lo stesso tasto numerico lo disattiva. La status bar ora ricorda l'uso `LEFT CLICK BUILD, RIGHT CLICK CANCEL` e il pannello proprietà mostra categoria, nome, costo e dimensione del tool selezionato anche quando non è ancora stata scelta una cella.
 
 ## 2026-06-06 - Step 18K: riepilogo economico properties panel
 
-Aggiunto un riepilogo economico direttamente nel pannello proprietà e nella scheda del BUILD TOOL. Le righe principali ora distinguono `BUILD COST`, `NEXT UPGRADE`, `MONEY/S`, `NET ENERGY` e `PAYBACK`, così il giocatore può leggere a colpo d'occhio costo iniziale, prossimo investimento disponibile, flusso economico stimato, bilancio energetico e tempo stimato di rientro.
+Stato: preparato.
 
-La stima economica usa il valore configurato di vendita dell'energia e i moltiplicatori manuale/autosell già presenti in `EconomySettings`. Per gli edifici selezionati usa lo stato operativo effettivo calcolato da `BuildingOperationalStatusCalculator`; per il BUILD TOOL usa invece una previsione basata sulla definizione dell'edificio e sugli upgrade già acquistati. I valori di `MONEY/S` e `PAYBACK` sono marcati come `EST`, perché dipendono dal contesto reale di accumulo/vendita energia e, per gli autoseller, dalla disponibilità di energia da vendere.
+Il pannello proprietà ora mostra informazioni economiche più utili per decidere cosa costruire o potenziare: costo di costruzione, prossimo upgrade, denaro stimato al secondo, bilancio netto energia e payback stimato. La stessa logica viene usata anche quando è attivo un tool di costruzione, così il giocatore può valutare l'edificio prima di piazzarlo.
 
 ## 2026-06-06 - Step 18L: leggibilità LIFE/PAYBACK e righe proprietà
 
-Rifinito il pannello proprietà dopo il riepilogo economico. `LIFE` ora separa sempre il numero dall'unità (`50 S / 300 S`), così la durata è più leggibile. `PAYBACK` non usa più il carattere `<`, che nel font del gioco poteva apparire come `?`, e non mostra più l'abbreviazione `EST`; i valori sono ora espressi come `ABOUT ... SEC/MIN/H`. Anche `MONEY/S` usa `APPROX` invece di `EST` per evitare abbreviazioni poco chiare.
+Stato: preparato.
 
-Corretto anche il background alternato delle righe del properties panel: l'alternanza ora dipende dall'indice reale della riga e non dalla coordinata verticale, quindi resta stabile anche quando cambia l'offset iniziale tra edifici, celle vuote e tool di costruzione.
+Rifinito il pannello proprietà: `LIFE` mostra `50 S / 300 S`, `PAYBACK` evita simboli non supportati dal font e abbreviazioni poco chiare, mentre l'alternanza grafica delle righe è ora calcolata sull'indice della riga e non sulla posizione verticale.
 
 ## 2026-06-06 - Step 18M: pannello sinistro più informativo e bottoni uniformi
 
-Uniformate le tre colonne laterali `BUILD`, `RESEARCH` e `UPGRADE`: i pulsanti ora usano la stessa altezza e lo stesso passo di scroll, così la UI non cambia densità tra una colonna e l'altra. La colonna `BUILD` non mostra più soltanto nome e costo, ma include anche `BUILD COST`, `NET ENERGY`, informazione sintetica sul calore (`HEAT`, `HEAT IN` o `NO HEAT`) e una riga di descrizione/purpose ricavata dalla definizione edificio. Questo permette di capire a cosa serve una costruzione prima di selezionarla o piazzarla.
+Stato: preparato.
 
-Anche `RESEARCH` ora mostra più contesto direttamente nel pulsante: stato/costo, cosa sblocca o cosa gestisce, e descrizione breve della ricerca. La colonna `UPGRADE`, già considerata chiara, è stata mantenuta come riferimento visivo ma allineata alla nuova altezza comune; in più mostra la descrizione breve dell'upgrade come quarta riga quando disponibile.
+Le colonne `BUILD`, `RESEARCH` e `UPGRADE` hanno ora pulsanti della stessa altezza. I pulsanti BUILD espongono subito costo, bilancio energia, impatto sul calore e descrizione minima dell'edificio. I pulsanti RESEARCH indicano costo/stato, cosa viene sbloccato o gestito e una descrizione breve. Gli UPGRADE mantengono lo stile già approvato, ma sono stati allineati alla stessa altezza degli altri pulsanti.
 
 ## 2026-06-06 - Step 18N: glyph mancanti nel font pixel
 
-Il testo UI non usa un font TrueType: viene disegnato da `PixelTextRenderer`, un renderer bitmap 5x7 interno basato su una tabella manuale di glifi. Per questo motivo i caratteri non presenti nella tabella venivano sostituiti con `?`, in particolare apostrofo, apostrofo tipografico, lettere accentate italiane e separatori usati nei testi recenti.
+Stato: preparato.
 
-Aggiunti glifi per apostrofo dritto, apostrofo tipografico, barra verticale, underscore e vocali accentate maiuscole più comuni (`À`, `Á`, `È`, `É`, `Ì`, `Í`, `Ò`, `Ó`, `Ù`, `Ú`). Poiché `DrawString` converte i caratteri con `char.ToUpperInvariant`, questi glifi coprono anche le corrispondenti lettere minuscole presenti nei JSON (`à`, `è`, `ù`, ecc.).
+Corretto il renderer testo pixel interno: apostrofi, apostrofo tipografico, lettere accentate italiane e alcuni separatori usati nei testi della UI non vengono più mostrati come `?`. Il gioco non usa un font esterno, ma una tabella di glifi 5x7 in `PixelTextRenderer`; la tabella è stata estesa per supportare meglio i testi italiani nel pannello sinistro e nel pannello proprietà.
 
 ## 2026-06-06 - Step 19A: normalizzazione pannello sinistro
 
-Avviata la Milestone 19 sulla leggibilità UI. Le tre colonne del pannello sinistro continuano a usare la stessa altezza e lo stesso passo di scroll, ma ora condividono anche coordinate interne comuni per titolo, riga stato/costo, riga effetto primario e descrizione. Questo riduce gli allineamenti divergenti tra BUILD, RESEARCH e UPGRADE.
+Stato: preparato.
 
-La colonna BUILD è stata resa più simile alla colonna UPGRADE: rimosso il riquadro icona grande che accorciava troppo nome e costo, sostituito da una barra verticale colorata di categoria. I pulsanti edificio hanno quindi più spazio per mostrare nome, `BUILD COST`/`NEED`/requisito ricerca, `NET ENERGY`, impatto sul calore e descrizione breve. Gli edifici bloccati indicano la ricerca richiesta quando disponibile.
-
-La colonna RESEARCH ora mostra il prerequisito specifico mancante invece del generico `REQ RESEARCH`, quando il dato è disponibile nel catalogo. Le righe interne sono allineate alle stesse coordinate usate dalle altre colonne.
+Inizio Milestone 19. BUILD, RESEARCH e UPGRADE mantengono pulsanti uniformi, ma ora usano anche una griglia interna comune per le quattro righe informative. BUILD è stato riallineato allo stile più chiaro degli UPGRADE: niente icona grande che sottrae spazio al testo, barra verticale di categoria, costo/requisito più leggibile, energia netta, calore e descrizione. RESEARCH indica il prerequisito specifico mancante quando possibile.
 
 ## 2026-06-06 - Step 19B: colonne sinistre più larghe e titoli più leggibili
 
-Allargato il pannello laterale sinistro per dare più respiro alle tre colonne `BUILD`, `RESEARCH` e `UPGRADE`. La larghezza colonna passa a 230 px e il pannello laterale a 740 px; i pulsanti restano uniformi tra le tre colonne, ma crescono leggermente in altezza per ospitare una prima riga più grande.
+Stato: preparato.
 
-I titoli dei pulsanti nelle tre colonne ora sono disegnati a scala 2, così nomi come `PALA EOLICA` e `BATTERIA` risultano più evidenti. In BUILD è stata rimossa la numerazione testuale davanti al nome (`1 PALA EOLICA` diventa `PALA EOLICA`), lasciando il pulsante più pulito. Anche le etichette delle risorse in alto (`ENERGY`, `RESEARCH`, `MONEY`, `AXES`, `MINES`) sono state aumentate per essere più leggibili a colpo d'occhio.
+Prosegue la Milestone 19 sulla leggibilità UI. Il pannello laterale sinistro è stato allargato e i titoli dei pulsanti BUILD/RESEARCH/UPGRADE sono ora più grandi. In BUILD è stata rimossa la numerazione davanti al nome edificio, così la prima riga mostra direttamente il nome leggibile della costruzione. Anche le etichette delle risorse nella barra superiore sono state rese più visibili.
 
 ## 2026-06-06 - Step 19C: stati leggibili nel pannello sinistro
 
-Rifinita la leggibilità delle tre colonne laterali aggiungendo badge di stato direttamente nella prima riga dei pulsanti. BUILD ora distingue visivamente `READY`, `ACTIVE`, `LOCKED` e `NEED $`; RESEARCH distingue `READY`, `DONE`, `LOCKED` e `NEED R`; UPGRADE distingue `READY`, `MAX`, `LOCKED` e `NEED`. Le righe di costo/stato sono state rese più esplicite, usando testi come `READY - BUILD COST ...`, `NEED MONEY - ...`, `LOCKED - ...`, `DONE - RESEARCH COMPLETED` e `NEED RESOURCES - ...`.
+Stato: preparato.
 
-L'obiettivo è ridurre l'ambiguità del pannello sinistro: il giocatore deve capire subito se un'azione è disponibile, già completata, bloccata da ricerca o non acquistabile per risorse insufficienti, senza dover cliccare o leggere la status bar.
+BUILD, RESEARCH e UPGRADE ora mostrano badge sintetici di disponibilità nella prima riga del pulsante. La riga costo/stato è stata resa più descrittiva, così il pannello sinistro comunica immediatamente se un elemento è pronto, attivo, completato, bloccato o non acquistabile per mancanza di risorse.
 
-## 2026-06-06 - Step 19D: descrizioni operative pannello sinistro
+## 2026-06-06 - Step 19D: descrizioni operative nel pannello sinistro
 
-Rifinite le righe informative dei pulsanti laterali. In `UiRenderer`, BUILD non usa più una combinazione generica `NET ENERGY | HEAT` come informazione principale, ma una frase operativa calcolata dai valori effettivi con upgrade correnti: `PRODUCES ... ENERGY`, `PRODUCES ... HEAT`, `CONVERTS ... HEAT`, `ADDS ... STORAGE`, `PRODUCES R...`, `SELLS ... ENERGY` o `USES ... ENERGY`. La riga di supporto spiega il ruolo pratico: generatori che necessitano calore vicino, produttori di calore che richiedono un generatore, batterie che evitano sprechi, uffici che convertono energia accumulata in denaro e centri ricerca che sbloccano tecnologie.
+Stato: preparato.
 
-RESEARCH usa ora `GetResearchActionText(...)` per chiarire se la ricerca crea un nuovo edificio o abilita automazioni. UPGRADE usa `GetUpgradeTargetText(...)` per mostrare il bersaglio dell'upgrade invece di ripetere una descrizione lunga spesso meno utile nel pulsante. Questo step non modifica regole di gioco o bilanciamento, solo la leggibilità del pannello sinistro.
+Prosegue la Milestone 19. I pulsanti BUILD ora usano una riga di effetto principale più esplicita: produzione energia, produzione calore, conversione calore, storage, ricerca o vendita automatica vengono descritti direttamente con verbo e quantità. La quarta riga non ripete più soltanto la descrizione lunga del catalogo, ma fornisce un'indicazione operativa breve, per esempio se un generatore ha bisogno di calore vicino, se un produttore di calore richiede un generatore o se una batteria serve a evitare sprechi di energia.
+
+Anche RESEARCH e UPGRADE sono stati resi più operativi: le ricerche distinguono meglio nuovi edifici e automazioni, mentre gli upgrade mostrano chiaramente il target dell'effetto. Lo scopo è far capire il valore pratico di ogni pulsante senza dover aprire il pannello proprietà.
 
 ## 2026-06-06 - Step 19E: purpose nel properties panel
 
-Prosegue la Milestone 19 sulla leggibilità UI. Il pannello proprietà ora espone una riga `PURPOSE` subito dopo `TYPE`, così anche quando si seleziona un edificio, una cella vuota, una foresta, una montagna, una cloud area o un tool BUILD attivo viene spiegato in modo sintetico a cosa serve quell'elemento o quale azione è possibile.
+Stato: preparato.
 
-Per gli edifici la riga `PURPOSE` è derivata dalla categoria funzionale: produzione energia, storage, vendita automatica, ricerca, produzione calore, conversione calore o edificio economico avanzato. Per celle vuote e terreni bloccanti la riga chiarisce se la cella è edificabile, se blocca la costruzione, se può essere liberata con asce/mines o se una cloud area permette di sbloccare nuova mappa. Non sono state modificate regole di gioco o bilanciamento.
+Aggiunta una riga `PURPOSE` nel pannello proprietà. La riga spiega in modo breve il ruolo dell'edificio selezionato, del tool di costruzione attivo o della cella/terreno selezionato. Questo completa il collegamento tra pannello sinistro e properties panel: il pannello sinistro spiega cosa si può scegliere, il properties panel spiega cosa si sta guardando e perché è rilevante.
 
 
 ## 2026-06-06 - Step 19F: single left panel mode
 
-Riorganizzata l'interfaccia principale per evitare le tre colonne laterali sempre aperte. `BUILD`, `RESEARCH` e `UPGRADE` sono ora modalità del pannello sinistro: è visibile una sola lista alla volta, selezionata dalla nuova fascia di navigazione sotto la top bar delle risorse. La larghezza della colonna unica è maggiore rispetto alle vecchie colonne affiancate, così nomi e testi descrittivi hanno più spazio e non devono essere abbreviati inutilmente.
+Stato: preparato.
 
-I comandi di partita `NEW`, `LOAD`, `SAVE` ed `EXIT` sono stati spostati nella stessa fascia dei tab di navigazione, allineati verso destra prima del properties panel. Il vecchio pulsante `VIEW` non viene più disegnato in questa fascia, perché la destinazione naturale sarà una futura sezione impostazioni. La status bar resta in basso per messaggi operativi.
+Il pannello laterale sinistro non mostra più tre colonne contemporaneamente. È stata introdotta una fascia di navigazione con `BUILD`, `RESEARCH` e `UPGRADE`; solo la sezione attiva viene disegnata nella colonna sinistra unica. I comandi `NEW`, `LOAD`, `SAVE` ed `EXIT` sono stati spostati nella stessa fascia, liberando la status bar e preparando spazio futuro per `STATS`, `HELP` e `SETTINGS`.
 
-Rimossa anche la ridondanza visiva dei badge di stato nei pulsanti laterali: lo stato resta nella seconda riga (`READY - ...`, `NEED MONEY - ...`, `LOCKED - ...`, ecc.) e il pulsante BUILD attivo continua a essere evidenziato con bordo giallo. Cambiare tab verso `RESEARCH` o `UPGRADE` disattiva l'eventuale tool BUILD, evitando costruzioni involontarie mentre si sta consultando un'altra sezione.
+La colonna unica usa più larghezza per testi e nomi, mentre i badge duplicati sono stati rimossi: lo stato resta espresso nella seconda riga del pulsante e il tool BUILD attivo è riconoscibile dal bordo giallo.
 
 ## 2026-06-06 - Step 19G: BUILD column full-width cards
-- Expanded the single left panel width so one visible section has more room for full building names and explanations.
-- BUILD cards are taller and now use an extra detail row with size and functional category.
-- BUILD titles allow longer names, reducing truncation such as short `PANNELLO SO.` / `CENTRO DI R.` style labels.
-- Kept active build tool highlight as the yellow card border.
+The single-column left panel now gives BUILD cards more width and height. Building names can be displayed with fewer abbreviations, cards show state/cost, main effect, operational note, and a final detail row with size/category. Next UI passes should apply the same full-width treatment to RESEARCH and UPGRADE cards.
 
 ## 2026-06-06 - Step 19H: RESEARCH column full-width cards
 
 Stato: preparato.
 
-La sezione `RESEARCH` del pannello sinistro a colonna unica è stata portata allo stesso modello delle schede BUILD full-width. Le ricerche ora usano più larghezza disponibile, titolo grande, stato/costo più leggibile, indicazione chiara di cosa sbloccano o gestiscono, descrizione operativa e riga finale di dettaglio. È stata aggiunta una barra verticale colorata per distinguere ricerche completate, bloccate, ricerche che sbloccano edifici e ricerche di automazione/management.
+La colonna `RESEARCH` usa ora schede più informative nella nuova interfaccia a colonna singola. Ogni ricerca mostra titolo, stato/costo, effetto principale, descrizione operativa e dettaglio sugli edifici sbloccati o gestiti. Prossimo passaggio consigliato: applicare lo stesso trattamento alla sezione `UPGRADE`.
 
-## Step 19I - UPGRADE full-width cards
+### Step 19I - UPGRADE full-width cards
 
-- Updated the single left panel `UPGRADE` section to match the full-width card approach already used by `BUILD` and `RESEARCH`.
-- Upgrade cards now show: title, status/cost, effect, target, and a final level/detail line.
-- Added effect-colored left accent bars for upgrade categories.
-- Completed upgrades use a green accent/status; locked upgrades use a muted accent.
-- Gameplay logic and upgrade cost calculations were not changed.
+Completed:
+- full-width upgrade cards aligned with the new single-column left panel;
+- clearer lines for status/cost, effect, target and level;
+- effect-colored accent bars for faster visual scanning;
+- no gameplay or balance changes.
 
-## Step 19J - Left panel clipping and full-width status bar
+### Step 19J - Left panel clipping and full-width status bar
 
-- Added an explicit bottom status bar rectangle spanning the full viewport width.
-- The properties panel and left panel now stop above the status bar.
-- Left panel card visibility now uses an explicit list rectangle, so BUILD/RESEARCH/UPGRADE cards are drawn only when fully inside the list area.
-- This prevents scrolled cards from overlapping the tab strip or top resource bar.
-- No gameplay logic was changed.
+Completed:
+- fixed left panel scroll clipping for full-width cards;
+- prevented scrolled research/upgrade cards from invading the top resource area;
+- changed the status bar to span the full window width;
+- kept properties panel above the status bar.
 
-## Step 19J Fix1 - Top mask draw order and removed scroll hint
+### Step 19J Fix1 - Top mask draw order and removed scroll hint
 
-- Fixed the remaining scroll overlap by drawing the scrollable left menu before the top resource bar and tab bar.
-- The top resource bar and tab bar are now redrawn after the left list, acting as a visual mask for any scrolled card edge.
-- Removed the `MORE/TOP/SCROLL` hint text from the gap between tabs and the left menu.
-- Status bar full-width behavior from Step 19J is retained.
+Completed:
+- redrew top resource bar and tab bar after the scrollable left list to prevent visual overlap;
+- removed the `MORE/TOP/SCROLL` label from the tab/list gap;
+- retained the full-width status bar.
 
-## Step 19J Fix2 - StatusBarHeight compile fix
+### Step 19J Fix2 - StatusBarHeight compile fix
 
-- Added the missing `StatusBarHeight` constant declaration used by the Step 19J status bar/layout calculations.
-- No behavioral changes beyond making the previous Fix1 compile.
+Completed:
+- added the missing `StatusBarHeight` constant required by the full-width status bar layout.
 
-## Step 19J Fix3 - Card-aligned left panel scrolling
+### Step 19J Fix3 - Card-aligned left panel scrolling
 
-- Changed left panel scrolling to advance exactly by one card stride.
-- Scroll offsets are now snapped to whole-card positions.
-- This prevents the empty gap at the top of BUILD/RESEARCH/UPGRADE lists after scrolling.
-- The previous top bar clipping and full-width status bar behavior is retained.
+Completed:
+- snapped left panel scroll offsets to whole card positions;
+- fixed the top empty gap caused by hiding partially visible cards;
+- retained clipping and status bar fixes.
 
-## Step 19K - Left panel card state polish
-
-- Refined card status text/color consistency across BUILD, RESEARCH and UPGRADE.
-- BUILD cards now show `ACTIVE - BUILD COST ...` when the building tool is selected.
-- BUILD cards now show `NEED MONEY - BUILD COST ...` instead of only the amount.
-- RESEARCH cards now visually distinguish ready, locked and insufficient research states.
-- UPGRADE cards now visually distinguish ready, locked and insufficient resource states.
-- No gameplay, economy, research or upgrade logic was changed.
-
-## Step 19L - Properties panel readability polish
-
-- Improved properties panel readability without changing gameplay logic.
-- Property rows now use clearer display labels, for example `MONEY / S`, `RESEARCH / S`, `STORAGE`, `FOOTPRINT`, and `REVEALS`.
-- Value text has more horizontal room, reducing truncation for longer values such as heat conversion descriptions.
-- Added subtle separator lines between major property groups without consuming extra row height.
-- Property labels now use group-oriented colors for identity, economy, lifetime, energy, heat, research/sell and terrain/action rows.
-
-## Step 19M - Command strip future sections and status alignment
-
-- Added disabled future section buttons in the command strip: `STATS`, `HELP`, `SETTINGS`.
-- Future buttons are drawn only when there is enough space before `NEW/LOAD/SAVE/EXIT`, avoiding overlap on narrower windows.
-- Removed the old `VIEW` command strip residue from the unused command button helper.
-- Status bar text now uses the real status bar rectangle for vertical positioning instead of a fixed viewport offset.
-- No gameplay logic was changed.
-
-## Step 19M Fix1 - Restore VIEW command
-
-- Restored the `VIEW` command in the command strip between `SAVE` and `EXIT`.
-- `VIEW` again uses the existing fullscreen/windowed toggle hit-test rectangle.
-- Command strip width calculation now includes `VIEW`, so future disabled placeholders still disappear when there is not enough horizontal space.
-- No gameplay logic was changed.
-
-## Step 19N - Responsive command strip placeholders
-
-- Improved command strip responsiveness after restoring `VIEW`.
-- Future disabled placeholders `STATS`, `HELP`, `SETTINGS` are now drawn progressively when each one fits.
-- This avoids the previous all-or-nothing behavior where all future placeholders disappeared if `SETTINGS` did not fit.
-- Added a slightly larger safety gap before the properties panel area when positioning `NEW/LOAD/SAVE/VIEW/EXIT`.
-- No gameplay logic was changed.
-
-## Step 20A - Base building roles and first balance pass
-
-- Started Milestone 20 gameplay balancing.
-- Updated `buildings.json` and `economy.json` to establish a clearer early -> mid -> industrial progression.
-- Preserved the immediate first action: starting money now matches the new first wind turbine cost.
-- Reduced the extreme `$1` wind turbine distortion by moving wind cost to `$10`.
-- Rebalanced starter storage, automation, research, solar/generator, coal, gas and large research values.
-- Added detailed balancing notes to `docs/BALANCE_NOTES.md`.
-
-## Step 20B - Research and upgrade balance alignment
-
-- Updated `research.json` to align unlock costs with the revised Step 20A building economy.
-- Updated `upgrades.json` to avoid old over-inflated mid/industrial upgrade prices.
-- Reduced repeated production upgrade multipliers from `1.5` to `1.35` where appropriate.
-- Reduced lifetime upgrade multipliers from `2.0` to `1.5` where appropriate.
-- Kept early unlocks accessible while lowering mid/industrial unlock costs.
-- Updated `docs/BALANCE_NOTES.md`.
-
-## Step 20C - Heat, explosion and conversion balance
-
-- Updated `heat.json` thresholds: warning `250`, explosion `500`.
-- Rebalanced thermal buildings and converters in `buildings.json`.
-- Reduced heat production/conversion upgrade multipliers to `1.30` in `upgrades.json`.
-- Added `HEAT RISK` row to the properties panel in `UiRenderer.cs`.
-- Heat risk now reports controlled state or approximate time to explosion.
-- Updated `docs/BALANCE_NOTES.md`.
-
-## Step 20D - Expansion, tools and map unlock pacing
-
-- Updated `tools.json` to make forest/mountain clearing fit the revised economy.
-- Increased passive tool generation and storage caps.
-- Reduced forest clear cost from `4` axes to `3`.
-- Updated `area-unlock.json`: cloud unlock now costs less money but more research.
-- Added detailed pacing notes to `docs/BALANCE_NOTES.md`.
-
-## Step 20E - Early and mid-game progression pacing
-
-- Adjusted early building costs so the first research/automation/storage choices arrive sooner.
-- Reduced `research_small` cost and output to make it accessible earlier without flooding research.
-- Reduced solar/small-generator setup cost to establish the first thermal loop sooner.
-- Reduced coal/medium-generator/large-office tier costs to create a clearer mid-game transition.
-- Reduced gas/research-large industrial costs and outputs to keep the scale consistent.
-- Updated matching research and upgrade costs.
-- Updated `docs/BALANCE_NOTES.md`.
-
-## Step 21A - Clear operational issue text
-
-- Started Milestone 21 gameplay feedback/readability.
-- Added an `ISSUE` row to selected building properties in `UiRenderer.cs`.
-- The row explains why a building is stopped, risky, expired, exploded, or operating correctly.
-- No simulation, economy, balance or save-data logic was changed.
-
-## Step 21B - Map operational state badges
-
-- Added small operational badges directly on map buildings in `MapRenderer.cs`.
-- Badges use the same `BuildingOperationalStatusCalculator` state used by the properties panel.
-- Badge meanings:
-  - `E`: no energy;
-  - `G`: heat producer needs a generator/converter in range;
-  - `H`: heat warning;
-  - `T`: expired/timed out;
-  - `X`: exploded.
-- No simulation, economy, balance or save-data logic was changed.
-
-## Step 21C - Status bar badge legend
-
-- Added a responsive badge legend to the status bar in `UiRenderer.cs`.
-- The legend explains the map operational badges introduced in Step 21B:
-  - `E`: energy issue;
-  - `G`: generator/conversion issue;
-  - `H`: heat warning;
-  - `T`: timed out/expired;
-  - `X`: exploded.
-- The legend is drawn only when the status bar has enough horizontal space.
-- No simulation, economy, balance or save-data logic was changed.
-
-## Step 21D - Clear failure messages
-
-- Improved status bar failure messages in `UiRenderer.cs`.
-- Build, research, terrain clear, area unlock and upgrade failures now show actionable text instead of raw enum names.
-- Examples:
-  - `BUILD FAILED: NEED MONEY`
-  - `BUILD FAILED: CELL OCCUPIED`
-  - `RESEARCH FAILED: MISSING PREREQUISITE`
-  - `CLEAR FAILED: NEED AXES`
-  - `UNLOCK FAILED: NEED RESEARCH`
-  - `UPGRADE FAILED: MAX LEVEL`
-- No simulation, economy, balance or save-data logic was changed.
-
-## Step 21E - Status bar selected building feedback
-
-- Improved status bar priority/readability in `UiRenderer.cs`.
-- When a map building is selected and no newer action/save/demolish message has priority, the status bar now shows the selected building operational summary.
-- Examples:
-  - `PALA EOLICA: ACTIVE - PRODUCING ENERGY`
-  - `CENTRO DI RICERCA PICCOLO: NEED STORED ENERGY`
-  - `PANNELLO SOLARE: PLACE GENERATOR IN RANGE`
-  - `CENTRALE A CARBONE: HEAT WARNING 320/500`
-  - `...: EXPIRED - REPLACE OR DEMOLISH`
-  - `...: EXPLODED - RESTORE OR DEMOLISH`
-- The existing action result/save/load/demolish confirmation messages still override the selected-building summary.
-- Status bar is now included in UI hit-testing so clicks on the bottom bar do not pass through to the map.
-- No simulation, economy, balance or save-data logic was changed.
-
-## Step 21F - Feedback system documentation
-
-- Added `docs/FEEDBACK_SYSTEM.md`.
-- Documented the player feedback surfaces introduced in Milestone 21:
-  - properties panel `ISSUE`;
-  - map operational badges;
-  - status badge legend;
-  - selected-building status bar summary;
-  - failure message style;
-  - heat feedback semantics.
-- No code, simulation, economy, balance or save-data logic was changed.
-
-## Step 22A - Manager visibility in properties
-
-- Started Milestone 22 automation/manager work.
-- Added a `MANAGER` row to selected building properties in `UiRenderer.cs`.
-- The row shows:
-  - `-` for buildings that have no manager research;
-  - `UNLOCK: <research name>` for buildings that can be managed but whose manager is not unlocked yet;
-  - `ACTIVE: <research name>` for buildings currently covered by an unlocked manager.
-- No manager behavior, simulation, economy, balance or save-data logic was changed.
-
-## Step 22B - Manager renewal feedback
-
-- Improved manager feedback in `Game1.cs`.
-- The status bar now reports both successful automatic renewals and manager failures caused by insufficient money.
-- Added anti-spam tracking so repeated identical manager failures do not continuously overwrite newer user feedback.
-- Examples:
-  - `MANAGER RENEWED 2 BUILDING(S) -$20`
-  - `MANAGER RENEWED 1 -$10 | NEED MONEY FOR 3`
-  - `MANAGER NEEDS MONEY FOR 2 EXPIRED BUILDING(S)`
-- No manager behavior, simulation rules, economy, balance or save-data logic was changed.
-
-## Step 22C - Manager map badge
-
-- Added a small `M` badge to managed buildings in `MapRenderer.cs`.
-- The badge is drawn at the bottom-left of the building tile and does not replace operational badges such as `E/G/H/T/X`.
-- The badge uses `ManagerSystem.IsManaged`, the same manager check used by the properties panel.
-- No manager behavior, simulation, economy, balance or save-data logic was changed.
-
-## Step 22D - Manager research impact text
-
-- Improved manager research card details in `UiRenderer.cs`.
-- Manager research cards now show the impact on the current world:
-  - `WILL MANAGE 0 BUILT`
-  - `WILL MANAGE 3 BUILT`
-  - `MANAGING 5 BUILT`
-  - `MANAGING 5 BUILT | EXPIRED 2`
-- The count is based on current building instances whose definition id appears in the research `managedBuildingIds`.
-- No manager behavior, simulation, economy, balance or save-data logic was changed.
-
-## Step 23A - Cloud unlock map preview
-
-- Started Milestone 23 map expansion/obstacles.
-- Updated `MapRenderer` to receive `AreaUnlockSystem`.
-- Added cloud unlock preview on the map for the selected cloud tile.
-- Preview uses `AreaUnlockSystem.GetUnlockableCloudTiles`, so it matches the real unlock logic.
-- Preview coloring:
-  - blue overlay/border when the selected cloud can be unlocked;
-  - red overlay/border when the selected cloud cannot currently be unlocked.
-- The selected cloud shows a small number marker indicating how many cloud tiles will be revealed.
-- Updated `Game1.cs` to pass `_areaUnlockSystem` and selected cloud position to the map renderer.
-- No expansion logic, economy, balance or save-data logic was changed.
-
-## Step 23B - Terrain clear map preview
-
-- Added selected obstacle clear preview to `MapRenderer.cs`.
-- Forest and mountain cells now show a colored preview when selected:
-  - green when the player has enough tools to clear;
-  - red when tools are missing.
-- The preview marker shows the required tool and amount:
-  - `A#` for axes required by forests;
-  - `M#` for mines required by mountains.
-- Updated `Game1.cs` to pass selected terrain position to the map renderer.
-- No terrain clear logic, tool generation, economy, balance or save-data logic was changed.
-
-## Step 23C - Expansion and obstacle property clarity
-
-- Improved selected obstacle and cloud property rows in `UiRenderer.cs`.
-- Forest and mountain properties now show:
-  - clearer `PURPOSE`;
-  - actionable `ISSUE`;
-  - `CLEAR COST` as available / required tools.
-- Cloud properties now show:
-  - `STATE` as `READY TO UNLOCK` when possible;
-  - actionable `ISSUE`;
-  - `UNLOCK COST` as current money/research compared with required money/research.
-- No terrain clear logic, cloud unlock logic, economy, balance or save-data logic was changed.
-
-## Step 23D - Area unlock result summary
-
-- Improved cloud unlock success feedback in `UiRenderer.cs`.
-- The status bar now summarizes revealed terrain types after a successful area unlock.
-- Example:
-  - `AREA UNLOCKED 5: FOREST 1, LAND 3, MOUNTAIN 1`
-- Uses `AreaUnlockResult.RevealedTiles`; no unlock logic was duplicated or changed.
-- No expansion logic, economy, balance or save-data logic was changed.
-
-## Step 23E - Expansion system documentation
-
-- Added `docs/EXPANSION_SYSTEM.md`.
-- Updated `docs/FEEDBACK_SYSTEM.md` with Milestone 23 expansion feedback rules.
-- Documented:
-  - cloud unlock preview;
-  - cloud property rows;
-  - cloud unlock result summary;
-  - forest/mountain clear preview;
-  - obstacle property rows;
-  - implementation boundaries between `AreaUnlockSystem`, `TerrainClearSystem`, `MapRenderer` and `UiRenderer`.
-- No code, expansion logic, economy, balance or save-data logic was changed.
-
-## Step 23F - Building range overlay
-
-- Added selected building range overlay in `MapRenderer.cs`.
-- When a built heat converter with `HeatRange > 0` is selected, the map now highlights the covered cells.
-- The overlay uses Chebyshev distance, matching the existing heat conversion logic.
-- Heat producers covered by the selected converter receive a highlighted outline.
-- Updated `Game1.cs` to pass `SelectedMapBuildingId` into `MapRenderer.Draw`.
-- No heat conversion logic, economy, balance or save-data logic was changed.
-
-## Step 23G - Heat coverage inverse feedback
-
-- Improved heat coverage map feedback in `MapRenderer.cs`.
-- Selecting a heat producer now highlights active heat converters that cover it.
-- The previous Step 23F behavior remains unchanged: selecting a converter still shows its range and highlights covered producers.
-- Color distinction:
-  - aqua outline = producer covered by selected converter;
-  - yellow outline = converter covering selected producer.
-- Uses Chebyshev distance, matching existing heat conversion logic.
-- No heat conversion logic, economy, balance or save-data logic was changed.
-
-## Step 23H - Heat converter placement range preview
-
-- Added build-time range preview in `MapRenderer.cs`.
-- When a heat converter building tool is selected and the mouse is over the map, the future `HeatRange` is previewed around the hovered tile.
-- The preview appears only for building definitions with `HeatRange > 0` and positive heat conversion.
-- Valid placements use the normal range overlay color; invalid placements use a red/attenuated overlay.
-- Added a compact `R#` marker on the hovered cell to show the converter range.
-- Refactored selected-converter range drawing to reuse `DrawHeatRangeOverlay`.
-- No build logic, heat conversion logic, economy, balance or save-data logic was changed.
-
-## Step 23I - Milestone 23 final documentation
-
-- Consolidated Milestone 23 documentation.
-- Updated `docs/EXPANSION_SYSTEM.md` with a final milestone state section.
-- Updated `docs/FEEDBACK_SYSTEM.md` with a feedback summary for cloud unlocks, obstacles and heat coverage.
-- Recorded that Milestone 23 is UI/readability-only and does not change map data, unlock logic, clear logic, heat conversion, economy or save-data format.
-- No code, gameplay, balance or data changes were made.
-
-## Step 23J - Useful stability tests
-
-- Added targeted core tests for Milestone 23 map feedback rules.
-- Added `HeatSystemTests.GeneratorDiagonalWithinChebyshevRange_ShouldConvertHeatToEnergy`.
-- Added `BuildingOperationalStatusCalculatorTests.Calculate_ForHeatProducerWithGeneratorInDiagonalChebyshevRange_ShouldReturnActive`.
-- Added `AreaUnlockSystemTests.GetUnlockableCloudTiles_WhenResourcesMissing_ShouldStillReturnPreviewTiles`.
-- Added `TerrainClearSystemTests.CanClearMountain_WhenNotEnoughMines_ShouldReturnNotEnoughMines`.
-- These tests protect the rules shown by the UI:
-  - heat range is Chebyshev;
-  - heat producer status matches diagonal converter coverage;
-  - cloud preview tiles are still available when money/research is missing;
-  - terrain clear validation returns the correct missing-tool reason.
-- No gameplay, balance, UI rendering or save-data logic was changed.
-
-## Step 24A - First objective hint
-
-- Started Milestone 24 onboarding.
-- Added a lightweight dynamic objective hint in the status bar.
-- The objective is derived from current world state and does not require saved mission state.
-- Early sequence guides the player through:
-  - building the first wind turbine;
-  - selling stored energy and building the first office;
-  - building the first research center;
-  - building the first battery;
-  - building solar/heat generation and placing a generator in range.
-- The hint is shown only as the default status message when no higher-priority status is active.
-- Existing status priorities remain unchanged: action results, save/load messages, selected building status and demolish confirmation still override the objective.
-- No economy, simulation, build logic, research logic or save-data format was changed.
-
-## Step 24B - Early game checklist
-
-- Added a compact non-interactive early checklist in `UiRenderer.cs`.
-- The checklist is drawn above the status bar in the map area when early onboarding is still incomplete.
-- Checklist items are derived from current world state and do not require saved mission state.
-- Items:
-  - build wind turbine;
-  - build small office;
-  - build research center;
-  - build small battery;
-  - build solar + generator with heat coverage.
-- The checklist hides automatically when all items are complete.
-- Uses simple `OK` / `--` markers for pixel-font compatibility.
-- No economy, simulation, build logic, research logic or save-data format was changed.
-
-## Step 24C - Contextual heat and generator hints
-
-- Improved contextual onboarding text for heat-related buildings in `UiRenderer.cs`.
-- Build tool properties now populate `ISSUE` with heat-specific guidance.
-- Heat producers now hint that a generator should be added after placement.
-- Heat converters now hint to place them with a heat source inside range.
-- Build tool action text now mentions range preview for heat converters.
-- Build menu support text is clearer:
-  - heat producers: `PLACE GENERATOR IN RANGE`;
-  - heat converters: `PLACE NEAR HEAT SOURCE, RANGE #`.
-- Selected active heat converters now report `ABSORBING HEAT IN RANGE`.
-- Idle heat converters now report `WAITING FOR HEAT IN RANGE`.
-- No build rules, heat conversion logic, economy, balance or save-data format was changed.
-
-## Step 24D - Help panel / quick guide
-
-- Added a non-modal quick guide panel.
-- Added `HELP` command button in the top command strip.
-- Added `H` keyboard shortcut to toggle the help panel.
-- The help panel explains:
-  - early energy/money/research flow;
-  - batteries;
-  - heat producers and generators;
-  - terrain clearing;
-  - cloud expansion;
-  - basic controls.
-- The panel is UI-only and uses `_showHelpPanel` runtime state in `Game1`.
-- No save-data format, economy, simulation, build, heat, research or expansion logic was changed.
-
-## Step 24E - Help panel current objective/checklist
-
-- Improved the HELP panel in `UiRenderer.cs`.
-- Added a dynamic `CURRENT` section to the quick guide.
-- The `CURRENT` section shows:
-  - the current objective from `GetCurrentObjectiveHint`;
-  - the same early checklist used by the map overlay.
-- Renamed the static guide section to `BASICS`.
-- Increased max help panel height to fit the dynamic guidance while keeping viewport-based bounds.
-- No save-data, economy, simulation, build, heat, research or expansion logic was changed.
-
-## Step 24F - Milestone 24 final documentation
-
-- Consolidated Milestone 24 documentation.
-- Added final onboarding-state summary to `docs/GAME_DESIGN.md`.
-- Added onboarding feedback summary to `docs/FEEDBACK_SYSTEM.md`.
-- Recorded that onboarding remains non-blocking and derived from world state.
-- Recorded that no persistent mission/tutorial state is introduced.
-- No code, gameplay, balance or save-data changes were made.
-
-## Step 25A - Mid-game objective hints
-
-- Started Milestone 25 progression guidance.
-- Extended `UiRenderer.GetCurrentObjectiveHint` beyond the early-game checklist.
-- Added `GetMidGameObjectiveHint` and helper methods to derive mid-game guidance from current world state.
-- Mid-game objectives now guide the player toward:
-  - first affordable/relevant upgrade;
-  - available research;
-  - research accumulation;
-  - cloud unlocks;
-  - terrain clearing;
-  - manager research;
-  - next heat power tier;
-  - later affordable upgrades.
-- Objective state is still derived from world state only.
-- No persistent quest state, economy logic, simulation logic, build rules, research rules, expansion rules or save-data format was changed.
-
-## Step 25B - Goal-aware HELP details
-
-- Improved the HELP panel current-progress section.
-- Added a `NEXT` line below the current objective.
-- `NEXT` explains what the player should do or what is missing for the current objective.
-- Detail hints cover:
-  - missing money for buildings;
-  - missing required research for buildings;
-  - first/next upgrade affordability;
-  - missing money/research for upgrades;
-  - available research;
-  - missing research for next research;
-  - cloud unlock money/research requirements;
-  - terrain clear tool requirements;
-  - manager research;
-  - next heat tier.
-- Added helper methods in `UiRenderer.cs`:
-  - `GetCurrentObjectiveDetailHint`;
-  - `GetMidGameObjectiveDetailHint`;
-  - `GetBuildObjectiveDetail`;
-  - `GetUpgradeSavingDetail`;
-  - `TryGetNextRelevantUpgradeToSaveFor`.
-- No persistent quest state, economy logic, simulation logic, build rules, research rules, expansion rules or save-data format was changed.
-
-## Step 25C - Progression bottleneck feedback
-
-- Added bottleneck feedback to the HELP panel.
-- The `CURRENT` section now shows:
-  - current objective;
-  - `NEXT` practical action/resource gap;
-  - `BOT` current bottleneck classification.
-- Added `GetCurrentBottleneckHint` in `UiRenderer.cs`.
-- Bottleneck detection uses `ResourceRateSnapshot.Calculate(_world)` and current world state.
-- Covered bottlenecks:
-  - heat producer without generator coverage;
-  - negative net energy;
-  - no energy production;
-  - no money because no office or no sellable energy;
-  - no research because no research center or no energy supply;
-  - cloud unlock resource gap;
-  - terrain clear tool gap;
-  - nearly full energy storage;
-  - affordable upgrade/research available;
-  - stable fallback.
-- No economy, simulation, heat, expansion, build, research, upgrade or save-data logic was changed.
-
-## Step 25D - Progression advisor extraction and tests
-
-- Extracted progression guidance from `UiRenderer` into `GridPowerTycoon.Core.Progression.ProgressionAdvisor`.
-- `ProgressionAdvisor` now owns:
-  - current objective;
-  - current objective detail;
-  - current bottleneck;
-  - heat producer coverage checks used by onboarding UI.
-- `UiRenderer` now calls `ProgressionAdvisor` through small wrapper methods and remains focused on rendering.
-- Added `ProgressionAdvisorTests` covering:
-  - no wind turbine objective;
-  - missing money detail for first office;
-  - first affordable upgrade objective after early game;
-  - heat producer without converter bottleneck;
-  - cloud unlock resource gap detail.
-- This is a structural/testability pass only.
-- No economy, simulation, heat, expansion, build, research, upgrade or save-data behavior was intentionally changed.
-
-## Step 25E - Milestone 25 final documentation
-
-- Closed Milestone 25.
-- Consolidated documentation for progression guidance.
-- Recorded final behavior of:
-  - objective;
-  - HELP current objective;
-  - NEXT;
-  - BOT;
-  - Core `ProgressionAdvisor`.
-- Recorded the next milestone as new buildings and production chains.
-- Proposed Milestone 26 order:
-  - Substation / Transformer;
-  - Heat sink / Cooler;
-  - Maintenance center;
-  - Tool warehouse;
-  - Geothermal plant;
-  - Data center;
-  - Nuclear / advanced reactor.
-- No code, economy, gameplay, balance or save-data changes were made.
-
-## Step 26A Fix1 - Substation Core alignment
-
-- Reapplied the missing Core changes required by the Substation tests:
-  - `BuildingDefinition.EnergyEfficiencyBonus`;
-  - `ResourceRateSnapshot.EnergyEfficiencyMultiplier`;
-  - energy-efficiency multiplier calculation.
-- Included Substation data/UI/test files again to keep the patch self-contained.
-
-## Step 26A Fix3 - UiRenderer helper methods
-
-- Added missing UI helper methods required by the Substation property/build-card text:
-  - `FormatEnergyEfficiencyBonus`;
-  - `FormatPercent`.
-- Fixes MonoGame compile errors where `UiRenderer` referenced the helpers but the helper methods were missing locally.
-
-## Step 26B - Heat sink / Raffreddatore
-
-- Added `heat_sink_small` / `Raffreddatore`.
-- Added research `heat_management` / `Gestione termica`.
-- Added new category `BuildingCategory.HeatSink`.
-- Added `BuildingDefinition.HeatDissipationPerSecond`.
-- Added validation for negative heat dissipation.
-- Added `UpgradeCalculator.GetHeatDissipationPerSecond`.
-- `HeatSystem` now performs:
-  - heat production;
-  - heat conversion to energy;
-  - heat dissipation without energy output;
-  - explosion checks.
-- Heat sinks remove accumulated heat from producers in range and do not add energy.
-- Operational heat coverage now accepts either converters or heat sinks in range.
-- `ResourceRateSnapshot` exposes `HeatDissipatedPerSecond` estimate.
-- UI support:
-  - build button id;
-  - research button id;
-  - heat sink category/detail text;
-  - `HEAT DISSIPATE` property row;
-  - heat coverage wording instead of conversion-only wording;
-  - map color for heat sinks.
-- Added test `HeatSinkInRange_ShouldDissipateHeatWithoutProducingEnergy`.
-
-## Step 26B Fix1 - Heat sink UI support variable
-
-- Fixed `UiRenderer.GetBuildButtonSupportText`.
-- Added the missing local variable `heatDissipation`.
-- Removed an accidental duplicate Substation support return from the main-effect method.
-- No gameplay or data changes.
-
-## Step 26C - Maintenance center / Centro manutenzione
-
-- Added `maintenance_center_small` / `Centro manutenzione`.
-- Added research `maintenance_center` / `Manutenzione rete`.
-- Added new category `BuildingCategory.Maintenance`.
-- Added `BuildingDefinition.MaintenanceEfficiencyBonus`.
-- Added validation for negative maintenance efficiency bonus.
-- Added `UpgradeCalculator.GetLifetimeDecayMultiplier`.
-- `LifetimeSystem` now applies the global maintenance decay multiplier before reducing building lifetime.
-- Maintenance centers slow operational wear but do not repair, renew or replace buildings.
-- Added UI support:
-  - build button id;
-  - research button id;
-  - `MAINTENANCE` property row;
-  - build-card text;
-  - property purpose text;
-  - map color.
-- Added test `MaintenanceCenter_ShouldSlowLifetimeDecay`.
-
-## Step 26C Fix1 - Maintenance Core alignment
-
-- Narrow fix for local builds where the Simulation test was updated but Core maintenance files were not overwritten.
-- Package includes the build-critical Core files for:
-  - `BuildingCategory.Maintenance`;
-  - `BuildingDefinition.MaintenanceEfficiencyBonus`;
-  - lifetime decay multiplier calculation;
-  - lifetime-system integration.
-- If the same error appears after applying this package, clean `bin`/`obj` or run `dotnet clean`.
-
-## Step 26C Fix2 - Maintenance UI helper
-
-- Added missing `FormatMaintenanceEfficiencyBonus` helper in `UiRenderer`.
-- Fixes MonoGame compile errors where maintenance rows referenced the helper but the helper method was missing locally.
-- Root cause: partial/narrow fix packages left UI helpers out of sync with rows already added to the same file.
-
-## Step 26D - Tool warehouse / Magazzino strumenti
-
-- Added `tool_warehouse_small` / `Magazzino strumenti`.
-- Added research `tool_storage` / `Logistica strumenti`.
-- Added new category `BuildingCategory.ToolStorage`.
-- Added `BuildingDefinition.ToolCapacityBonus`.
-- Added validation for negative tool capacity bonus.
-- Added `UpgradeCalculator.GetMaxAxes` and `UpgradeCalculator.GetMaxMines`.
-- `ToolGenerationSystem` now uses dynamic max tool capacity from active warehouses.
-- Tool warehouses increase both axe and mine caps. They do not increase tool generation speed.
-- Added UI support:
-  - build button id;
-  - research button id;
-  - `TOOL STORAGE` property row;
-  - build-card text;
-  - property purpose text;
-  - map color.
-- Added test `Update_WithToolWarehouse_ShouldIncreaseToolCaps`.
-- Packaging note: this step includes Core, data, UI, test and docs together to avoid partial-update drift.
-
-## Step 26E - Geothermal plant / Centrale geotermica
-
-- Added `geothermal_plant` / `Centrale geotermica`.
-- Added research `geothermal_power` / `Energia geotermica`.
-- The geothermal plant uses existing heat-producer mechanics:
-  - produces constant heat;
-  - consumes a small amount of energy;
-  - needs heat conversion coverage to become useful;
-  - does not directly produce electric energy.
-- Added the building to build UI order.
-- Added the research to research UI order.
-- Added test `GeothermalPlant_WithGenerator_ShouldProduceStableConvertedEnergy`.
-- No new Core property or enum was required.
-- Packaging note: Core, data, UI, test and docs were checked together for consistency.
-
-## Step 26E Fix1 - Geothermal test affordability
-
-- Fixed the geothermal heat-system test setup.
-- The test catalog definition now uses `Cost = 1` for `geothermal_plant`, matching the local test economy.
-- Production data in `buildings.json` remains unchanged at the intended gameplay cost of `$12,000`.
-- No gameplay, UI or data changes.
-
-## Step 26F - Data center
-
-- Added `data_center` / `Data center`.
-- Added research `data_center`.
-- The Data center uses existing research-production mechanics:
-  - high `ResearchPerSecond`;
-  - high `EnergyConsumptionPerSecond`;
-  - category `Corporation`.
-- It is a large energy consumer that turns surplus grid capacity into research throughput.
-- Added the building to build UI order.
-- Added the research to research UI order.
-- Added tests:
-  - `DataCenter_WithStoredEnergy_ShouldConsumeEnergyAndProduceResearch`;
-  - `DataCenter_WithoutEnergy_ShouldNotProduceResearch`.
-- No new Core property or enum was required.
+### Step 19K - Left panel card state polish
+
+Completed:
+- clearer card state line for active build tools;
+- clearer `NEED MONEY` build text;
+- distinct status colors for research and upgrade states;
+- no gameplay changes.
+
+### Step 19L - Properties panel readability polish
+
+Completed:
+- clearer display labels for properties;
+- wider value column;
+- subtle group separators;
+- group-colored labels;
+- no gameplay changes.
+
+### Step 19M - Command strip future sections and status alignment
+
+Completed:
+- prepared disabled `STATS`, `HELP`, `SETTINGS` placeholders in the command strip;
+- prevented future placeholders from overlapping save/load/new/exit commands;
+- removed old `VIEW` strip residue;
+- aligned status text from the status bar rectangle.
+
+### Step 19M Fix1 - Restore VIEW command
+
+Completed:
+- restored `VIEW` in the command strip;
+- restored the toggle fullscreen button rectangle;
+- updated command-strip width calculation to include `VIEW`.
+
+### Step 19N - Responsive command strip placeholders
+
+Completed:
+- future command placeholders now appear progressively based on available width;
+- command buttons keep a slightly safer gap from the properties panel area;
+- no gameplay changes.
+
+### Step 20A - Base building roles and first balance pass
+
+Completed:
+- first building balance pass;
+- clearer role for every current building;
+- starting economy adjusted from `$1` first action to `$10` first action;
+- early, mid and industrial numbers reduced into a more readable progression;
+- balance notes updated.
+
+### Step 20B - Research and upgrade balance alignment
+
+Completed:
+- research costs aligned to the new building economy;
+- upgrade costs aligned to early/mid/industrial tiers;
+- repeated upgrade multipliers reduced to avoid runaway growth;
+- balance notes updated.
+
+### Step 20C - Heat, explosion and conversion balance
+
+Completed:
+- heat warning/explosion thresholds increased;
+- solar/generator, coal/medium generator and gas thermal balance adjusted;
+- heat/conversion upgrade multipliers reduced;
+- properties panel now includes `HEAT RISK`;
+- balance notes updated.
+
+### Step 20D - Expansion, tools and map unlock pacing
+
+Completed:
+- tool generation made faster;
+- tool caps increased;
+- forest clearing made earlier;
+- cloud unlock shifted toward a mixed money/research investment;
+- balance notes updated.
+
+### Step 20E - Early and mid-game progression pacing
+
+Completed:
+- first research, battery and automation made earlier;
+- solar + small generator setup made easier to reach;
+- coal + medium generator mid-game tier brought closer;
+- research and upgrade prices aligned to the revised progression;
+- balance notes updated.
+
+### Step 21A - Clear operational issue text
+
+Completed:
+- selected building properties now include `ISSUE`;
+- common operational states now have actionable explanations;
+- no gameplay logic changes.
+
+### Step 21B - Map operational state badges
+
+Completed:
+- added map badges for `NO ENERGY`, `NO HEAT CONVERSION`, `HEAT WARNING`, `EXPIRED`, and `EXPLODED`;
+- map badges and properties panel now rely on the same operational state calculation;
+- no gameplay logic changes.
+
+### Step 21C - Status bar badge legend
+
+Completed:
+- added responsive status bar legend for map badges;
+- kept legend hidden on narrow windows;
+- no gameplay logic changes.
+
+### Step 21D - Clear failure messages
+
+Completed:
+- action failure messages now use readable, actionable text;
+- raw enum names are no longer shown in the status bar for common failures;
+- no gameplay logic changes.
+
+### Step 21E - Status bar selected building feedback
+
+Completed:
+- status bar now shows selected building operational summary when no higher-priority action message is active;
+- critical selected-building states are visible without reading the properties panel;
+- status bar added to UI hit-test area;
+- no gameplay logic changes.
+
+### Step 21F - Feedback system documentation
+
+Completed:
+- documented Milestone 21 feedback rules in `docs/FEEDBACK_SYSTEM.md`;
+- recorded badge meanings, `ISSUE` semantics, heat feedback and status bar priority;
+- no code changes.
+
+### Step 22A - Manager visibility in properties
+
+Completed:
+- properties panel now shows which manager research controls a building;
+- managed and not-yet-managed states are easier to distinguish;
+- no gameplay logic changes.
+
+### Step 22B - Manager renewal feedback
+
+Completed:
+- status bar now reports automatic manager renewals;
+- status bar now reports managed expired buildings that cannot be renewed due to missing money;
+- repeated identical manager messages are throttled;
+- no gameplay logic changes.
+
+### Step 22C - Manager map badge
+
+Completed:
+- managed buildings now show a compact `M` badge on the map;
+- manager badge remains separate from operational problem badges;
+- no gameplay logic changes.
+
+### Step 22D - Manager research impact text
+
+Completed:
+- manager research cards now show how many built structures they will manage or already manage;
+- expired covered buildings are reported directly on the manager research card;
+- no gameplay logic changes.
+
+### Step 23A - Cloud unlock map preview
+
+Completed:
+- selected cloud area now previews the exact cells that would be revealed;
+- preview uses existing `AreaUnlockSystem` logic;
+- preview shows whether unlock is currently affordable/valid;
+- no gameplay logic changes.
+
+### Step 23B - Terrain clear map preview
+
+Completed:
+- selected forest/mountain cells now show a clear preview;
+- preview shows required tool type and amount;
+- preview indicates whether the player has enough tools;
+- no gameplay logic changes.
+
+### Step 23C - Expansion and obstacle property clarity
+
+Completed:
+- forest/mountain properties now explain required tools and missing amount;
+- cloud properties now show current resources against unlock cost;
+- cloud issue text distinguishes missing money, missing research and nothing to reveal;
+- no gameplay logic changes.
+
+### Step 23D - Area unlock result summary
+
+Completed:
+- cloud unlock success messages now include a compact summary of revealed terrain types;
+- status feedback now distinguishes land, forest, mountain and other tile types after unlock;
+- no gameplay logic changes.
+
+### Step 23E - Expansion system documentation
+
+Completed:
+- documented Milestone 23 expansion and obstacle feedback in `docs/EXPANSION_SYSTEM.md`;
+- added expansion feedback section to `docs/FEEDBACK_SYSTEM.md`;
+- no code changes.
+
+### Step 23F - Building range overlay
+
+Completed:
+- selecting a built heat converter now shows its operational range on the map;
+- covered heat producers are highlighted;
+- overlay uses the same Chebyshev distance model as heat conversion;
+- no gameplay logic changes.
+
+### Step 23G - Heat coverage inverse feedback
+
+Completed:
+- selecting a heat producer now highlights converters that cover it;
+- existing selected-converter range overlay remains unchanged;
+- no gameplay logic changes.
+
+### Step 23H - Heat converter placement range preview
+
+Completed:
+- heat converter building tools now show future range under the mouse;
+- invalid placement range preview is shown in red/attenuated form;
+- selected converter range and build preview share the same overlay helper;
+- no gameplay logic changes.
+
+### Step 23I - Milestone 23 final documentation
+
+Completed:
+- consolidated final expansion/range feedback documentation;
+- documented final Milestone 23 state;
+- closed Milestone 23 as a map readability milestone;
+- no code changes.
+
+Milestone 23 is now complete.
+
+### Step 23J - Useful stability tests
+
+Completed:
+- added targeted core tests for heat range, heat operational status, cloud preview and terrain clear validation;
+- avoided fragile rendering tests;
+- no gameplay logic changes.
+
+## Milestone 24 - Onboarding and early guidance
+
+Goal: make the early game easier to understand without adding heavy tutorial flow or interrupting the player.
+
+### Step 24A - First objective hint
+
+Completed:
+- added dynamic objective text to the status bar;
+- objective is derived from world state;
+- no save-data changes;
+- no gameplay logic changes.
+
+### Step 24B - Early game checklist
+
+Completed:
+- added compact early-game checklist;
+- checklist is derived from world state;
+- checklist hides after completion;
+- no save-data changes;
+- no gameplay logic changes.
+
+### Step 24C - Contextual heat and generator hints
+
+Completed:
+- added heat-specific guidance to build tool properties;
+- improved build menu support text for heat producers/converters;
+- improved selected-building issue text for heat converters;
+- no gameplay logic changes.
+
+### Step 24D - Help panel / quick guide
+
+Completed:
+- added HELP button;
+- added H shortcut;
+- added quick guide overlay;
+- no save-data changes;
+- no gameplay logic changes.
+
+### Step 24E - Help panel current objective/checklist
+
+Completed:
+- HELP panel now shows the current objective;
+- HELP panel now repeats the early checklist state;
+- static guide remains available as `BASICS`;
+- no gameplay logic changes.
+
+### Step 24F - Milestone 24 final documentation
+
+Completed:
+- consolidated Milestone 24 onboarding documentation;
+- documented final status bar objective, early checklist and HELP behavior;
+- confirmed no saved tutorial/quest state;
+- no code changes.
+
+Milestone 24 is now complete.
+
+## Milestone 25 - Progression guidance and mid-game clarity
+
+Goal: keep the player oriented after the first onboarding sequence, without adding blocking tutorials or saved quest state.
+
+### Step 25A - Mid-game objective hints
+
+Completed:
+- extended objective hints after the early checklist;
+- added guidance for first upgrade, research, expansion, terrain clearing, managers and next heat tiers;
+- kept objective state derived from current world state;
+- no save-data changes;
+- no gameplay logic changes.
+
+### Step 25B - Goal-aware HELP details
+
+Completed:
+- HELP panel now shows a `NEXT` detail line below the current objective;
+- detail line explains missing resources or the recommended UI/action;
+- no save-data changes;
+- no gameplay logic changes.
+
+### Step 25C - Progression bottleneck feedback
+
+Completed:
+- HELP panel now shows a `BOT` bottleneck line;
+- bottleneck is derived from resource rates and world state;
+- no gameplay logic changes;
+- no save-data changes.
+
+### Step 25D - Progression advisor extraction and tests
+
+Completed:
+- extracted progression guidance into Core `ProgressionAdvisor`;
+- connected UI to the advisor;
+- added targeted Core tests for objective/detail/bottleneck behavior;
+- no save-data changes;
+- no gameplay logic changes.
+
+### Step 25E - Milestone 25 final documentation
+
+Completed:
+- consolidated Milestone 25 progression guidance documentation;
+- recorded final behavior of objective, NEXT and BOT guidance;
+- recorded that `ProgressionAdvisor` is now the Core owner of progression guidance;
+- confirmed no saved quest/mission state;
+- prepared the next milestone as content expansion / new buildings.
+
+Milestone 25 is now complete.
+
+## Milestone 26 - New buildings and production chains
+
+Goal: add new buildings that introduce distinct strategic roles, not just stronger versions of existing buildings.
+
+Planned order:
+- 26A - Substation / Transformer;
+- 26B - Heat sink / Cooler;
+- 26C - Maintenance center;
+- 26D - Tool warehouse;
+- 26E - Geothermal plant;
+- 26F - Data center;
+- 26G - Nuclear plant or advanced reactor.
+
+Design rule: every new building must solve a specific gameplay problem or create a new trade-off.
+
+### 26A - Substation / Transformer
+
+Completed:
+- added first support building: Substation / Transformer;
+- added global energy efficiency bonus mechanic;
+- added research unlock;
+- added UI/property/build-card support;
+- added ResourceRateSnapshot test.
+
+Design role: improves an already productive grid by increasing global energy output. It is not a producer and not simple storage.
+
+### 26B - Heat sink / Raffreddatore
+
+Completed:
+- added heat sink building and research;
+- added heat dissipation mechanic;
+- added UI/property/map support;
+- added heat-system test.
+
+Design role: defensive heat management. It prevents heat risk without producing energy, creating a choice between conversion efficiency and safety.
+
+### 26C - Maintenance center / Centro manutenzione
+
+Completed:
+- added maintenance building and research;
+- added global lifetime-decay reduction mechanic;
+- added UI/property/map support;
+- added simulation test.
+
+Design role: operational stability. It slows wear before managers fully automate renewals.
+
+### 26D - Tool warehouse / Magazzino strumenti
+
+Completed:
+- added tool warehouse building and research;
+- added dynamic axe/mine capacity bonus;
+- updated tool generation caps;
+- added UI/property/map support;
+- added tool-generation test.
+
+Design role: expansion logistics. It lets the player store more axes and mines before clearing terrain, without increasing generation speed.
+
+### 26E - Geothermal plant / Centrale geotermica
+
+Completed:
+- added geothermal building and research;
+- connected it to the existing heat-production chain;
+- added UI build/research entries;
+- added heat-system test.
+
+Design role: stable mid-game heat source. It is not direct electricity; it requires conversion infrastructure.
+
+### 26F - Data center
+
+Completed:
+- added data center building and research;
+- connected it to existing research/energy-consumption mechanics;
+- added UI build/research entries;
+- added simulation tests.
+
+Design role: major energy sink. It gives mature grids a reason to produce large surplus energy by converting it into research throughput.
+
+### 26G-pre - New buildings consistency pass
+
+Status: implemented.
+
+Before adding the nuclear reactor, the Milestone 26 content received a consistency pass over runtime data and UI ids. The pass added `RuntimeDataConsistencyTests`, which loads the real JSON files used by MonoGame and checks the relationships that previously caused partial Core/UI/data drift.
+
+Covered checks:
+- every building `requiredResearchId` exists in `research.json`;
+- every research `unlockBuildingIds` entry exists in `buildings.json`;
+- every research `managedBuildingIds` entry exists in `buildings.json`;
+- every research `requiredResearchIds` prerequisite exists in `research.json`;
+- every upgrade `targetBuildingId` exists in `buildings.json`;
+- every upgrade `requiredResearchId` exists in `research.json`;
+- every UI build button id exists in the building catalog;
+- every UI research button id exists in the research catalog;
+- every building is reachable from the build UI;
+- every research is reachable from the research UI.
+
+This pass intentionally adds no gameplay feature. Its role is to make the next content step safer.
+
+### 26G - Nuclear plant / Advanced reactor
+
+Status: done.
+
+Implemented content:
+- `nuclear_reactor` building;
+- `nuclear_power` research;
+- `nuclear_heat_1` upgrade;
+- `nuclear_lifetime_1` upgrade;
+- build, research and upgrade UI ids;
+- runtime consistency checks for upgrade UI ids;
+- focused nuclear runtime-data tests.
+
+Design result: the nuclear reactor is a high-tier heat producer, not a direct power producer. It has a 3 x 3 footprint, very high cost, very high heat output, high energy consumption and late prerequisites. It is unlocked only after the player has passed through geothermal power, maintenance and the data-center research path. This keeps it different from a simple larger coal or gas plant: the value is extreme, but the supporting infrastructure requirement is intentionally high.
+
+### 26H - Milestone 26 final documentation and balance pass
+
+Status: done.
+
+Completed:
+- added `docs/MILESTONE_26_BALANCE.md` with final runtime values for all Milestone 26 buildings;
+- documented the heat-chain ratios for solar, coal, geothermal, gas and nuclear producers;
+- recorded the current expansion-tool generation/cap values;
+- closed `docs/MILESTONE_26_STATUS.md`;
+- updated balance notes, game-design notes and AI handoff.
+
+Milestone 26 is now complete. The next work should be stabilization and save/data compatibility, not another production tier.
+
+## Milestone 27 - Save, stability and quality of life
+
+Status: started.
+
+Goal: stabilize persistence and quality-of-life now that many new properties and buildings have been added.
+
+### 27A - Save compatibility check for new building properties
+
+Status: prepared.
+
+The save format remains at version `1`, now centralized as `SaveGame.CurrentVersion`. Step 27A confirms that the Milestone 26 building-definition properties stay data-driven and are not duplicated into the save payload:
+
+- `EnergyEfficiencyBonus`;
+- `HeatDissipationPerSecond`;
+- `MaintenanceEfficiencyBonus`;
+- `ToolCapacityBonus`.
+
+The save stores only persistent world state and building ids. After restore, the active `GameData` catalog continues to provide the runtime behavior for substations, heat sinks, maintenance centers and tool warehouses. This keeps balancing changes in JSON compatible with existing saves.
+
+Added regression coverage for:
+
+- schema version stability;
+- definition-only property exclusion from save JSON;
+- restored support-building bonuses;
+- 3x3 nuclear reactor footprint persistence;
+- explicit failure on unknown saved building/research/upgrade ids.
+
+`SaveGameService.RestoreWorld` now validates saved ids against the supplied `GameData` before rebuilding the world. A later migration step should turn this guard into a migration policy for renamed or removed ids.
+
+### 27B - Save integrity validation and corrupted JSON handling
+
+Status: prepared.
+
+Step 27B expands the save guard from identifier compatibility to structural integrity. Saves are now rejected before restore if the map has duplicate or missing coordinates, if a building footprint is incomplete, if a tile points to a building outside its footprint, or if an upgrade level is negative or higher than the active upgrade definition allows.
+
+Malformed JSON loaded from disk is converted to a readable save-load failure. MonoGame startup no longer crashes on a bad save file: it falls back to a new game and shows a status message. Manual load keeps the current world and reports `SAVE LOAD FAILED`.
+
+Added `SaveIntegrityTests` for duplicate tiles, incomplete multi-tile footprints, extra tile references, over-max upgrade levels and corrupted JSON.
+
+### 27C - Visible save/data version information
+
+Status: prepared.
+
+Step 27C separates save-schema versioning from runtime data-catalog versioning. `SaveGame.CurrentVersion` remains the save-format version, while `GameData.CurrentVersion` is now stored in the save payload as `DataVersion`. Restore rejects unsupported data versions explicitly, which prepares the project for a real migration policy instead of relying on implicit JSON compatibility.
+
+MonoGame now exposes the current persistence contract in the status bar. A new session shows `SAVE V1 DATA V1 UNSAVED SESSION`; after saving or loading, the status shows the save version, data version and last save timestamp in UTC. This is intentionally small and debug-friendly: it helps verify what is loaded during manual testing without adding a full save-management screen yet.
+
+Added tests cover version exposure, compact summary formatting and explicit unsupported-data-version failure.
+
+Recommended remaining order:
+- 27D - Safe handling for missing/renamed buildings or research in old saves;
+- 27E - Confirm NEW and EXIT when the current run has changes;
+- 27F - Optional autosave;
+- 27G - Better SAVE/LOAD feedback;
+- 27H - Final persistence regression pass.
+
+Milestone 27 should be completed before treating the game as a stable playable release candidate.
 
 ## Stop checkpoint - 2026-06-06
 
-Work is intentionally paused after Step 26F.
+Current stop point:
+- Milestone 26 is complete through Step 26H;
+- Milestone 27 is complete through Step 27H;
+- local `dotnet test` was reported passing after Step 27D fix;
+- Step 27A adds save compatibility guards and persistence regression tests;
+- Step 27B adds structural save validation and safe corrupted-JSON handling;
+- Step 27C adds save/data version visibility and a compact runtime status string;
+- Step 27D adds explicit save-id migration infrastructure;
+- Step 27E adds dirty-state confirmation for NEW and EXIT;
+- Step 27F adds optional autosave with a 60-second dirty-session timer and F6 toggle;
+- Step 27G adds backup-on-write for `savegame.json`, preserving the previous file as `savegame.backup.json`;
+- Step 27H adds load fallback from `savegame.backup.json` when the main save is corrupted, invalid or missing.
 
-Current verified status:
-- Core tests passed locally after `Step 26E Fix1`;
-- Step 26F Data center was prepared after that and should be the current project state in the latest zip;
-- the user reported "ottimo test passati" before Step 26F and then requested planning;
-- next practical step should be documentation/consistency, not more gameplay.
+Recommended next step:
+`Step 27I - Final persistence regression pass`.
 
-Milestone 26 state:
-- 26A Substation / Transformer: done;
-- 26B Heat sink / Raffreddatore: done;
-- 26C Maintenance center / Centro manutenzione: done;
-- 26D Tool warehouse / Magazzino strumenti: done;
-- 26E Geothermal plant / Centrale geotermica: done;
-- 26F Data center: done;
-- 26G-pre New buildings consistency pass: next;
-- 26G Nuclear plant / advanced reactor: planned after 26G-pre;
-- 26H Milestone 26 final documentation and balance pass: planned after 26G.
 
-Important process rule for next work:
-Do not continue with partial Core-only or UI-only fixes when a step touches Core, data, UI and tests. Package coherent step files together and run static checks for:
-- enum/category declarations;
-- BuildingDefinition properties;
-- UI helper methods;
-- `buildings.json` ids;
-- `research.json` ids;
-- required research references;
-- research unlock references;
-- test catalog definitions.
+## 2026-06-06 - Step 27C Visible save/data version information
 
-Current new building roles:
-- `substation_small`: grid efficiency support through `EnergyEfficiencyBonus`;
-- `heat_sink_small`: heat safety through `HeatDissipationPerSecond`;
-- `maintenance_center_small`: operational stability through `MaintenanceEfficiencyBonus`;
-- `tool_warehouse_small`: expansion logistics through `ToolCapacityBonus`;
-- `geothermal_plant`: stable heat source using existing HeatProducer mechanics;
-- `data_center`: high energy sink that produces research using existing Research/Corporation mechanics.
+Step 27C adds explicit runtime-data versioning next to the existing save-schema version. `SaveGame.CurrentVersion` remains the save-format contract. `GameData.CurrentVersion` was added and is now serialized into saves as `DataVersion`. `SaveGameService.RestoreWorld` rejects unsupported data versions before reconstructing the world. This keeps the next migration work precise: a future save may need a schema migration, a data-id migration, or both.
 
-Next recommended implementation:
-`Step 26G-pre - New buildings consistency pass`.
+Added `SaveGameSummary`, with a compact string format intended for UI/debug visibility: `SAVE V1 DATA V1 LAST yyyy-MM-dd HH:mm UTC`. `SaveGameService` can create a summary from a loaded save and load a summary from disk.
 
-26G-pre should add tests/checks, not new gameplay:
-- validate all building required research ids;
-- validate research unlock building ids;
-- validate research prerequisite ids;
-- validate UI BuildButtonIds against building catalog if practical;
-- validate UI ResearchButtonIds against research catalog if practical;
-- update docs with the final status before nuclear.
+MonoGame now tracks `_saveDataInfo` and passes it to `UiRenderer`. The status bar shows `SAVE V1 DATA V1 UNSAVED SESSION` for a fresh game and updates the value after startup load, manual save, manual load, offline-progress autosave and new game. This gives manual testers immediate evidence of which persistence contract is active without adding a dedicated save-management UI yet.
 
-After 26G-pre:
-Implement `nuclear_reactor` as a high-tier heat producer only if consistency tests are in place.
+Tests added to `SaveGameServiceTests` cover save/data version exposure, compact summary formatting and explicit failure for unsupported data versions.
+
+Next recommended step: Step 27F - Optional autosave.
+
+## 2026-06-06 - Step 27D Save id migration map
+
+Step 27D adds a controlled migration layer for old save identifiers. `SaveIdMigrationMap` lives in `GridPowerTycoon.Core.Save` and contains case-insensitive mappings for building definition ids, completed research ids and upgrade ids. `SaveGameService` keeps its default no-migration behavior, but it now also has a constructor accepting a migration map.
+
+Restore validation resolves ids through the migration map before checking them against `GameData`. World reconstruction also writes the resolved current ids into restored `BuildingInstance` objects, `ResearchState` and `UpgradeState`. Saves with unknown ids still fail explicitly unless a mapping exists. Saves that contain both an old id and its new target now fail with a duplicate-after-migration message, preventing double completion or ambiguous upgrade levels.
+
+Added `SaveIdMigrationTests` to cover successful migration of building/research/upgrade ids, research collision detection, upgrade collision detection and unchanged explicit failure for unmapped unknown building ids.
+
+No current data id was renamed in this step. The layer is infrastructure for future cleanup only.
+
+Next recommended step: Step 27F - Optional autosave.
+
+
+## 2026-06-06 - Step 27E Dirty-state confirmation for NEW and EXIT
+
+Step 27E adds `SaveDirtyState` in `GridPowerTycoon.Core.Save`, plus `PendingDirtyAction` and `DirtyActionDecision`. The class owns the repeat-to-confirm policy for destructive session actions. Clean sessions execute immediately; dirty sessions require the same action twice. Switching from NEW to EXIT changes the pending action instead of confirming the previous one. `MarkClean` resets both dirty and pending state, while `MarkDirty` preserves the pending confirmation so passive simulation ticks do not cancel a warning between two clicks.
+
+`Game1` now owns one `_saveDirtyState`. It marks the session clean after successful startup configure, manual save, manual load, explicit new game and the offline-progress autosave path. It marks the session dirty after successful build placement, sell, research, upgrade, replace, demolish, terrain clear and cloud unlock. Passive simulation time marks the session dirty after a short grace interval so idling progress is also represented. The status bar appends `MODIFIED` to the existing save/data version string when dirty.
+
+`NEW` and `EXIT` now call `RequestDirtyAction`. On first dirty request the game shows `UNSAVED CHANGES - CLICK NEW AGAIN TO CONFIRM` or `UNSAVED CHANGES - CLICK EXIT AGAIN TO CONFIRM`; on the second matching request the action executes. Exit still calls `SaveCurrentGame()` before `Exit()`, preserving the existing safe shutdown behavior after confirmation.
+
+Added `SaveDirtyStateTests` for clean execution, dirty confirmation, second-click confirmation, switching pending action, clean reset, preserving pending state during extra dirty marks and rejecting `PendingDirtyAction.None`.
+
+Next recommended step: Step 27F - Optional autosave.
+
+
+## 2026-06-06 - Step 27F Optional autosave
+
+Step 27F adds `AutoSaveState` in `GridPowerTycoon.Core.Save`. The class is intentionally small and testable: it accumulates elapsed time only while the game is dirty, triggers an autosave decision when the configured interval is reached, resets after a clean snapshot, and stays inert when disabled.
+
+`Game1` now owns an autosave state configured to 60 seconds and enabled by default. After simulation and dirty-state tracking, the update loop asks the autosave state whether a save is due. When due, MonoGame writes the normal `Saves/savegame.json`, refreshes the compact save/data status string, marks the game clean and reports `AUTOSAVED`. If the write fails, it reports `AUTOSAVE FAILED` without marking the session clean.
+
+Manual save, manual load, explicit new game and the offline-progress save path continue to go through the clean-snapshot flow and therefore reset the autosave timer. Autosave can be toggled at runtime with `F6`, which reports `AUTOSAVE ON` or `AUTOSAVE OFF`.
+
+Added `AutoSaveStateTests` for interval behavior, clean reset, disabled behavior and toggle reset.
+
+Next recommended step: Step 27H - Load fallback from backup.
+
+## 2026-06-06 - Step 27G Backup save on write
+
+Step 27G updates `SaveGameService.SaveToFile` so every save write preserves the previous main save before replacing it. The service writes the new payload to a temporary file, copies the existing target to `SaveGameService.GetBackupPath(path)`, and then moves the temporary file over the main path. For the normal MonoGame path this produces `Saves/savegame.backup.json` beside `Saves/savegame.json`.
+
+No MonoGame-specific save logic was duplicated. Manual save, optional autosave and the offline-progress save path all call the same Core method, so they all inherit the backup behavior. A first save has no backup because there is no previous file yet.
+
+Added coverage in `SaveGameServiceTests` for backup path naming and previous-snapshot preservation.
+
+Next recommended step: Step 27H - Load fallback from backup.
+
+
+## 2026-06-06 - Step 27H Load fallback from backup
+
+Step 27H completes the main-save/backup-save recovery cycle. `SaveGameService` now has `LoadFromFileWithBackup`, returning `SaveLoadResult` with the restored world, original save payload, summary and `LoadedFromBackup` flag. The method first tries the main path and falls back to `SaveGameService.GetBackupPath(path)` if the main save cannot be deserialized or restored. This covers malformed JSON and valid JSON that fails restore validation, including unsupported data versions or inconsistent world structure.
+
+`Game1` now uses this method both during startup restore and manual load. When fallback succeeds, the UI reports `MAIN SAVE FAILED - BACKUP LOADED`. If both main and backup fail, startup still starts a new game and manual load preserves the current world. The `HasAnySaveFile` helper also allows manual loading when only the backup file remains.
+
+Tests added to `SaveGameServiceTests` cover corrupted primary JSON, invalid primary restore, backup-only restore and explicit failure when both files are unusable.
+
+Next recommended step: Step 27I - Final persistence regression pass.
+
+
+## 2026-06-06 - Step 27I Final persistence regression pass
+
+Step 27I is a consolidation-only step for the persistence milestone. No runtime gameplay behavior was changed. Added `PersistenceRegressionTests` to cover interactions between the save features introduced in 27A-27H: backup rotation across repeated writes, backup fallback with id migration, and autosave threshold reset behavior.
+
+The save layer now has a clear final shape for this milestone: `SaveGame.CurrentVersion` handles schema compatibility, `GameData.CurrentVersion` handles runtime data compatibility, `SaveIdMigrationMap` handles explicit old-id translation, `SaveDirtyState` protects destructive session actions, `AutoSaveState` controls optional autosave timing, and `SaveGameService` owns both backup-on-write and backup fallback on load.
+
+After this step, run `dotnet test`. If it passes, Milestone 27 should be closed and the project can move to Milestone 28, focused on user-facing feedback and gameplay clarity rather than more persistence infrastructure.
+
+Next recommended step: Milestone 28A - Better build/research/upgrade feedback messages.
+
+
+## 2026-06-06 - Step 27J Top menu HELP/EXIT hit-test cleanup
+
+Step 27J is a final UX cleanup before Milestone 28. `UiRenderer` previously still computed `GetHelpButtonRectangle` in the right command-button group between VIEW and EXIT, while `DrawMenuStrip` no longer drew that right-side HELP button. The result was an invisible clickable blank area near EXIT that toggled the help panel.
+
+The help action is now attached to the visible HELP button in the future-section area after UPGRADE. The right command-button group now contains only NEW, LOAD, SAVE, VIEW and EXIT. `GetExitButtonRectangle` is based directly on VIEW, and `GetGameCommandButtonsStartX` uses the reduced width of the five visible command buttons. This removes the hidden hotspot and makes drawn buttons match hit-tested buttons.
+
+After applying this patch, run `dotnet test` and manually verify the top menu: clicking the visible HELP button toggles the help panel, clicking the blank space near EXIT does nothing, and clicking EXIT still triggers the dirty-confirm/exit flow.
+
+Next recommended step: Milestone 28A - Better build/research/upgrade feedback messages.
