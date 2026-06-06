@@ -163,3 +163,56 @@ The bottleneck helps the player understand the systemic reason for slow progress
 Progression guidance is now centralized in Core through `ProgressionAdvisor`.
 
 The advisor produces three UI-facing strings: current objective, next practical detail and bottleneck. This keeps the behavior testable and avoids spreading progression rules across rendering code.
+
+## Milestone 25 final progression state
+
+Milestone 25 completes the first structured progression layer.
+
+The game remains sandbox-first, but now has a lightweight guidance system:
+- the status bar shows the current objective when no higher-priority feedback is active;
+- the HELP panel shows the current objective;
+- `NEXT` explains the immediate practical action or missing resource;
+- `BOT` identifies the main progression bottleneck;
+- `ProgressionAdvisor` owns objective, detail and bottleneck decisions in Core.
+
+The system is intentionally not a quest engine. It does not store mission state and it does not force the player through a fixed sequence. It derives guidance from built buildings, research, upgrades, resources, heat coverage, terrain and expansion state.
+
+This prepares the game for new buildings because new content can now be introduced with clearer player guidance.
+
+### Substation / Transformer
+
+The Substation is the first grid-support building.
+
+It does not produce energy directly. Instead, it improves grid efficiency through `EnergyEfficiencyBonus`. Active substations increase the effective energy produced by the grid, including energy generated directly and energy converted from heat.
+
+This gives the player a mid-game support choice: invest in better network efficiency instead of only buying larger producers.
+
+### Heat sink / Raffreddatore
+
+The Heat sink is a defensive heat-management building.
+
+Unlike generators, it does not convert heat into energy. It removes heat from nearby producers and reduces explosion risk. This gives the player a safety option when a heat producer is useful but generator placement or conversion capacity is not sufficient.
+
+### Maintenance center / Centro manutenzione
+
+The Maintenance center is an operational-stability building.
+
+It does not produce resources directly and it does not replace manager automation. Instead, it slows lifetime decay globally through `MaintenanceEfficiencyBonus`. This gives the player a way to stabilize a growing grid before relying fully on automatic renewals.
+
+### Tool warehouse / Magazzino strumenti
+
+The Tool warehouse is an expansion-logistics building.
+
+It does not produce money, energy or research. It increases maximum axe and mine storage through `ToolCapacityBonus`, helping the player accumulate tools for forest and mountain clearing without wasting generated tools at the cap.
+
+### Geothermal plant / Centrale geotermica
+
+The Geothermal plant is a stable mid-game heat source.
+
+It produces significant heat and consumes a small amount of energy, but it does not produce electricity directly. The player must pair it with generators or other heat-management infrastructure. This keeps its role distinct from direct power producers and from fossil heat producers.
+
+### Data center
+
+The Data center is a late-game energy sink.
+
+It consumes a large amount of energy and produces research. It does not generate electricity or money directly. Its purpose is to give the player a reason to scale the grid beyond basic selling and storage.

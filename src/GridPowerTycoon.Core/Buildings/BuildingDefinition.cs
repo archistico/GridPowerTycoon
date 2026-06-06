@@ -22,7 +22,12 @@ public sealed class BuildingDefinition
     public double AutoSellPerSecond { get; init; }
 
     public double HeatConversionPerSecond { get; init; }
+    public double HeatDissipationPerSecond { get; init; }
     public int HeatRange { get; init; }
+
+    public double EnergyEfficiencyBonus { get; init; }
+    public double MaintenanceEfficiencyBonus { get; init; }
+    public double ToolCapacityBonus { get; init; }
 
     public double LifetimeSeconds { get; init; }
 

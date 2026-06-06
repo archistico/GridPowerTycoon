@@ -213,3 +213,57 @@ The HELP panel `CURRENT` section now includes a `BOT` line.
 Objective, NEXT and BOT text now come from Core `ProgressionAdvisor`.
 
 The UI still decides where to draw the text, but the decision logic is testable outside MonoGame rendering.
+
+## Milestone 25 final feedback state
+
+Milestone 25 completes the current progression feedback layer.
+
+The final feedback model is:
+- status bar objective for passive guidance;
+- HELP `CURRENT` section for objective overview;
+- HELP `NEXT` line for action/resource gap;
+- HELP `BOT` line for bottleneck diagnosis.
+
+Priority remains unchanged: direct player action feedback, selected-building status, save/load messages and demolition confirmation override general progression guidance.
+
+## Substation feedback
+
+The Substation appears as a special/grid-support building.
+
+UI feedback includes:
+- build card: grid boost;
+- property panel: `GRID BONUS`;
+- map color: cyan special-support color;
+- research unlock text through `grid_substation`.
+
+The effect is reflected in resource-rate calculations through `EnergyEfficiencyMultiplier`.
+
+## Heat sink feedback
+
+Heat sink feedback is shown as heat coverage rather than heat conversion.
+
+The property panel includes `HEAT DISSIPATE`, and heat producers now report heat coverage when either a generator or heat sink is in range.
+
+## Maintenance center feedback
+
+The Maintenance center is shown as a maintenance building with a `MAINTENANCE` property row.
+
+The row explains its lifetime-wear reduction. Build cards describe it as a building that extends operational lifetime.
+
+## Tool warehouse feedback
+
+The Tool warehouse is shown as a tool-storage building.
+
+The property panel includes `TOOL STORAGE`, and build cards describe the capacity bonus for axes and mines.
+
+## Geothermal plant feedback
+
+The Geothermal plant uses existing heat-producer feedback.
+
+It appears as a heat source in the build card and property panel. Existing heat coverage messages guide the player to place generators or heat-management buildings nearby.
+
+## Data center feedback
+
+The Data center uses existing Corporation/research feedback.
+
+The property panel shows its high energy input and research output. If energy is missing, existing operational status reports `NO ENERGY`.

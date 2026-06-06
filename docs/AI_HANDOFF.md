@@ -905,3 +905,164 @@ La sezione `RESEARCH` del pannello sinistro a colonna unica è stata portata all
   - cloud unlock resource gap detail.
 - This is a structural/testability pass only.
 - No economy, simulation, heat, expansion, build, research, upgrade or save-data behavior was intentionally changed.
+
+## Step 25E - Milestone 25 final documentation
+
+- Closed Milestone 25.
+- Consolidated documentation for progression guidance.
+- Recorded final behavior of:
+  - objective;
+  - HELP current objective;
+  - NEXT;
+  - BOT;
+  - Core `ProgressionAdvisor`.
+- Recorded the next milestone as new buildings and production chains.
+- Proposed Milestone 26 order:
+  - Substation / Transformer;
+  - Heat sink / Cooler;
+  - Maintenance center;
+  - Tool warehouse;
+  - Geothermal plant;
+  - Data center;
+  - Nuclear / advanced reactor.
+- No code, economy, gameplay, balance or save-data changes were made.
+
+## Step 26A Fix1 - Substation Core alignment
+
+- Reapplied the missing Core changes required by the Substation tests:
+  - `BuildingDefinition.EnergyEfficiencyBonus`;
+  - `ResourceRateSnapshot.EnergyEfficiencyMultiplier`;
+  - energy-efficiency multiplier calculation.
+- Included Substation data/UI/test files again to keep the patch self-contained.
+
+## Step 26A Fix3 - UiRenderer helper methods
+
+- Added missing UI helper methods required by the Substation property/build-card text:
+  - `FormatEnergyEfficiencyBonus`;
+  - `FormatPercent`.
+- Fixes MonoGame compile errors where `UiRenderer` referenced the helpers but the helper methods were missing locally.
+
+## Step 26B - Heat sink / Raffreddatore
+
+- Added `heat_sink_small` / `Raffreddatore`.
+- Added research `heat_management` / `Gestione termica`.
+- Added new category `BuildingCategory.HeatSink`.
+- Added `BuildingDefinition.HeatDissipationPerSecond`.
+- Added validation for negative heat dissipation.
+- Added `UpgradeCalculator.GetHeatDissipationPerSecond`.
+- `HeatSystem` now performs:
+  - heat production;
+  - heat conversion to energy;
+  - heat dissipation without energy output;
+  - explosion checks.
+- Heat sinks remove accumulated heat from producers in range and do not add energy.
+- Operational heat coverage now accepts either converters or heat sinks in range.
+- `ResourceRateSnapshot` exposes `HeatDissipatedPerSecond` estimate.
+- UI support:
+  - build button id;
+  - research button id;
+  - heat sink category/detail text;
+  - `HEAT DISSIPATE` property row;
+  - heat coverage wording instead of conversion-only wording;
+  - map color for heat sinks.
+- Added test `HeatSinkInRange_ShouldDissipateHeatWithoutProducingEnergy`.
+
+## Step 26B Fix1 - Heat sink UI support variable
+
+- Fixed `UiRenderer.GetBuildButtonSupportText`.
+- Added the missing local variable `heatDissipation`.
+- Removed an accidental duplicate Substation support return from the main-effect method.
+- No gameplay or data changes.
+
+## Step 26C - Maintenance center / Centro manutenzione
+
+- Added `maintenance_center_small` / `Centro manutenzione`.
+- Added research `maintenance_center` / `Manutenzione rete`.
+- Added new category `BuildingCategory.Maintenance`.
+- Added `BuildingDefinition.MaintenanceEfficiencyBonus`.
+- Added validation for negative maintenance efficiency bonus.
+- Added `UpgradeCalculator.GetLifetimeDecayMultiplier`.
+- `LifetimeSystem` now applies the global maintenance decay multiplier before reducing building lifetime.
+- Maintenance centers slow operational wear but do not repair, renew or replace buildings.
+- Added UI support:
+  - build button id;
+  - research button id;
+  - `MAINTENANCE` property row;
+  - build-card text;
+  - property purpose text;
+  - map color.
+- Added test `MaintenanceCenter_ShouldSlowLifetimeDecay`.
+
+## Step 26C Fix1 - Maintenance Core alignment
+
+- Narrow fix for local builds where the Simulation test was updated but Core maintenance files were not overwritten.
+- Package includes the build-critical Core files for:
+  - `BuildingCategory.Maintenance`;
+  - `BuildingDefinition.MaintenanceEfficiencyBonus`;
+  - lifetime decay multiplier calculation;
+  - lifetime-system integration.
+- If the same error appears after applying this package, clean `bin`/`obj` or run `dotnet clean`.
+
+## Step 26C Fix2 - Maintenance UI helper
+
+- Added missing `FormatMaintenanceEfficiencyBonus` helper in `UiRenderer`.
+- Fixes MonoGame compile errors where maintenance rows referenced the helper but the helper method was missing locally.
+- Root cause: partial/narrow fix packages left UI helpers out of sync with rows already added to the same file.
+
+## Step 26D - Tool warehouse / Magazzino strumenti
+
+- Added `tool_warehouse_small` / `Magazzino strumenti`.
+- Added research `tool_storage` / `Logistica strumenti`.
+- Added new category `BuildingCategory.ToolStorage`.
+- Added `BuildingDefinition.ToolCapacityBonus`.
+- Added validation for negative tool capacity bonus.
+- Added `UpgradeCalculator.GetMaxAxes` and `UpgradeCalculator.GetMaxMines`.
+- `ToolGenerationSystem` now uses dynamic max tool capacity from active warehouses.
+- Tool warehouses increase both axe and mine caps. They do not increase tool generation speed.
+- Added UI support:
+  - build button id;
+  - research button id;
+  - `TOOL STORAGE` property row;
+  - build-card text;
+  - property purpose text;
+  - map color.
+- Added test `Update_WithToolWarehouse_ShouldIncreaseToolCaps`.
+- Packaging note: this step includes Core, data, UI, test and docs together to avoid partial-update drift.
+
+## Step 26E - Geothermal plant / Centrale geotermica
+
+- Added `geothermal_plant` / `Centrale geotermica`.
+- Added research `geothermal_power` / `Energia geotermica`.
+- The geothermal plant uses existing heat-producer mechanics:
+  - produces constant heat;
+  - consumes a small amount of energy;
+  - needs heat conversion coverage to become useful;
+  - does not directly produce electric energy.
+- Added the building to build UI order.
+- Added the research to research UI order.
+- Added test `GeothermalPlant_WithGenerator_ShouldProduceStableConvertedEnergy`.
+- No new Core property or enum was required.
+- Packaging note: Core, data, UI, test and docs were checked together for consistency.
+
+## Step 26E Fix1 - Geothermal test affordability
+
+- Fixed the geothermal heat-system test setup.
+- The test catalog definition now uses `Cost = 1` for `geothermal_plant`, matching the local test economy.
+- Production data in `buildings.json` remains unchanged at the intended gameplay cost of `$12,000`.
+- No gameplay, UI or data changes.
+
+## Step 26F - Data center
+
+- Added `data_center` / `Data center`.
+- Added research `data_center`.
+- The Data center uses existing research-production mechanics:
+  - high `ResearchPerSecond`;
+  - high `EnergyConsumptionPerSecond`;
+  - category `Corporation`.
+- It is a large energy consumer that turns surplus grid capacity into research throughput.
+- Added the building to build UI order.
+- Added the research to research UI order.
+- Added tests:
+  - `DataCenter_WithStoredEnergy_ShouldConsumeEnergyAndProduceResearch`;
+  - `DataCenter_WithoutEnergy_ShouldNotProduceResearch`.
+- No new Core property or enum was required.

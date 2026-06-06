@@ -516,3 +516,114 @@ No balance values were changed.
 Moved progression guidance into a Core advisor and added tests.
 
 No balance values were changed.
+
+## Step 25E - Milestone 25 final documentation
+
+Closed Milestone 25 documentation.
+
+No balance values were changed. The next milestone will add new buildings and will require careful balance notes per building.
+
+## Step 26A - Substation / Transformer
+
+Added Substation / Transformer balance values.
+
+Initial values:
+- building id: `substation_small`;
+- cost: $2,200;
+- required research: `grid_substation`;
+- research cost: R180;
+- prerequisite research: `generator_small`;
+- energy consumption: 0.5/s;
+- energy efficiency bonus: +10%;
+- size: 1 x 1;
+- lifetime: none.
+
+Balance intent: mid-game support building that improves global grid output after the player has established heat conversion.
+
+## Step 26B - Heat sink / Raffreddatore
+
+Added Heat sink / Raffreddatore balance values.
+
+Initial values:
+- building id: `heat_sink_small`;
+- cost: $900;
+- required research: `heat_management`;
+- research cost: R120;
+- prerequisite research: `generator_small`;
+- energy consumption: 0.4/s;
+- heat dissipation: 18/s;
+- range: 1;
+- size: 1 x 1;
+- lifetime: none.
+
+Balance intent: defensive alternative to generators. It reduces heat risk but does not produce energy.
+
+## Step 26C - Maintenance center / Centro manutenzione
+
+Added Maintenance center balance values.
+
+Initial values:
+- building id: `maintenance_center_small`;
+- cost: $3,200;
+- required research: `maintenance_center`;
+- research cost: R300;
+- prerequisite research: `grid_substation`;
+- energy consumption: 0.8/s;
+- maintenance efficiency bonus: 25% slower lifetime wear;
+- minimum lifetime decay multiplier is capped at 25%;
+- size: 1 x 1;
+- lifetime: none.
+
+Balance intent: reduce operational churn before complete manager automation.
+
+## Step 26D - Tool warehouse / Magazzino strumenti
+
+Added Tool warehouse balance values.
+
+Initial values:
+- building id: `tool_warehouse_small`;
+- cost: $1,800;
+- required research: `tool_storage`;
+- research cost: R220;
+- prerequisite research: `heat_management`;
+- energy consumption: 0.25/s;
+- tool capacity bonus: +25 axes and +25 mines;
+- size: 1 x 1;
+- lifetime: none.
+
+Balance intent: improve expansion logistics without accelerating tool generation.
+
+## Step 26E - Geothermal plant / Centrale geotermica
+
+Added Geothermal plant balance values.
+
+Initial values:
+- building id: `geothermal_plant`;
+- cost: $12,000;
+- required research: `geothermal_power`;
+- research cost: R1,600;
+- prerequisite research: `coal_power`;
+- size: 2 x 2;
+- heat production: 180/s;
+- energy consumption: 1.5/s;
+- lifetime: 600 seconds.
+
+Balance intent: stable mid-game heat source that requires conversion capacity and grid support.
+
+## Step 26F - Data center
+
+Added Data center balance values.
+
+Initial values:
+- building id: `data_center`;
+- cost: $250,000;
+- required research: `data_center`;
+- research cost: R8,000;
+- prerequisite research: `research_large`;
+- category: Corporation;
+- size: 2 x 2;
+- research output: 120/s;
+- energy consumption: 80/s;
+- lifetime: none.
+
+Balance intent: late-game energy sink that converts surplus energy into research velocity.

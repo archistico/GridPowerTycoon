@@ -97,7 +97,8 @@ public static class BuildingOperationalStatusCalculator
             if (definition.HeatRange <= 0)
                 continue;
 
-            if (UpgradeCalculator.GetHeatConversionPerSecond(world, definition) <= 0)
+            if (UpgradeCalculator.GetHeatConversionPerSecond(world, definition) <= 0 &&
+                UpgradeCalculator.GetHeatDissipationPerSecond(world, definition) <= 0)
                 continue;
 
             if (GetChebyshevDistance(instance, producer) <= definition.HeatRange)

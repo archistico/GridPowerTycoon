@@ -25,6 +25,7 @@ public sealed class HeatSystem
 
         ProduceHeat(deltaSeconds);
         ConvertHeat(deltaSeconds);
+        DissipateHeat(deltaSeconds);
 
         if (allowExplosions)
             ExplodeOverheatedBuildings();
@@ -81,6 +82,38 @@ public sealed class HeatSystem
                 producer.RemoveHeat(heatToConvert);
                 _world.Resources.AddEnergy(heatToConvert * _world.HeatSettings.HeatEnergyConversionRate);
                 remainingCapacity -= heatToConvert;
+            }
+        }
+    }
+
+    private void DissipateHeat(double deltaSeconds)
+    {
+        foreach (var sink in _world.BuildingInstances.Values)
+        {
+            if (!sink.IsActive)
+                continue;
+
+            if (!_world.BuildingCatalog.TryGet(sink.DefinitionId, out var sinkDefinition))
+                continue;
+
+            if (UpgradeCalculator.GetHeatDissipationPerSecond(_world, sinkDefinition) <= 0 || sinkDefinition.HeatRange <= 0)
+                continue;
+
+            var remainingCapacity = UpgradeCalculator.GetHeatDissipationPerSecond(_world, sinkDefinition) * deltaSeconds;
+            if (remainingCapacity <= 0)
+                continue;
+
+            foreach (var producer in GetHeatProducersInRange(sink, sinkDefinition.HeatRange))
+            {
+                if (remainingCapacity <= 0)
+                    break;
+
+                var heatToDissipate = Math.Min(producer.AccumulatedHeat, remainingCapacity);
+                if (heatToDissipate <= 0)
+                    continue;
+
+                producer.RemoveHeat(heatToDissipate);
+                remainingCapacity -= heatToDissipate;
             }
         }
     }

@@ -16,6 +16,8 @@ public sealed class ResourceRateSnapshot
     public double EnergyConsumptionPerSecond { get; init; }
     public double HeatProducedPerSecond { get; init; }
     public double HeatConvertedEnergyPerSecond { get; init; }
+    public double HeatDissipatedPerSecond { get; init; }
+    public double EnergyEfficiencyMultiplier { get; init; } = 1;
 
     public static ResourceRateSnapshot Calculate(GameWorld world)
     {
@@ -28,6 +30,7 @@ public sealed class ResourceRateSnapshot
         var energyConsumption = 0d;
         var heatProduced = 0d;
         var moneyPerSecond = 0m;
+        var energyEfficiencyMultiplier = GetEnergyEfficiencyMultiplier(world);
 
         foreach (var instance in world.BuildingInstances.Values)
         {
@@ -51,11 +54,13 @@ public sealed class ResourceRateSnapshot
                 energyConsumption += consumption;
             }
 
-            rawEnergyProduction += energyPerSecond;
-            availableEnergy = Math.Min(world.Resources.MaxEnergy, availableEnergy + energyPerSecond);
+            var effectiveEnergyPerSecond = energyPerSecond * energyEfficiencyMultiplier;
+            rawEnergyProduction += effectiveEnergyPerSecond;
+            availableEnergy = Math.Min(world.Resources.MaxEnergy, availableEnergy + effectiveEnergyPerSecond);
         }
 
-        var heatConvertedEnergy = EstimateHeatConvertedEnergyPerSecond(world);
+        var heatConvertedEnergy = EstimateHeatConvertedEnergyPerSecond(world) * energyEfficiencyMultiplier;
+        var heatDissipated = EstimateHeatDissipatedPerSecond(world);
         if (heatConvertedEnergy > 0)
             availableEnergy = Math.Min(world.Resources.MaxEnergy, availableEnergy + heatConvertedEnergy);
 
@@ -156,8 +161,86 @@ public sealed class ResourceRateSnapshot
             AutoSellEnergyPerSecond = autoSell,
             EnergyConsumptionPerSecond = energyConsumption,
             HeatProducedPerSecond = heatProduced,
-            HeatConvertedEnergyPerSecond = heatConvertedEnergy
+            HeatConvertedEnergyPerSecond = heatConvertedEnergy,
+            HeatDissipatedPerSecond = heatDissipated,
+            EnergyEfficiencyMultiplier = energyEfficiencyMultiplier
         };
+    }
+
+    private static double EstimateHeatDissipatedPerSecond(GameWorld world)
+    {
+        var availableHeatByProducer = new Dictionary<Guid, double>();
+
+        foreach (var instance in world.BuildingInstances.Values)
+        {
+            if (!instance.IsActive)
+                continue;
+
+            if (!world.BuildingCatalog.TryGet(instance.DefinitionId, out var definition))
+                continue;
+
+            if (UpgradeCalculator.GetHeatPerSecond(world, definition) <= 0 && instance.AccumulatedHeat <= 0)
+                continue;
+
+            availableHeatByProducer[instance.Id] = UpgradeCalculator.GetHeatPerSecond(world, definition) + instance.AccumulatedHeat;
+        }
+
+        var dissipatedHeat = 0d;
+
+        foreach (var sink in world.BuildingInstances.Values)
+        {
+            if (!sink.IsActive)
+                continue;
+
+            if (!world.BuildingCatalog.TryGet(sink.DefinitionId, out var sinkDefinition))
+                continue;
+
+            if (UpgradeCalculator.GetHeatDissipationPerSecond(world, sinkDefinition) <= 0 || sinkDefinition.HeatRange <= 0)
+                continue;
+
+            var remainingCapacity = UpgradeCalculator.GetHeatDissipationPerSecond(world, sinkDefinition);
+
+            foreach (var producer in world.BuildingInstances.Values
+                         .Where(x => x.IsActive)
+                         .Where(x => x.Id != sink.Id)
+                         .Where(x => availableHeatByProducer.ContainsKey(x.Id))
+                         .Where(x => IsWithinRange(sink, x, sinkDefinition.HeatRange))
+                         .OrderBy(x => GetChebyshevDistance(sink, x))
+                         .ThenBy(x => x.Id))
+            {
+                if (remainingCapacity <= 0)
+                    break;
+
+                var availableHeat = availableHeatByProducer[producer.Id];
+                var heatToDissipate = Math.Min(availableHeat, remainingCapacity);
+                if (heatToDissipate <= 0)
+                    continue;
+
+                availableHeatByProducer[producer.Id] = availableHeat - heatToDissipate;
+                remainingCapacity -= heatToDissipate;
+                dissipatedHeat += heatToDissipate;
+            }
+        }
+
+        return dissipatedHeat;
+    }
+
+    private static double GetEnergyEfficiencyMultiplier(GameWorld world)
+    {
+        var bonus = 0d;
+
+        foreach (var instance in world.BuildingInstances.Values)
+        {
+            if (!instance.IsActive)
+                continue;
+
+            if (!world.BuildingCatalog.TryGet(instance.DefinitionId, out var definition))
+                continue;
+
+            bonus += definition.EnergyEfficiencyBonus;
+        }
+
+        return 1d + Math.Max(0d, bonus);
     }
 
     private static double EstimateHeatConvertedEnergyPerSecond(GameWorld world)

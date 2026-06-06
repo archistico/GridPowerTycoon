@@ -71,6 +71,18 @@ public sealed class BuildingCatalog
             if (definition.HeatConversionPerSecond < 0 || definition.HeatRange < 0)
                 throw new InvalidOperationException($"Building '{definition.Id}' has invalid heat conversion values.");
 
+            if (definition.HeatDissipationPerSecond < 0)
+                throw new InvalidOperationException($"Building '{definition.Id}' has negative heat dissipation.");
+
+            if (definition.EnergyEfficiencyBonus < 0)
+                throw new InvalidOperationException($"Building '{definition.Id}' has negative energy efficiency bonus.");
+
+            if (definition.MaintenanceEfficiencyBonus < 0)
+                throw new InvalidOperationException($"Building '{definition.Id}' has negative maintenance efficiency bonus.");
+
+            if (definition.ToolCapacityBonus < 0)
+                throw new InvalidOperationException($"Building '{definition.Id}' has negative tool capacity bonus.");
+
             if (definition.LifetimeSeconds < 0)
                 throw new InvalidOperationException($"Building '{definition.Id}' has negative lifetime.");
         }

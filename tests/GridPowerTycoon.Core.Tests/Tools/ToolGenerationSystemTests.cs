@@ -2,6 +2,7 @@ using GridPowerTycoon.Core.Buildings;
 using GridPowerTycoon.Core.Economy;
 using GridPowerTycoon.Core.Map;
 using GridPowerTycoon.Core.Tools;
+using GridPowerTycoon.Core.Upgrades;
 using GridPowerTycoon.Core.World;
 
 namespace GridPowerTycoon.Core.Tests.Tools;
@@ -32,6 +33,27 @@ public sealed class ToolGenerationSystemTests
         Assert.Equal(3, world.Resources.Mines);
     }
 
+
+    [Fact]
+    public void Update_WithToolWarehouse_ShouldIncreaseToolCaps()
+    {
+        var world = CreateWorld();
+        var warehouse = new BuildingInstance(
+            Guid.NewGuid(),
+            "tool_warehouse_small",
+            new GridPosition(1, 1),
+            lifetimeSeconds: 0);
+        world.AddBuilding(warehouse);
+        var system = new ToolGenerationSystem(world);
+
+        system.Update(1000);
+
+        Assert.Equal(30, world.Resources.Axes);
+        Assert.Equal(28, world.Resources.Mines);
+        Assert.Equal(30, UpgradeCalculator.GetMaxAxes(world));
+        Assert.Equal(28, UpgradeCalculator.GetMaxMines(world));
+    }
+
     private static GameWorld CreateWorld()
     {
         var map = new GridMap(4, 4, TileType.Land);
@@ -43,6 +65,14 @@ public sealed class ToolGenerationSystemTests
                 Name = "Dummy",
                 Category = BuildingCategory.Special,
                 Cost = 0
+            },
+            new BuildingDefinition
+            {
+                Id = "tool_warehouse_small",
+                Name = "Magazzino strumenti",
+                Category = BuildingCategory.ToolStorage,
+                Cost = 1,
+                ToolCapacityBonus = 25
             }
         });
 

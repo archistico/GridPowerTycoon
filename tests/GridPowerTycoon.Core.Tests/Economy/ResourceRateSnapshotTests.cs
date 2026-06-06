@@ -76,6 +76,22 @@ public sealed class ResourceRateSnapshotTests
         Assert.Equal(0.5, rates.EnergyConsumptionPerSecond);
     }
 
+
+    [Fact]
+    public void Calculate_WithActiveSubstation_ShouldApplyEnergyEfficiencyBonus()
+    {
+        var world = CreateWorld(startingMoney: 100);
+        var build = new BuildSystem(world);
+        Assert.True(build.Build("wind_turbine", new GridPosition(1, 1)).Success);
+        Assert.True(build.Build("substation_small", new GridPosition(2, 1)).Success);
+
+        var rates = ResourceRateSnapshot.Calculate(world);
+
+        Assert.Equal(1.1, rates.EnergyPerSecond, 5);
+        Assert.Equal(1.1, rates.RawEnergyProductionPerSecond, 5);
+        Assert.Equal(1.1, rates.EnergyEfficiencyMultiplier, 5);
+    }
+
     private static GameWorld CreateWorld(decimal startingMoney, decimal energySellValue = 1)
     {
         var map = new GridMap(4, 4, TileType.Land);
@@ -114,6 +130,14 @@ public sealed class ResourceRateSnapshotTests
                 Cost = 1,
                 ResearchPerSecond = 1.25,
                 EnergyConsumptionPerSecond = 0.5
+            },
+            new BuildingDefinition
+            {
+                Id = "substation_small",
+                Name = "Trasformatore",
+                Category = BuildingCategory.Special,
+                Cost = 1,
+                EnergyEfficiencyBonus = 0.1
             }
         });
 

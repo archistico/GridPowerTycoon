@@ -17,9 +17,7 @@ public sealed class ToolGenerationSystem
         if (deltaSeconds <= 0)
             return;
 
-        var settings = _world.ToolSettings;
-
-        _world.Resources.AddAxes(UpgradeCalculator.GetAxesPerSecond(_world) * deltaSeconds, settings.MaxAxes);
-        _world.Resources.AddMines(UpgradeCalculator.GetMinesPerSecond(_world) * deltaSeconds, settings.MaxMines);
+        _world.Resources.AddAxes(UpgradeCalculator.GetAxesPerSecond(_world) * deltaSeconds, UpgradeCalculator.GetMaxAxes(_world));
+        _world.Resources.AddMines(UpgradeCalculator.GetMinesPerSecond(_world) * deltaSeconds, UpgradeCalculator.GetMaxMines(_world));
     }
 }

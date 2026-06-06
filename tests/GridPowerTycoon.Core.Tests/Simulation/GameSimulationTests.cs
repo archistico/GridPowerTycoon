@@ -85,6 +85,25 @@ public sealed class GameSimulationTests
         Assert.Equal(BuildingState.Expired, instance.State);
     }
 
+
+    [Fact]
+    public void MaintenanceCenter_ShouldSlowLifetimeDecay()
+    {
+        var world = CreateWorld(startingMoney: 100);
+        var build = new BuildSystem(world);
+        var windResult = build.Build("short_wind_turbine", new GridPosition(1, 1));
+        Assert.True(windResult.Success);
+        Assert.True(build.Build("maintenance_center_small", new GridPosition(2, 1)).Success);
+        var sell = new SellSystem(world);
+        var simulation = new GameSimulation(world, sell);
+
+        simulation.Update(1);
+
+        var wind = world.BuildingInstances[windResult.BuildingId!.Value];
+        Assert.Equal(BuildingState.Active, wind.State);
+        Assert.Equal(0.25, wind.RemainingLifetimeSeconds, 6);
+    }
+
     [Fact]
     public void Production_ShouldRespectMaxEnergy()
     {
@@ -162,6 +181,38 @@ public sealed class GameSimulationTests
         Assert.Equal(70m, world.Resources.Money);
     }
 
+
+    [Fact]
+    public void DataCenter_WithStoredEnergy_ShouldConsumeEnergyAndProduceResearch()
+    {
+        var world = CreateWorld(startingMoney: 1000);
+        var build = new BuildSystem(world);
+        Assert.True(build.Build("data_center", new GridPosition(1, 1)).Success);
+        world.Resources.AddEnergy(50);
+        var sell = new SellSystem(world);
+        var simulation = new GameSimulation(world, sell);
+
+        simulation.Update(1);
+
+        Assert.Equal(30, world.Resources.Energy);
+        Assert.Equal(25, world.Resources.Research);
+    }
+
+    [Fact]
+    public void DataCenter_WithoutEnergy_ShouldNotProduceResearch()
+    {
+        var world = CreateWorld(startingMoney: 1000);
+        var build = new BuildSystem(world);
+        Assert.True(build.Build("data_center", new GridPosition(1, 1)).Success);
+        var sell = new SellSystem(world);
+        var simulation = new GameSimulation(world, sell);
+
+        simulation.Update(1);
+
+        Assert.Equal(0, world.Resources.Energy);
+        Assert.Equal(0, world.Resources.Research);
+    }
+
     private static GameWorld CreateWorld(decimal startingMoney, decimal energySellValue = 1)
     {
         var map = new GridMap(4, 4, TileType.Land);
@@ -228,6 +279,23 @@ public sealed class GameSimulationTests
                 Cost = 50,
                 AutoSellPerSecond = 10,
                 EnergyConsumptionPerSecond = 0.2
+            },
+            new BuildingDefinition
+            {
+                Id = "maintenance_center_small",
+                Name = "Centro manutenzione",
+                Category = BuildingCategory.Maintenance,
+                Cost = 1,
+                MaintenanceEfficiencyBonus = 0.25
+            },
+            new BuildingDefinition
+            {
+                Id = "data_center",
+                Name = "Data center",
+                Category = BuildingCategory.Corporation,
+                Cost = 1,
+                ResearchPerSecond = 25,
+                EnergyConsumptionPerSecond = 20
             }
         });
 

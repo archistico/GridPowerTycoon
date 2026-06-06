@@ -48,6 +48,58 @@
       "managedBuildingIds": []
     },
     {
+      "id": "heat_management",
+      "name": "Gestione termica",
+      "description": "Sblocca il raffreddatore, un edificio che dissipa calore vicino senza convertirlo in energia.",
+      "cost": 120,
+      "unlockBuildingIds": [
+        "heat_sink_small"
+      ],
+      "requiredResearchIds": [
+        "generator_small"
+      ],
+      "managedBuildingIds": []
+    },
+    {
+      "id": "tool_storage",
+      "name": "Logistica strumenti",
+      "description": "Sblocca il magazzino strumenti, che aumenta la capacità massima di asce e mine.",
+      "cost": 220,
+      "unlockBuildingIds": [
+        "tool_warehouse_small"
+      ],
+      "requiredResearchIds": [
+        "heat_management"
+      ],
+      "managedBuildingIds": []
+    },
+    {
+      "id": "grid_substation",
+      "name": "Trasformatori di rete",
+      "description": "Sblocca il trasformatore, un edificio di supporto che aumenta l'efficienza energetica globale.",
+      "cost": 180,
+      "unlockBuildingIds": [
+        "substation_small"
+      ],
+      "requiredResearchIds": [
+        "generator_small"
+      ],
+      "managedBuildingIds": []
+    },
+    {
+      "id": "maintenance_center",
+      "name": "Manutenzione rete",
+      "description": "Sblocca il centro manutenzione, che rallenta il degrado operativo degli edifici.",
+      "cost": 300,
+      "unlockBuildingIds": [
+        "maintenance_center_small"
+      ],
+      "requiredResearchIds": [
+        "grid_substation"
+      ],
+      "managedBuildingIds": []
+    },
+    {
       "id": "coal_power",
       "name": "Energia a carbone",
       "description": "Sblocca la centrale a carbone.",
@@ -57,6 +109,19 @@
       ],
       "requiredResearchIds": [
         "generator_small"
+      ],
+      "managedBuildingIds": []
+    },
+    {
+      "id": "geothermal_power",
+      "name": "Energia geotermica",
+      "description": "Sblocca la centrale geotermica, una fonte di calore stabile per produzione energetica tramite generatori.",
+      "cost": 1600,
+      "unlockBuildingIds": [
+        "geothermal_plant"
+      ],
+      "requiredResearchIds": [
+        "coal_power"
       ],
       "managedBuildingIds": []
     },
@@ -109,6 +174,19 @@
       ],
       "requiredResearchIds": [
         "gas_power"
+      ],
+      "managedBuildingIds": []
+    },
+    {
+      "id": "data_center",
+      "name": "Data center",
+      "description": "Sblocca il data center, un grande consumatore energetico che produce ricerca ad alta velocità.",
+      "cost": 8000,
+      "unlockBuildingIds": [
+        "data_center"
+      ],
+      "requiredResearchIds": [
+        "research_large"
       ],
       "managedBuildingIds": []
     },

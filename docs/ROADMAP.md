@@ -736,3 +736,91 @@ Completed:
 - added targeted Core tests for objective/detail/bottleneck behavior;
 - no save-data changes;
 - no gameplay logic changes.
+
+### Step 25E - Milestone 25 final documentation
+
+Completed:
+- consolidated Milestone 25 progression guidance documentation;
+- recorded final behavior of objective, NEXT and BOT guidance;
+- recorded that `ProgressionAdvisor` is now the Core owner of progression guidance;
+- confirmed no saved quest/mission state;
+- prepared the next milestone as content expansion / new buildings.
+
+Milestone 25 is now complete.
+
+## Milestone 26 - New buildings and production chains
+
+Goal: add new buildings that introduce distinct strategic roles, not just stronger versions of existing buildings.
+
+Planned order:
+- 26A - Substation / Transformer;
+- 26B - Heat sink / Cooler;
+- 26C - Maintenance center;
+- 26D - Tool warehouse;
+- 26E - Geothermal plant;
+- 26F - Data center;
+- 26G - Nuclear plant or advanced reactor.
+
+Design rule: every new building must solve a specific gameplay problem or create a new trade-off.
+
+### 26A - Substation / Transformer
+
+Completed:
+- added first support building: Substation / Transformer;
+- added global energy efficiency bonus mechanic;
+- added research unlock;
+- added UI/property/build-card support;
+- added ResourceRateSnapshot test.
+
+Design role: improves an already productive grid by increasing global energy output. It is not a producer and not simple storage.
+
+### 26B - Heat sink / Raffreddatore
+
+Completed:
+- added heat sink building and research;
+- added heat dissipation mechanic;
+- added UI/property/map support;
+- added heat-system test.
+
+Design role: defensive heat management. It prevents heat risk without producing energy, creating a choice between conversion efficiency and safety.
+
+### 26C - Maintenance center / Centro manutenzione
+
+Completed:
+- added maintenance building and research;
+- added global lifetime-decay reduction mechanic;
+- added UI/property/map support;
+- added simulation test.
+
+Design role: operational stability. It slows wear before managers fully automate renewals.
+
+### 26D - Tool warehouse / Magazzino strumenti
+
+Completed:
+- added tool warehouse building and research;
+- added dynamic axe/mine capacity bonus;
+- updated tool generation caps;
+- added UI/property/map support;
+- added tool-generation test.
+
+Design role: expansion logistics. It lets the player store more axes and mines before clearing terrain, without increasing generation speed.
+
+### 26E - Geothermal plant / Centrale geotermica
+
+Completed:
+- added geothermal building and research;
+- connected it to the existing heat-production chain;
+- added UI build/research entries;
+- added heat-system test.
+
+Design role: stable mid-game heat source. It is not direct electricity; it requires conversion infrastructure.
+
+### 26F - Data center
+
+Completed:
+- added data center building and research;
+- connected it to existing research/energy-consumption mechanics;
+- added UI build/research entries;
+- added simulation tests.
+
+Design role: major energy sink. It gives mature grids a reason to produce large surplus energy by converting it into research throughput.

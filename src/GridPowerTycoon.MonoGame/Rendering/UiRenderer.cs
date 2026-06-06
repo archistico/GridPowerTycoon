@@ -51,11 +51,17 @@ public sealed class UiRenderer
         "research_small",
         "solar_panel",
         "generator_small",
+        "heat_sink_small",
+        "substation_small",
+        "maintenance_center_small",
+        "tool_warehouse_small",
         "coal_power_plant",
+        "geothermal_plant",
         "office_large",
         "generator_medium",
         "gas_power_plant",
-        "research_large"
+        "research_large",
+        "data_center"
     };
 
     private static readonly string[] ResearchButtonIds =
@@ -64,15 +70,21 @@ public sealed class UiRenderer
         "office_small",
         "solar_power",
         "generator_small",
+        "heat_management",
+        "grid_substation",
+        "maintenance_center",
+        "tool_storage",
         "wind_turbine_manager",
         "solar_panel_manager",
         "coal_power",
+        "geothermal_power",
         "office_large",
         "generator_medium",
         "gas_power",
         "coal_power_manager",
         "gas_power_manager",
-        "research_large"
+        "research_large",
+        "data_center"
     };
 
     private static readonly string[] UpgradeButtonIds =
@@ -825,6 +837,9 @@ public sealed class UiRenderer
         "NEXT UPGRADE",
         "MONEY/S",
         "NET ENERGY",
+        "GRID BONUS",
+        "MAINTENANCE",
+        "TOOL STORAGE",
         "PAYBACK",
         "LIFE",
         "MANAGED",
@@ -836,6 +851,7 @@ public sealed class UiRenderer
         "HEAT RISK",
         "HEAT IN",
         "HEAT TO ENERGY",
+        "HEAT DISSIPATE",
         "RESEARCH OUT",
         "AUTO SELL",
         "BATTERY",
@@ -869,6 +885,9 @@ public sealed class UiRenderer
         rows["NEXT UPGRADE"] = GetNextUpgradeCostText(definition);
         rows["MONEY/S"] = FormatEstimatedMoneyPerSecond(GetEstimatedMoneyPerSecond(status));
         rows["NET ENERGY"] = FormatNetEnergy(status);
+        rows["GRID BONUS"] = FormatEnergyEfficiencyBonus(definition);
+        rows["MAINTENANCE"] = FormatMaintenanceEfficiencyBonus(definition);
+        rows["TOOL STORAGE"] = FormatToolCapacityBonus(definition);
         rows["PAYBACK"] = FormatPayback(definition.Cost, GetEstimatedMoneyPerSecond(status));
         rows["LIFE"] = FormatLifetime(instance.RemainingLifetimeSeconds, effectiveLifetime);
         rows["MANAGED"] = managed ? "YES" : "NO";
@@ -885,6 +904,9 @@ public sealed class UiRenderer
             : "-";
         rows["HEAT TO ENERGY"] = UpgradeCalculator.GetHeatConversionPerSecond(_world, definition) > 0
             ? $"PRODUCES {FormatNumber(status.HeatConversionEnergyOutputPerSecond)}/S ENERGY"
+            : "-";
+        rows["HEAT DISSIPATE"] = UpgradeCalculator.GetHeatDissipationPerSecond(_world, definition) > 0
+            ? $"REMOVES {FormatNumber(UpgradeCalculator.GetHeatDissipationPerSecond(_world, definition))}/S, RANGE {definition.HeatRange} CELLS"
             : "-";
         rows["RESEARCH OUT"] = FormatEffectiveGross(status.ResearchOutputPerSecond, UpgradeCalculator.GetResearchPerSecond(_world, definition));
         rows["AUTO SELL"] = FormatEffectiveGross(status.AutoSellInputPerSecond, UpgradeCalculator.GetAutoSellPerSecond(_world, definition));
@@ -952,7 +974,7 @@ public sealed class UiRenderer
     private static string GetActiveOperationalNote(BuildingOperationalStatus status, BuildingDefinition definition)
     {
         if (status.HeatOutputPerSecond > 0)
-            return status.HasHeatConverterInRange ? "HEAT CONVERSION OK" : "NEEDS GENERATOR";
+            return status.HasHeatConverterInRange ? "HEAT COVERAGE OK" : "NEEDS HEAT COVERAGE";
 
         if (status.EnergyInputPerSecond > 0)
             return "ENERGY SUPPLY OK";
@@ -1114,6 +1136,9 @@ public sealed class UiRenderer
         rows["NEXT UPGRADE"] = GetNextUpgradeCostText(definition);
         rows["MONEY/S"] = FormatEstimatedMoneyPerSecond(GetEstimatedMoneyPerSecond(definition));
         rows["NET ENERGY"] = FormatNetEnergy(definition);
+        rows["GRID BONUS"] = FormatEnergyEfficiencyBonus(definition);
+        rows["MAINTENANCE"] = FormatMaintenanceEfficiencyBonus(definition);
+        rows["TOOL STORAGE"] = FormatToolCapacityBonus(definition);
         rows["PAYBACK"] = FormatPayback(definition.Cost, GetEstimatedMoneyPerSecond(definition));
         rows["SIZE"] = $"{definition.Width} X {definition.Height}";
         action = _world.Resources.Money >= definition.Cost
@@ -1137,6 +1162,9 @@ public sealed class UiRenderer
             rows["BUILD COST"] = "$" + FormatNumber((double)selectedDefinition.Cost);
             rows["MONEY/S"] = FormatEstimatedMoneyPerSecond(GetEstimatedMoneyPerSecond(selectedDefinition));
             rows["NET ENERGY"] = FormatNetEnergy(selectedDefinition);
+            rows["GRID BONUS"] = FormatEnergyEfficiencyBonus(selectedDefinition);
+            rows["MAINTENANCE"] = FormatMaintenanceEfficiencyBonus(selectedDefinition);
+            rows["TOOL STORAGE"] = FormatToolCapacityBonus(selectedDefinition);
             rows["PAYBACK"] = FormatPayback(selectedDefinition.Cost, GetEstimatedMoneyPerSecond(selectedDefinition));
             rows["SIZE"] = $"{selectedDefinition.Width} X {selectedDefinition.Height}";
 
@@ -1192,13 +1220,26 @@ public sealed class UiRenderer
         var batteryCapacity = UpgradeCalculator.GetBatteryCapacity(_world, definition);
         var autoSell = UpgradeCalculator.GetAutoSellPerSecond(_world, definition);
         var heatIn = UpgradeCalculator.GetHeatConversionPerSecond(_world, definition);
+        var heatDissipation = UpgradeCalculator.GetHeatDissipationPerSecond(_world, definition);
         var energyIn = UpgradeCalculator.GetEnergyConsumptionPerSecond(_world, definition);
+
+        if (definition.EnergyEfficiencyBonus > 0)
+            return $"BOOSTS GRID +{FormatPercent(definition.EnergyEfficiencyBonus)}";
+
+        if (definition.MaintenanceEfficiencyBonus > 0)
+            return $"SLOWS WEAR {FormatPercent(definition.MaintenanceEfficiencyBonus)}";
+
+        if (definition.ToolCapacityBonus > 0)
+            return $"STORES TOOLS +{FormatNumber(definition.ToolCapacityBonus)}";
 
         if (energyOut > 0)
             return $"PRODUCES {FormatNumber(energyOut)}/S ENERGY";
 
         if (heatIn > 0)
             return $"CONVERTS {FormatNumber(heatIn)}/S HEAT";
+
+        if (heatDissipation > 0)
+            return $"DISSIPATES {FormatNumber(heatDissipation)}/S HEAT";
 
         if (heatOut > 0)
             return $"PRODUCES {FormatNumber(heatOut)}/S HEAT";
@@ -1225,10 +1266,14 @@ public sealed class UiRenderer
             BuildingCategory.PowerProducer => "POWER",
             BuildingCategory.Storage => "STORAGE",
             BuildingCategory.Automation => "AUTO SELL",
+            BuildingCategory.Maintenance => "MAINTENANCE",
+            BuildingCategory.ToolStorage => "TOOL STORAGE",
             BuildingCategory.Research => "RESEARCH",
             BuildingCategory.HeatProducer => "HEAT SOURCE",
             BuildingCategory.HeatConverter => "HEAT CONVERTER",
+            BuildingCategory.HeatSink => "HEAT SINK",
             BuildingCategory.Corporation => "CORPORATION",
+            BuildingCategory.Special when definition.EnergyEfficiencyBonus > 0 => "GRID SUPPORT",
             _ => "BUILDING"
         };
 
@@ -1240,7 +1285,14 @@ public sealed class UiRenderer
         var energyIn = UpgradeCalculator.GetEnergyConsumptionPerSecond(_world, definition);
         var heatOut = UpgradeCalculator.GetHeatPerSecond(_world, definition);
         var heatIn = UpgradeCalculator.GetHeatConversionPerSecond(_world, definition);
+        var heatDissipation = UpgradeCalculator.GetHeatDissipationPerSecond(_world, definition);
         var netEnergy = FormatNetEnergy(definition);
+
+        if (definition.MaintenanceEfficiencyBonus > 0)
+            return "EXTENDS BUILDING LIFETIME";
+
+        if (definition.ToolCapacityBonus > 0)
+            return "INCREASES AXE AND MINE CAPACITY";
 
         if (heatIn > 0)
         {
@@ -1248,6 +1300,14 @@ public sealed class UiRenderer
             return range > 0
                 ? $"PLACE NEAR HEAT SOURCE, RANGE {range}"
                 : "NEEDS STORED HEAT";
+        }
+
+        if (heatDissipation > 0)
+        {
+            var range = Math.Max(0, definition.HeatRange);
+            return range > 0
+                ? $"COOLS HEAT WITHOUT ENERGY, RANGE {range}"
+                : "COOLS STORED HEAT";
         }
 
         if (heatOut > 0)
@@ -1278,10 +1338,14 @@ public sealed class UiRenderer
             BuildingCategory.PowerProducer => "Produces energy.",
             BuildingCategory.Storage => "Increases energy storage.",
             BuildingCategory.Automation => "Sells energy automatically.",
+            BuildingCategory.Maintenance => "Slows operational wear.",
+            BuildingCategory.ToolStorage => "Increases tool storage capacity.",
             BuildingCategory.Research => "Produces research points.",
             BuildingCategory.HeatProducer => "Produces heat for generators.",
             BuildingCategory.HeatConverter => "Converts heat into energy.",
+            BuildingCategory.HeatSink => "Dissipates heat without producing energy.",
             BuildingCategory.Corporation => "Advanced economic building.",
+            BuildingCategory.Special when definition.EnergyEfficiencyBonus > 0 => "Improves grid energy efficiency.",
             _ => "Building."
         };
     }
@@ -1293,10 +1357,14 @@ public sealed class UiRenderer
             BuildingCategory.PowerProducer => "PRODUCES ELECTRIC ENERGY",
             BuildingCategory.Storage => "STORES UNUSED ENERGY",
             BuildingCategory.Automation => "SELLS ENERGY FOR MONEY",
+            BuildingCategory.Maintenance => "SLOWS BUILDING WEAR",
+            BuildingCategory.ToolStorage => "EXPANDS TOOL CAPACITY",
             BuildingCategory.Research => "PRODUCES RESEARCH POINTS",
             BuildingCategory.HeatProducer => "PRODUCES HEAT FOR GENERATORS",
             BuildingCategory.HeatConverter => "TURNS HEAT INTO ENERGY",
+            BuildingCategory.HeatSink => "DISSIPATES HEAT SAFELY",
             BuildingCategory.Corporation => "ADVANCED ECONOMIC BUILDING",
+            BuildingCategory.Special when definition.EnergyEfficiencyBonus > 0 => "BOOSTS GRID EFFICIENCY",
             _ => string.IsNullOrWhiteSpace(definition.Description) ? "BUILDING" : definition.Description.ToUpperInvariant()
         };
     }
@@ -1638,7 +1706,7 @@ public sealed class UiRenderer
             "TYPE" or "PURPOSE" or "STATE" or "ISSUE" or "BUILD TOOL" => new Color(175, 190, 210),
             "BUILD COST" or "NEXT UPGRADE" or "MONEY/S" or "PAYBACK" => new Color(205, 190, 150),
             "LIFE" or "MANAGED" or "MANAGER" => new Color(170, 195, 170),
-            "ENERGY IN" or "ENERGY OUT" or "NET ENERGY" or "BATTERY" => new Color(145, 195, 225),
+            "ENERGY IN" or "ENERGY OUT" or "NET ENERGY" or "GRID BONUS" or "MAINTENANCE" or "TOOL STORAGE" or "BATTERY" => new Color(145, 195, 225),
             "HEAT OUT" or "HEAT STORED" or "HEAT RISK" or "HEAT IN" or "HEAT TO ENERGY" => new Color(220, 150, 95),
             "RESEARCH OUT" or "AUTO SELL" => new Color(195, 175, 225),
             "REVEAL" or "CLEAR COST" or "UNLOCK COST" => new Color(190, 190, 170),
@@ -2160,8 +2228,8 @@ public sealed class UiRenderer
     {
         if (status.HeatOutputPerSecond > 0)
             return status.HasHeatConverterInRange
-                ? $"{name}: ACTIVE - HEAT CONVERSION OK"
-                : $"{name}: ACTIVE - NEED GENERATOR";
+                ? $"{name}: ACTIVE - HEAT COVERAGE OK"
+                : $"{name}: ACTIVE - NEED HEAT COVERAGE";
 
         if (status.HeatConversionInputPerSecond > 0)
             return $"{name}: ACTIVE - ABSORBING HEAT";
@@ -2597,6 +2665,32 @@ public sealed class UiRenderer
             return value;
 
         return value[..Math.Max(0, maxLength - 1)] + ".";
+    }
+
+    private static string FormatEnergyEfficiencyBonus(BuildingDefinition definition)
+    {
+        return definition.EnergyEfficiencyBonus > 0
+            ? "+" + FormatPercent(definition.EnergyEfficiencyBonus) + " ENERGY OUTPUT"
+            : "-";
+    }
+
+    private static string FormatMaintenanceEfficiencyBonus(BuildingDefinition definition)
+    {
+        return definition.MaintenanceEfficiencyBonus > 0
+            ? "-" + FormatPercent(definition.MaintenanceEfficiencyBonus) + " LIFETIME WEAR"
+            : "-";
+    }
+
+    private static string FormatToolCapacityBonus(BuildingDefinition definition)
+    {
+        return definition.ToolCapacityBonus > 0
+            ? "+" + FormatNumber(definition.ToolCapacityBonus) + " AXES/MINES CAP"
+            : "-";
+    }
+
+    private static string FormatPercent(double value)
+    {
+        return (value * 100d).ToString("0.#") + "%";
     }
 
     private static string FormatNumber(double value)

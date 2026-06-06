@@ -1,3 +1,4 @@
+using GridPowerTycoon.Core.Upgrades;
 using GridPowerTycoon.Core.World;
 
 namespace GridPowerTycoon.Core.Lifetime;
@@ -16,7 +17,9 @@ public sealed class LifetimeSystem
         if (deltaSeconds <= 0)
             return;
 
+        var effectiveDeltaSeconds = deltaSeconds * UpgradeCalculator.GetLifetimeDecayMultiplier(_world);
+
         foreach (var instance in _world.BuildingInstances.Values)
-            instance.ReduceLifetime(deltaSeconds);
+            instance.ReduceLifetime(effectiveDeltaSeconds);
     }
 }

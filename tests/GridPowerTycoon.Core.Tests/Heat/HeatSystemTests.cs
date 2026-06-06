@@ -82,6 +82,45 @@ public sealed class HeatSystemTests
         Assert.Equal(0, world.Resources.Energy);
     }
 
+
+    [Fact]
+    public void HeatSinkInRange_ShouldDissipateHeatWithoutProducingEnergy()
+    {
+        var world = CreateWorld();
+        var build = new BuildSystem(world);
+        var solarResult = build.Build("solar_panel", new GridPosition(1, 1));
+        Assert.True(solarResult.Success);
+        Assert.True(build.Build("heat_sink_small", new GridPosition(2, 1)).Success);
+
+        var system = new HeatSystem(world);
+
+        system.Update(1);
+
+        var solar = world.BuildingInstances[solarResult.BuildingId!.Value];
+        Assert.Equal(0, solar.AccumulatedHeat);
+        Assert.Equal(0, world.Resources.Energy);
+    }
+
+
+    [Fact]
+    public void GeothermalPlant_WithGenerator_ShouldProduceStableConvertedEnergy()
+    {
+        var world = CreateWorld();
+        var build = new BuildSystem(world);
+        var geothermalResult = build.Build("geothermal_plant", new GridPosition(1, 1));
+        Assert.True(geothermalResult.Success);
+        Assert.True(build.Build("generator_small", new GridPosition(2, 1)).Success);
+        world.Resources.AddEnergy(10);
+
+        var system = new HeatSystem(world);
+
+        system.Update(1);
+
+        var geothermal = world.BuildingInstances[geothermalResult.BuildingId!.Value];
+        Assert.Equal(160, geothermal.AccumulatedHeat);
+        Assert.Equal(28.5, world.Resources.Energy);
+    }
+
     [Fact]
     public void HeatProducer_OverThreshold_ShouldExplode()
     {
@@ -131,11 +170,30 @@ public sealed class HeatSystemTests
             },
             new BuildingDefinition
             {
+                Id = "geothermal_plant",
+                Name = "Centrale geotermica",
+                Category = BuildingCategory.HeatProducer,
+                Cost = 1,
+                HeatPerSecond = 180,
+                EnergyConsumptionPerSecond = 1.5,
+                LifetimeSeconds = 600
+            },
+            new BuildingDefinition
+            {
                 Id = "generator_small",
                 Name = "Generatore piccolo",
                 Category = BuildingCategory.HeatConverter,
                 Cost = 1000,
                 HeatConversionPerSecond = 20,
+                HeatRange = 1
+            },
+            new BuildingDefinition
+            {
+                Id = "heat_sink_small",
+                Name = "Raffreddatore",
+                Category = BuildingCategory.HeatSink,
+                Cost = 800,
+                HeatDissipationPerSecond = 20,
                 HeatRange = 1
             },
             new BuildingDefinition

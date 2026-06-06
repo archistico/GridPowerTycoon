@@ -522,10 +522,14 @@ public sealed class MapRenderer
             BuildingCategory.PowerProducer => new Color(230, 238, 245),
             BuildingCategory.Storage => new Color(240, 205, 70),
             BuildingCategory.Automation => new Color(70, 165, 225),
+            BuildingCategory.Maintenance => new Color(115, 210, 120),
+            BuildingCategory.ToolStorage => new Color(205, 170, 85),
             BuildingCategory.Research => new Color(160, 110, 230),
             BuildingCategory.HeatProducer => new Color(235, 130, 55),
             BuildingCategory.HeatConverter => new Color(70, 220, 190),
+            BuildingCategory.HeatSink => new Color(95, 185, 255),
             BuildingCategory.Corporation => new Color(210, 210, 245),
+            BuildingCategory.Special => new Color(120, 205, 245),
             _ => new Color(220, 220, 220)
         };
     }
