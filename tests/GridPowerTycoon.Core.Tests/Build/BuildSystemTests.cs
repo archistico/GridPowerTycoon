@@ -168,6 +168,37 @@ public sealed class BuildSystemTests
 
 
 
+
+    [Fact]
+    public void CanReplaceExpired_WhenNotEnoughMoney_ShouldReturnNotEnoughMoney()
+    {
+        var world = CreateWorld(startingMoney: 1);
+        var system = new BuildSystem(world);
+        var result = system.Build("wind_turbine", new GridPosition(1, 1));
+        Assert.True(result.Success);
+        var instance = world.BuildingInstances[result.BuildingId!.Value];
+        instance.ReduceLifetime(60);
+
+        var reason = system.CanReplaceExpired(instance.Id);
+
+        Assert.Equal(BuildFailureReason.NotEnoughMoney, reason);
+    }
+
+    [Fact]
+    public void CanReplaceExpired_WhenAffordableAndExpired_ShouldReturnNone()
+    {
+        var world = CreateWorld(startingMoney: 100);
+        var system = new BuildSystem(world);
+        var result = system.Build("wind_turbine", new GridPosition(1, 1));
+        Assert.True(result.Success);
+        var instance = world.BuildingInstances[result.BuildingId!.Value];
+        instance.ReduceLifetime(60);
+
+        var reason = system.CanReplaceExpired(instance.Id);
+
+        Assert.Equal(BuildFailureReason.None, reason);
+    }
+
     [Fact]
     public void ReplaceExpired_WhenBuildingIsExploded_ShouldSpendMoneyAndReactivateBuilding()
     {
@@ -186,6 +217,67 @@ public sealed class BuildSystemTests
         Assert.Equal(60, instance.RemainingLifetimeSeconds);
         Assert.Equal(0, instance.AccumulatedHeat);
         Assert.Equal(98, world.Resources.Money);
+    }
+
+
+    [Fact]
+    public void Demolish_ShouldRemoveBuildingAndFreeTile()
+    {
+        var world = CreateWorld(startingMoney: 100);
+        var system = new BuildSystem(world);
+        var build = system.Build("wind_turbine", new GridPosition(1, 1));
+        Assert.True(build.Success);
+
+        var demolish = system.Demolish(build.BuildingId!.Value);
+
+        Assert.True(demolish.Success);
+        Assert.Empty(world.BuildingInstances);
+        Assert.False(world.Map.GetTile(new GridPosition(1, 1)).HasBuilding);
+    }
+
+    [Fact]
+    public void DemolishBattery_ShouldReduceMaxEnergyAndClampStoredEnergy()
+    {
+        var world = CreateWorld(startingMoney: 100);
+        var system = new BuildSystem(world);
+        var build = system.Build("battery_small", new GridPosition(1, 1));
+        Assert.True(build.Success);
+        world.Resources.AddEnergy(600);
+
+        var demolish = system.Demolish(build.BuildingId!.Value);
+
+        Assert.True(demolish.Success);
+        Assert.Equal(100, world.Resources.MaxEnergy);
+        Assert.Equal(100, world.Resources.Energy);
+    }
+
+    [Fact]
+    public void Demolish_MultiTileBuilding_ShouldFreeAllOccupiedTiles()
+    {
+        var world = CreateWorldWithMultiTileBuilding(startingMoney: 100);
+        var system = new BuildSystem(world);
+        var build = system.Build("office_big", new GridPosition(1, 1));
+        Assert.True(build.Success);
+
+        var demolish = system.Demolish(build.BuildingId!.Value);
+
+        Assert.True(demolish.Success);
+        Assert.False(world.Map.GetTile(new GridPosition(1, 1)).HasBuilding);
+        Assert.False(world.Map.GetTile(new GridPosition(2, 1)).HasBuilding);
+        Assert.False(world.Map.GetTile(new GridPosition(1, 2)).HasBuilding);
+        Assert.False(world.Map.GetTile(new GridPosition(2, 2)).HasBuilding);
+    }
+
+    [Fact]
+    public void Demolish_WhenBuildingDoesNotExist_ShouldFail()
+    {
+        var world = CreateWorld(startingMoney: 100);
+        var system = new BuildSystem(world);
+
+        var demolish = system.Demolish(Guid.NewGuid());
+
+        Assert.False(demolish.Success);
+        Assert.Equal(BuildFailureReason.BuildingNotFound, demolish.FailureReason);
     }
 
     [Fact]
@@ -235,6 +327,32 @@ public sealed class BuildSystemTests
                 Category = BuildingCategory.Storage,
                 Cost = 50,
                 BatteryCapacity = 500
+            }
+        });
+
+        var economy = new EconomySettings
+        {
+            StartingMoney = startingMoney,
+            StartingMaxEnergy = 100
+        };
+
+        return new GameWorld(map, new GameData(catalog, economy));
+    }
+
+
+    private static GameWorld CreateWorldWithMultiTileBuilding(decimal startingMoney)
+    {
+        var map = new GridMap(4, 4, TileType.Land);
+        var catalog = BuildingCatalog.FromDefinitions(new[]
+        {
+            new BuildingDefinition
+            {
+                Id = "office_big",
+                Name = "Ufficio grande",
+                Category = BuildingCategory.Automation,
+                Cost = 20,
+                Width = 2,
+                Height = 2
             }
         });
 

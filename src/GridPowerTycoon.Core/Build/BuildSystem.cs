@@ -48,16 +48,31 @@ public sealed class BuildSystem
     }
 
 
-    public BuildResult ReplaceExpired(Guid buildingId)
+    public BuildFailureReason CanReplaceExpired(Guid buildingId)
     {
         if (!_world.TryGetBuilding(buildingId, out var instance))
-            return BuildResult.Fail(BuildFailureReason.BuildingNotFound);
+            return BuildFailureReason.BuildingNotFound;
 
         if (!_world.BuildingCatalog.TryGet(instance.DefinitionId, out var definition))
-            return BuildResult.Fail(BuildFailureReason.UnknownBuilding);
+            return BuildFailureReason.UnknownBuilding;
 
         if (instance.State != BuildingState.Expired && instance.State != BuildingState.Exploded)
-            return BuildResult.Fail(BuildFailureReason.BuildingNotExpired);
+            return BuildFailureReason.BuildingNotExpired;
+
+        if (_world.Resources.Money < definition.Cost)
+            return BuildFailureReason.NotEnoughMoney;
+
+        return BuildFailureReason.None;
+    }
+
+    public BuildResult ReplaceExpired(Guid buildingId)
+    {
+        var validation = CanReplaceExpired(buildingId);
+        if (validation != BuildFailureReason.None)
+            return BuildResult.Fail(validation);
+
+        var instance = _world.BuildingInstances[buildingId];
+        var definition = _world.BuildingCatalog.GetRequired(instance.DefinitionId);
 
         if (!_world.Resources.TrySpendMoney(definition.Cost))
             return BuildResult.Fail(BuildFailureReason.NotEnoughMoney);
@@ -76,6 +91,33 @@ public sealed class BuildSystem
             return BuildResult.Fail(BuildFailureReason.BuildingNotFound);
 
         return ReplaceExpired(tile.BuildingId.Value);
+    }
+
+    public BuildResult Demolish(Guid buildingId)
+    {
+        if (!_world.TryGetBuilding(buildingId, out var instance))
+            return BuildResult.Fail(BuildFailureReason.BuildingNotFound);
+
+        if (!_world.BuildingCatalog.TryGet(instance.DefinitionId, out var definition))
+            return BuildResult.Fail(BuildFailureReason.UnknownBuilding);
+
+        ClearOccupiedTiles(instance.Id);
+        RemoveImmediateBuildingEffects(definition);
+        _world.RemoveBuilding(instance.Id);
+
+        return BuildResult.Ok(instance.Id);
+    }
+
+    public BuildResult DemolishAt(GridPosition position)
+    {
+        if (!_world.Map.Contains(position))
+            return BuildResult.Fail(BuildFailureReason.OutOfMap);
+
+        var tile = _world.Map.GetTile(position);
+        if (!tile.BuildingId.HasValue)
+            return BuildResult.Fail(BuildFailureReason.BuildingNotFound);
+
+        return Demolish(tile.BuildingId.Value);
     }
 
     private BuildFailureReason CanBuild(BuildingDefinition definition, GridPosition position)
@@ -130,5 +172,24 @@ public sealed class BuildSystem
     {
         if (definition.BatteryCapacity > 0)
             _world.Resources.IncreaseMaxEnergy(UpgradeCalculator.GetBatteryCapacity(_world, definition));
+    }
+
+    private void RemoveImmediateBuildingEffects(BuildingDefinition definition)
+    {
+        var batteryCapacity = UpgradeCalculator.GetBatteryCapacity(_world, definition);
+        if (batteryCapacity <= 0)
+            return;
+
+        var newMaxEnergy = Math.Max(_world.EconomySettings.StartingMaxEnergy, _world.Resources.MaxEnergy - batteryCapacity);
+        _world.Resources.SetMaxEnergy(newMaxEnergy);
+    }
+
+    private void ClearOccupiedTiles(Guid buildingId)
+    {
+        foreach (var tile in _world.Map.Tiles)
+        {
+            if (tile.BuildingId == buildingId)
+                tile.ClearBuilding();
+        }
     }
 }

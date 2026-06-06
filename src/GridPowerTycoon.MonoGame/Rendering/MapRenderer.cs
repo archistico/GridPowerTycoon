@@ -14,18 +14,28 @@ public sealed class MapRenderer
 
     private readonly GameWorld _world;
     private readonly Texture2D _pixel;
+    private readonly PixelTextRenderer _text;
 
     public MapRenderer(GameWorld world, Texture2D pixel)
     {
         _world = world;
         _pixel = pixel;
+        _text = new PixelTextRenderer(pixel);
     }
 
-    public void Draw(SpriteBatch spriteBatch, GridPosition? hoveredTile, GridPosition? selectedTile, string? selectedBuildingId, BuildSystem buildSystem)
+    public void Draw(
+        SpriteBatch spriteBatch,
+        GridPosition? hoveredTile,
+        GridPosition? selectedTile,
+        string? selectedBuildingId,
+        BuildSystem buildSystem,
+        GridPosition? lastBuildFailurePosition,
+        BuildFailureReason? lastBuildFailureReason)
     {
         DrawTiles(spriteBatch);
         DrawBuildings(spriteBatch);
         DrawSelectedTile(spriteBatch, selectedTile);
+        DrawBuildFailureMarker(spriteBatch, lastBuildFailurePosition, lastBuildFailureReason);
         DrawHoverAndBuildPreview(spriteBatch, hoveredTile, selectedBuildingId, buildSystem);
     }
 
@@ -170,6 +180,23 @@ public sealed class MapRenderer
         DrawOutline(spriteBatch, new Rectangle(rect.X + 4, rect.Y + 4, rect.Width - 8, rect.Height - 8), new Color(20, 24, 32, 220), 2);
     }
 
+    private void DrawBuildFailureMarker(SpriteBatch spriteBatch, GridPosition? position, BuildFailureReason? reason)
+    {
+        if (!position.HasValue || reason != BuildFailureReason.NotEnoughMoney)
+            return;
+
+        if (!_world.Map.Contains(position.Value))
+            return;
+
+        var tileRect = GetTileRectangle(position.Value);
+        var marker = new Rectangle(tileRect.X + 12, tileRect.Y + 8, 40, 44);
+
+        spriteBatch.Draw(_pixel, marker, new Color(95, 25, 25, 220));
+        DrawOutline(spriteBatch, marker, new Color(255, 85, 85, 245), 3);
+        _text.DrawString(spriteBatch, "$", new Vector2(marker.X + 12, marker.Y + 7), new Color(255, 225, 120), 4);
+        DrawDiagonal(spriteBatch, new Rectangle(marker.X + 4, marker.Y + 4, marker.Width - 8, marker.Height - 8), new Color(255, 245, 245, 245), 4);
+    }
+
     private void DrawHoverAndBuildPreview(SpriteBatch spriteBatch, GridPosition? hoveredTile, string? selectedBuildingId, BuildSystem buildSystem)
     {
         if (hoveredTile is null)
@@ -256,10 +283,15 @@ public sealed class MapRenderer
 
     private void DrawDiagonal(SpriteBatch spriteBatch, Rectangle rect, Color color)
     {
+        DrawDiagonal(spriteBatch, rect, color, 3);
+    }
+
+    private void DrawDiagonal(SpriteBatch spriteBatch, Rectangle rect, Color color, int thickness)
+    {
         var steps = Math.Max(rect.Width, rect.Height);
         for (var i = 0; i < steps; i += 4)
         {
-            spriteBatch.Draw(_pixel, new Rectangle(rect.Left + i, rect.Top + i, 3, 3), color);
+            spriteBatch.Draw(_pixel, new Rectangle(rect.Left + i, rect.Top + i, thickness, thickness), color);
         }
     }
 }

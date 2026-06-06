@@ -52,4 +52,9 @@ public sealed class GameWorld
     {
         return _buildingInstances.TryGetValue(id, out instance!);
     }
+
+    public bool RemoveBuilding(Guid id)
+    {
+        return _buildingInstances.Remove(id);
+    }
 }

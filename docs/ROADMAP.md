@@ -262,3 +262,65 @@ Added visible command buttons in the bottom status bar so the game no longer dep
 - EXIT
 
 The old keyboard shortcuts remain available: F5 saves, F9 loads, ESC saves and exits. VIEW toggles fullscreen/windowed mode. NEW starts a fresh world from the current JSON data without immediately overwriting the save file.
+
+## Step 18E - Demolizione manuale edifici
+
+Stato: preparato.
+
+Il pannello proprietà permette ora di demolire manualmente un edificio selezionato. La demolizione non dà rimborso nella versione attuale: serve soprattutto per correggere layout, liberare celle e sostituire manualmente impianti non più utili. Se l'edificio contribuiva alla capacità batteria, la capacità massima viene ridotta e l'energia accumulata viene ridotta al nuovo massimo se necessario.
+
+## Step 18F - Feedback fondi insufficienti
+
+Stato: preparato.
+
+I pulsanti `REPLACE` e `RESTORE` sono ora disabilitati quando il giocatore non ha denaro sufficiente. Il pannello proprietà mostra chiaramente che servono fondi, invece di lasciare cliccare un'azione destinata a fallire.
+
+Per la costruzione di nuovi edifici è stato aggiunto un feedback visivo diretto sulla mappa: se il click fallisce per `NotEnoughMoney`, sulla cella compare un marker rosso con `$` barrato, mentre la status bar mantiene il messaggio tecnico del fallimento. Anche il menu BUILD evidenzia i costi non finanziabili con `NEED $...`.
+
+## Step 18G - Conferma DEMOLISH e proprietà celle vuote
+
+Stato: preparato.
+
+Il pulsante `DEMOLISH` ora richiede conferma a due click ed è stato spostato in alto nel pannello proprietà dell'edificio, separandolo visivamente da `REPLACE`/`RESTORE`. La conferma viene annullata quando il giocatore clicca sulla mappa o seleziona un altro edificio.
+
+La modalità build non è più preselezionata all'avvio e viene disattivata quando si clicca un edificio già costruito. Le celle vuote hanno ora un pannello proprietà leggibile, inclusa la distinzione `Plain` / `FREE / BUILDABLE`. La riga `HEAT CONV` è stata rinominata in `HEAT TO ENERGY` per chiarire la conversione da calore a energia.
+
+
+## Step 18H - HEAT IN nel properties panel
+
+Stato: preparato.
+
+Il pannello proprietà ora distingue anche `HEAT IN`, utile soprattutto per i convertitori di calore. La riga indica quanto calore l'edificio può assorbire al secondo e il raggio operativo, mentre `HEAT TO ENERGY` mostra solo l'energia generata dalla conversione.
+
+
+## Step 18I - Testi HEAT IN più leggibili
+
+Rimosse le abbreviazioni poco chiare nel properties panel dei convertitori di calore. Il raggio non è più mostrato come `R3`, ma come `RANGE 3 CELLS`; la conversione usa testi espliciti come `ABSORBS .../S` e `PRODUCES .../S ENERGY`.
+
+## 2026-06-06 - Step 18J: build tool cancel e dettagli strumento
+
+Aggiunta una gestione più esplicita del tool BUILD attivo. Il click destro annulla lo strumento di costruzione, mentre cliccare di nuovo lo stesso pulsante BUILD o premere di nuovo lo stesso tasto numerico lo disattiva. La status bar ora ricorda l'uso `LEFT CLICK BUILD, RIGHT CLICK CANCEL` e il pannello proprietà mostra categoria, nome, costo e dimensione del tool selezionato anche quando non è ancora stata scelta una cella.
+
+## 2026-06-06 - Step 18K: riepilogo economico properties panel
+
+Stato: preparato.
+
+Il pannello proprietà ora mostra informazioni economiche più utili per decidere cosa costruire o potenziare: costo di costruzione, prossimo upgrade, denaro stimato al secondo, bilancio netto energia e payback stimato. La stessa logica viene usata anche quando è attivo un tool di costruzione, così il giocatore può valutare l'edificio prima di piazzarlo.
+
+## 2026-06-06 - Step 18L: leggibilità LIFE/PAYBACK e righe proprietà
+
+Stato: preparato.
+
+Rifinito il pannello proprietà: `LIFE` mostra `50 S / 300 S`, `PAYBACK` evita simboli non supportati dal font e abbreviazioni poco chiare, mentre l'alternanza grafica delle righe è ora calcolata sull'indice della riga e non sulla posizione verticale.
+
+## 2026-06-06 - Step 18M: pannello sinistro più informativo e bottoni uniformi
+
+Stato: preparato.
+
+Le colonne `BUILD`, `RESEARCH` e `UPGRADE` hanno ora pulsanti della stessa altezza. I pulsanti BUILD espongono subito costo, bilancio energia, impatto sul calore e descrizione minima dell'edificio. I pulsanti RESEARCH indicano costo/stato, cosa viene sbloccato o gestito e una descrizione breve. Gli UPGRADE mantengono lo stile già approvato, ma sono stati allineati alla stessa altezza degli altri pulsanti.
+
+## 2026-06-06 - Step 18N: glyph mancanti nel font pixel
+
+Stato: preparato.
+
+Corretto il renderer testo pixel interno: apostrofi, apostrofo tipografico, lettere accentate italiane e alcuni separatori usati nei testi della UI non vengono più mostrati come `?`. Il gioco non usa un font esterno, ma una tabella di glifi 5x7 in `PixelTextRenderer`; la tabella è stata estesa per supportare meglio i testi italiani nel pannello sinistro e nel pannello proprietà.

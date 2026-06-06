@@ -290,3 +290,63 @@ Added independent mouse-wheel scrolling for the fixed left UI columns BUILD, RES
 ## 2026-06-06 - Step 18D Game command buttons
 
 Added explicit bottom status-bar command buttons in MonoGame UI: SAVE, LOAD, NEW, VIEW, EXIT. Game1 now handles these clicks through UiRenderer hit testing. NEW reloads the map from Data/maps/default-map.json and creates a fresh GameWorld using the already loaded GameData. VIEW toggles fullscreen/windowed mode and recenters the camera. Existing shortcuts are preserved: F5 save, F9 load, ESC save+exit.
+
+## 2026-06-06 - Step 18E: demolizione manuale edifici
+
+Aggiunta la demolizione manuale degli edifici dal pannello proprietà fisso. Ogni edificio selezionato mostra ora l'azione `DEMOLISH`; gli edifici scaduti o esplosi continuano a mostrare anche `REPLACE`/`RESTORE`. La demolizione rimuove l'istanza dal mondo, libera tutte le celle occupate e annulla gli effetti immediati di capacità batteria, riportando `MaxEnergy` almeno al valore iniziale configurato e clampando l'energia accumulata se necessario.
+
+Sono stati aggiunti `BuildSystem.Demolish(...)`, `BuildSystem.DemolishAt(...)` e `GameWorld.RemoveBuilding(...)`. La UI MonoGame intercetta il pulsante DEMOLISH e pulisce la selezione edificio lasciando selezionata la cella. Aggiunti test Core per demolizione, liberazione celle multi-tile, riduzione capacità batteria e caso edificio inesistente.
+
+## 2026-06-06 - Step 18F: feedback fondi insufficienti
+
+Il rinnovo manuale degli edifici scaduti/esplosi ora distingue tra azione disponibile e azione non finanziabile. `BuildSystem` espone `CanReplaceExpired(...)`, così la UI può verificare lo stato prima del click. Nel pannello proprietà il pulsante `REPLACE`/`RESTORE` diventa grigio e non è cliccabile quando il giocatore non ha abbastanza denaro; il testo mostra `NEED $...` e la riga `ACTION` indica che mancano soldi per sostituire/ripristinare.
+
+La costruzione continua invece a permettere la selezione del tipo edificio anche se al momento non ci sono fondi. Se il giocatore clicca una cella e `BuildSystem.Build(...)` fallisce con `NotEnoughMoney`, `MapInputController` conserva posizione e motivo dell'ultimo fallimento; `MapRenderer` disegna sulla cella un marker rosso con simbolo `$` sbarrato. La status bar continua a mostrare il motivo testuale (`BUILD FAILED NotEnoughMoney`). Nel menu BUILD i costi non finanziabili sono evidenziati come `NEED $...`.
+
+## 2026-06-06 - Step 18G: conferma demolizione e proprietà celle vuote
+
+Aggiornata la UX del pannello proprietà. Il pulsante `DEMOLISH` è stato spostato nella parte alta del pannello edificio, subito sotto nome/cella, e non demolisce più al primo click: il primo click arma la conferma e trasforma il pulsante in `CONFIRM DEMOLISH`; il secondo click sullo stesso edificio esegue davvero la demolizione. Cliccare sulla mappa o selezionare un altro edificio annulla la conferma pendente.
+
+La selezione di uno strumento BUILD ora parte disattivata all'avvio/nuova partita e viene disattivata quando il giocatore clicca un edificio già costruito. Questo permette di ispezionare edifici senza lasciare attivo il tool di costruzione e riduce i click accidentali sulle celle libere. Le celle senza edifici ora mantengono comunque il dettaglio nel pannello proprietà: le celle `Land` sono mostrate come `Plain` con stato `FREE / BUILDABLE`, mentre acqua, foreste, montagne e cloud mantengono una descrizione coerente.
+
+Rinominata la riga poco leggibile `HEAT CONV` in `HEAT TO ENERGY`, con valore esplicito `HEAT .../S -> ENERGY .../S R...`.
+
+
+## 2026-06-06 - Step 18H: proprietà HEAT IN
+
+Aggiunta la riga `HEAT IN` nel pannello proprietà fisso. Per gli edifici convertitori di calore mostra il consumo/capacità di assorbimento calore al secondo e il raggio operativo, mentre `HEAT TO ENERGY` resta dedicato all'energia prodotta dalla conversione. Questo rende più leggibile la distinzione fra calore prodotto, calore accumulato, calore assorbito e energia ottenuta.
+
+
+## 2026-06-06 - Step 18I: testo HEAT IN più leggibile
+
+Resi più espliciti i testi del pannello proprietà per i convertitori di calore. `HEAT IN` ora usa la forma `ABSORBS .../S, RANGE ... CELLS` invece dell'abbreviazione `R...`; `HEAT TO ENERGY` usa `PRODUCES .../S ENERGY`. Aggiornati anche i dettagli estesi degli edifici per evitare abbreviazioni poco chiare.
+
+## 2026-06-06 - Step 18J: build tool cancel e dettagli strumento
+
+Migliorata la sicurezza dello strumento di costruzione attivo. Il giocatore ora può annullare il tool BUILD con click destro; premere di nuovo lo stesso tasto numerico o cliccare di nuovo lo stesso edificio nel menu BUILD disattiva lo strumento invece di lasciarlo armato. Quando un tool BUILD è selezionato, la status bar indica chiaramente `LEFT CLICK BUILD, RIGHT CLICK CANCEL`.
+
+Il pannello proprietà mostra anche il tool di costruzione attivo: se non è selezionata nessuna cella, appare una scheda `BUILD TOOL` con categoria, nome, costo, dimensione e azione consigliata. Se è selezionata una cella vuota, la riga `BUILD TOOL` e l'azione spiegano se si può costruire, se mancano soldi o se la cella non è edificabile. Aggiunto `InputManager.IsRightClickPressed()` per gestire il cancel senza interferire con il click sinistro.
+
+## 2026-06-06 - Step 18K: riepilogo economico properties panel
+
+Aggiunto un riepilogo economico direttamente nel pannello proprietà e nella scheda del BUILD TOOL. Le righe principali ora distinguono `BUILD COST`, `NEXT UPGRADE`, `MONEY/S`, `NET ENERGY` e `PAYBACK`, così il giocatore può leggere a colpo d'occhio costo iniziale, prossimo investimento disponibile, flusso economico stimato, bilancio energetico e tempo stimato di rientro.
+
+La stima economica usa il valore configurato di vendita dell'energia e i moltiplicatori manuale/autosell già presenti in `EconomySettings`. Per gli edifici selezionati usa lo stato operativo effettivo calcolato da `BuildingOperationalStatusCalculator`; per il BUILD TOOL usa invece una previsione basata sulla definizione dell'edificio e sugli upgrade già acquistati. I valori di `MONEY/S` e `PAYBACK` sono marcati come `EST`, perché dipendono dal contesto reale di accumulo/vendita energia e, per gli autoseller, dalla disponibilità di energia da vendere.
+
+## 2026-06-06 - Step 18L: leggibilità LIFE/PAYBACK e righe proprietà
+
+Rifinito il pannello proprietà dopo il riepilogo economico. `LIFE` ora separa sempre il numero dall'unità (`50 S / 300 S`), così la durata è più leggibile. `PAYBACK` non usa più il carattere `<`, che nel font del gioco poteva apparire come `?`, e non mostra più l'abbreviazione `EST`; i valori sono ora espressi come `ABOUT ... SEC/MIN/H`. Anche `MONEY/S` usa `APPROX` invece di `EST` per evitare abbreviazioni poco chiare.
+
+Corretto anche il background alternato delle righe del properties panel: l'alternanza ora dipende dall'indice reale della riga e non dalla coordinata verticale, quindi resta stabile anche quando cambia l'offset iniziale tra edifici, celle vuote e tool di costruzione.
+
+## 2026-06-06 - Step 18M: pannello sinistro più informativo e bottoni uniformi
+
+Uniformate le tre colonne laterali `BUILD`, `RESEARCH` e `UPGRADE`: i pulsanti ora usano la stessa altezza e lo stesso passo di scroll, così la UI non cambia densità tra una colonna e l'altra. La colonna `BUILD` non mostra più soltanto nome e costo, ma include anche `BUILD COST`, `NET ENERGY`, informazione sintetica sul calore (`HEAT`, `HEAT IN` o `NO HEAT`) e una riga di descrizione/purpose ricavata dalla definizione edificio. Questo permette di capire a cosa serve una costruzione prima di selezionarla o piazzarla.
+
+Anche `RESEARCH` ora mostra più contesto direttamente nel pulsante: stato/costo, cosa sblocca o cosa gestisce, e descrizione breve della ricerca. La colonna `UPGRADE`, già considerata chiara, è stata mantenuta come riferimento visivo ma allineata alla nuova altezza comune; in più mostra la descrizione breve dell'upgrade come quarta riga quando disponibile.
+
+## 2026-06-06 - Step 18N: glyph mancanti nel font pixel
+
+Il testo UI non usa un font TrueType: viene disegnato da `PixelTextRenderer`, un renderer bitmap 5x7 interno basato su una tabella manuale di glifi. Per questo motivo i caratteri non presenti nella tabella venivano sostituiti con `?`, in particolare apostrofo, apostrofo tipografico, lettere accentate italiane e separatori usati nei testi recenti.
+
+Aggiunti glifi per apostrofo dritto, apostrofo tipografico, barra verticale, underscore e vocali accentate maiuscole più comuni (`À`, `Á`, `È`, `É`, `Ì`, `Í`, `Ò`, `Ó`, `Ù`, `Ú`). Poiché `DrawString` converte i caratteri con `char.ToUpperInvariant`, questi glifi coprono anche le corrispondenti lettere minuscole presenti nei JSON (`à`, `è`, `ù`, ecc.).

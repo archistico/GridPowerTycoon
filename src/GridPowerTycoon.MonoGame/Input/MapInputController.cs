@@ -23,8 +23,11 @@ public sealed class MapInputController
     public GridPosition? SelectedTerrainPosition { get; private set; }
     public GridPosition? SelectedCloudPosition { get; private set; }
     public BuildResult? LastBuildResult { get; private set; }
+    public GridPosition? LastBuildFailurePosition { get; private set; }
+    public BuildFailureReason? LastBuildFailureReason { get; private set; }
     public TerrainClearResult? LastTerrainClearResult { get; private set; }
     public AreaUnlockResult? LastAreaUnlockResult { get; private set; }
+    public bool LastClickSelectedExistingBuilding { get; private set; }
 
     public MapInputController(
         GameWorld world,
@@ -42,6 +45,8 @@ public sealed class MapInputController
 
     public void Update(Viewport viewport, string? selectedBuildingId)
     {
+        LastClickSelectedExistingBuilding = false;
+
         var mousePoint = new Point(_input.CurrentMouse.X, _input.CurrentMouse.Y);
         var isOverUi = _isMouseOverUi(mousePoint);
 
@@ -63,10 +68,11 @@ public sealed class MapInputController
         var tile = _world.Map.GetTile(tilePosition);
         if (tile.BuildingId.HasValue)
         {
+            LastClickSelectedExistingBuilding = true;
             SelectedMapBuildingId = tile.BuildingId.Value;
             SelectedTerrainPosition = null;
             SelectedCloudPosition = null;
-            LastBuildResult = null;
+            ClearLastBuildResult();
             LastTerrainClearResult = null;
             LastAreaUnlockResult = null;
             return;
@@ -78,7 +84,7 @@ public sealed class MapInputController
         {
             SelectedTerrainPosition = tilePosition;
             SelectedCloudPosition = null;
-            LastBuildResult = null;
+            ClearLastBuildResult();
             LastTerrainClearResult = null;
             LastAreaUnlockResult = null;
             return;
@@ -88,7 +94,7 @@ public sealed class MapInputController
         {
             SelectedCloudPosition = tilePosition;
             SelectedTerrainPosition = null;
-            LastBuildResult = null;
+            ClearLastBuildResult();
             LastTerrainClearResult = null;
             LastAreaUnlockResult = null;
             return;
@@ -106,15 +112,24 @@ public sealed class MapInputController
 
         if (LastBuildResult.Success && LastBuildResult.BuildingId.HasValue)
         {
+            LastBuildFailurePosition = null;
+            LastBuildFailureReason = null;
             SelectedMapBuildingId = LastBuildResult.BuildingId.Value;
             SelectedTerrainPosition = null;
             SelectedCloudPosition = null;
+        }
+        else
+        {
+            LastBuildFailurePosition = tilePosition;
+            LastBuildFailureReason = LastBuildResult.FailureReason;
         }
     }
 
     public void SetLastBuildResult(BuildResult result)
     {
         LastBuildResult = result;
+        LastBuildFailurePosition = null;
+        LastBuildFailureReason = null;
         LastTerrainClearResult = null;
         LastAreaUnlockResult = null;
     }
@@ -122,12 +137,19 @@ public sealed class MapInputController
     public void ClearLastBuildResult()
     {
         LastBuildResult = null;
+        LastBuildFailurePosition = null;
+        LastBuildFailureReason = null;
+    }
+
+    public void ClearSelectedBuilding()
+    {
+        SelectedMapBuildingId = null;
     }
 
     public void SetLastTerrainClearResult(TerrainClearResult result)
     {
         LastTerrainClearResult = result;
-        LastBuildResult = null;
+        ClearLastBuildResult();
         LastAreaUnlockResult = null;
 
         if (result.Success)
@@ -147,7 +169,7 @@ public sealed class MapInputController
     public void SetLastAreaUnlockResult(AreaUnlockResult result)
     {
         LastAreaUnlockResult = result;
-        LastBuildResult = null;
+        ClearLastBuildResult();
         LastTerrainClearResult = null;
 
         if (result.Success)
@@ -160,7 +182,7 @@ public sealed class MapInputController
         SelectedMapBuildingId = null;
         SelectedTerrainPosition = null;
         SelectedCloudPosition = null;
-        LastBuildResult = null;
+        ClearLastBuildResult();
         LastTerrainClearResult = null;
         LastAreaUnlockResult = null;
     }

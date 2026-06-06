@@ -42,7 +42,8 @@ public sealed class Game1 : Game
     private string _dataDirectory = string.Empty;
     private string? _lastSaveLoadMessage;
 
-    private string? _selectedBuildingId = "wind_turbine";
+    private string? _selectedBuildingId;
+    private Guid? _pendingDemolishBuildingId;
     private ResearchResult? _lastResearchResult;
     private UpgradeResult? _lastUpgradeResult;
 
@@ -195,6 +196,18 @@ public sealed class Game1 : Game
 
         _cameraInput.Update(gameTime);
         _mapInput.Update(GraphicsDevice.Viewport, _selectedBuildingId);
+        if (_input.IsLeftClickPressed() && !_uiRenderer.IsMouseOverUi(new Point(_input.CurrentMouse.X, _input.CurrentMouse.Y), GraphicsDevice.Viewport))
+        {
+            if (_pendingDemolishBuildingId.HasValue)
+                _lastSaveLoadMessage = null;
+
+            _pendingDemolishBuildingId = null;
+        }
+
+        if (_mapInput.LastClickSelectedExistingBuilding)
+        {
+            _selectedBuildingId = null;
+        }
 
         _simulation.Update(gameTime.ElapsedGameTime.TotalSeconds);
         if (_simulation.LastManagerRenewalResult.HasRenewals)
@@ -213,7 +226,14 @@ public sealed class Game1 : Game
             samplerState: SamplerState.PointClamp,
             transformMatrix: _camera.GetTransformMatrix());
 
-        _mapRenderer.Draw(_spriteBatch, _mapInput.HoveredTile, _mapInput.SelectedTilePosition, _selectedBuildingId, _buildSystem);
+        _mapRenderer.Draw(
+            _spriteBatch,
+            _mapInput.HoveredTile,
+            _mapInput.SelectedTilePosition,
+            _selectedBuildingId,
+            _buildSystem,
+            _mapInput.LastBuildFailurePosition,
+            _mapInput.LastBuildFailureReason);
 
         _spriteBatch.End();
 
@@ -232,7 +252,8 @@ public sealed class Game1 : Game
             _mapInput.LastTerrainClearResult,
             _mapInput.LastAreaUnlockResult,
             _lastUpgradeResult,
-            _lastSaveLoadMessage);
+            _lastSaveLoadMessage,
+            _pendingDemolishBuildingId);
 
         _spriteBatch.End();
 
@@ -279,7 +300,8 @@ public sealed class Game1 : Game
 
         ConfigureWorld(new GameWorld(map, _gameData));
         CenterCameraOnInitialIsland();
-        _selectedBuildingId = "wind_turbine";
+        _selectedBuildingId = null;
+        _pendingDemolishBuildingId = null;
         _lastResearchResult = null;
         _lastUpgradeResult = null;
         _lastSaveLoadMessage = "NEW GAME STARTED";
@@ -347,63 +369,77 @@ public sealed class Game1 : Game
         var buildIds = _uiRenderer.GetBuildButtonIds();
 
         if (_input.IsKeyPressed(Keys.D1) || _input.IsKeyPressed(Keys.NumPad1))
-            _selectedBuildingId = buildIds.Count > 0 ? buildIds[0] : null;
+            ToggleBuildTool(buildIds, 0);
 
         if (_input.IsKeyPressed(Keys.D2) || _input.IsKeyPressed(Keys.NumPad2))
-            _selectedBuildingId = buildIds.Count > 1 ? buildIds[1] : null;
+            ToggleBuildTool(buildIds, 1);
 
         if (_input.IsKeyPressed(Keys.D3) || _input.IsKeyPressed(Keys.NumPad3))
-            _selectedBuildingId = buildIds.Count > 2 ? buildIds[2] : null;
+            ToggleBuildTool(buildIds, 2);
 
         if (_input.IsKeyPressed(Keys.D4) || _input.IsKeyPressed(Keys.NumPad4))
-            _selectedBuildingId = buildIds.Count > 3 ? buildIds[3] : null;
+            ToggleBuildTool(buildIds, 3);
 
         if (_input.IsKeyPressed(Keys.D5) || _input.IsKeyPressed(Keys.NumPad5))
-            _selectedBuildingId = buildIds.Count > 4 ? buildIds[4] : null;
+            ToggleBuildTool(buildIds, 4);
 
         if (_input.IsKeyPressed(Keys.D6) || _input.IsKeyPressed(Keys.NumPad6))
-            _selectedBuildingId = buildIds.Count > 5 ? buildIds[5] : null;
+            ToggleBuildTool(buildIds, 5);
 
         if (_input.IsKeyPressed(Keys.D7) || _input.IsKeyPressed(Keys.NumPad7))
-            _selectedBuildingId = buildIds.Count > 6 ? buildIds[6] : null;
+            ToggleBuildTool(buildIds, 6);
 
         if (_input.IsKeyPressed(Keys.D8) || _input.IsKeyPressed(Keys.NumPad8))
-            _selectedBuildingId = buildIds.Count > 7 ? buildIds[7] : null;
+            ToggleBuildTool(buildIds, 7);
 
         if (_input.IsKeyPressed(Keys.D9) || _input.IsKeyPressed(Keys.NumPad9))
-            _selectedBuildingId = buildIds.Count > 8 ? buildIds[8] : null;
+            ToggleBuildTool(buildIds, 8);
 
         if (_input.IsKeyPressed(Keys.D0) || _input.IsKeyPressed(Keys.NumPad0))
-            _selectedBuildingId = buildIds.Count > 9 ? buildIds[9] : null;
+            ToggleBuildTool(buildIds, 9);
 
         var mousePoint = new Point(_input.CurrentMouse.X, _input.CurrentMouse.Y);
+
+        if (_input.IsRightClickPressed() && !string.IsNullOrWhiteSpace(_selectedBuildingId))
+        {
+            _selectedBuildingId = null;
+            _pendingDemolishBuildingId = null;
+            _lastSaveLoadMessage = "BUILD TOOL CANCELED";
+            _mapInput.ClearLastBuildResult();
+            return;
+        }
         if (_input.IsLeftClickPressed() && _uiRenderer.IsSellButtonAt(mousePoint, GraphicsDevice.Viewport))
         {
             _sellSystem.SellAll();
+            _pendingDemolishBuildingId = null;
             return;
         }
 
         if (_input.IsLeftClickPressed() && _uiRenderer.IsSaveButtonAt(mousePoint, GraphicsDevice.Viewport))
         {
             SaveCurrentGame();
+            _pendingDemolishBuildingId = null;
             return;
         }
 
         if (_input.IsLeftClickPressed() && _uiRenderer.IsLoadButtonAt(mousePoint, GraphicsDevice.Viewport))
         {
             LoadCurrentGame();
+            _pendingDemolishBuildingId = null;
             return;
         }
 
         if (_input.IsLeftClickPressed() && _uiRenderer.IsNewGameButtonAt(mousePoint, GraphicsDevice.Viewport))
         {
             StartNewGame();
+            _pendingDemolishBuildingId = null;
             return;
         }
 
         if (_input.IsLeftClickPressed() && _uiRenderer.IsToggleFullscreenButtonAt(mousePoint, GraphicsDevice.Viewport))
         {
             ToggleFullscreen();
+            _pendingDemolishBuildingId = null;
             return;
         }
 
@@ -419,6 +455,7 @@ public sealed class Game1 : Game
         {
             _lastResearchResult = _researchSystem.Complete(clickedResearchId);
             _lastUpgradeResult = null;
+            _pendingDemolishBuildingId = null;
             _mapInput.ClearLastBuildResult();
             _mapInput.ClearLastAreaUnlockResult();
             return;
@@ -429,6 +466,7 @@ public sealed class Game1 : Game
         {
             _lastUpgradeResult = _upgradeSystem.Purchase(clickedUpgradeId);
             _lastResearchResult = null;
+            _pendingDemolishBuildingId = null;
             _mapInput.ClearLastBuildResult();
             _mapInput.ClearLastAreaUnlockResult();
             return;
@@ -441,6 +479,31 @@ public sealed class Game1 : Game
             _mapInput.SetLastBuildResult(result);
             _lastResearchResult = null;
             _lastUpgradeResult = null;
+            _pendingDemolishBuildingId = null;
+            return;
+        }
+
+        if (_input.IsLeftClickPressed() &&
+            _uiRenderer.IsDemolishButtonAt(mousePoint, GraphicsDevice.Viewport, _mapInput.SelectedMapBuildingId))
+        {
+            var buildingId = _mapInput.SelectedMapBuildingId!.Value;
+            if (_pendingDemolishBuildingId != buildingId)
+            {
+                _pendingDemolishBuildingId = buildingId;
+                _lastSaveLoadMessage = "CLICK DEMOLISH AGAIN TO CONFIRM";
+                _lastResearchResult = null;
+                _lastUpgradeResult = null;
+                return;
+            }
+
+            var result = _buildSystem.Demolish(buildingId);
+            _mapInput.SetLastBuildResult(result);
+            if (result.Success)
+                _mapInput.ClearSelectedBuilding();
+            _pendingDemolishBuildingId = null;
+            _lastResearchResult = null;
+            _lastUpgradeResult = null;
+            _lastSaveLoadMessage = result.Success ? "BUILDING DEMOLISHED" : null;
             return;
         }
 
@@ -451,6 +514,7 @@ public sealed class Game1 : Game
             _mapInput.SetLastTerrainClearResult(result);
             _lastResearchResult = null;
             _lastUpgradeResult = null;
+            _pendingDemolishBuildingId = null;
             return;
         }
 
@@ -461,15 +525,57 @@ public sealed class Game1 : Game
             _mapInput.SetLastAreaUnlockResult(result);
             _lastResearchResult = null;
             _lastUpgradeResult = null;
+            _pendingDemolishBuildingId = null;
             return;
         }
 
         if (_input.IsLeftClickPressed() && _uiRenderer.TryGetBuildingButtonAt(mousePoint, GraphicsDevice.Viewport, out var clickedBuildingId))
         {
-            _selectedBuildingId = clickedBuildingId;
+            if (string.Equals(_selectedBuildingId, clickedBuildingId, StringComparison.OrdinalIgnoreCase))
+            {
+                _selectedBuildingId = null;
+                _lastSaveLoadMessage = "BUILD TOOL CANCELED";
+            }
+            else
+            {
+                _selectedBuildingId = clickedBuildingId;
+                _lastSaveLoadMessage = null;
+            }
+
             _lastResearchResult = null;
             _lastUpgradeResult = null;
+            _pendingDemolishBuildingId = null;
+            _mapInput.ClearLastBuildResult();
             _mapInput.ClearLastAreaUnlockResult();
         }
+    }
+
+    private void ToggleBuildTool(IReadOnlyList<string> buildIds, int index)
+    {
+        if (buildIds.Count <= index)
+        {
+            _selectedBuildingId = null;
+            _lastSaveLoadMessage = "BUILD TOOL CANCELED";
+            _mapInput.ClearLastBuildResult();
+            return;
+        }
+
+        var buildingId = buildIds[index];
+        if (string.Equals(_selectedBuildingId, buildingId, StringComparison.OrdinalIgnoreCase))
+        {
+            _selectedBuildingId = null;
+            _lastSaveLoadMessage = "BUILD TOOL CANCELED";
+        }
+        else
+        {
+            _selectedBuildingId = buildingId;
+            _lastSaveLoadMessage = null;
+        }
+
+        _lastResearchResult = null;
+        _lastUpgradeResult = null;
+        _pendingDemolishBuildingId = null;
+        _mapInput.ClearLastBuildResult();
+        _mapInput.ClearLastAreaUnlockResult();
     }
 }
