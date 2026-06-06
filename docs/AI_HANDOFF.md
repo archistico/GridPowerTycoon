@@ -376,3 +376,9 @@ L'obiettivo è ridurre l'ambiguità del pannello sinistro: il giocatore deve cap
 Rifinite le righe informative dei pulsanti laterali. In `UiRenderer`, BUILD non usa più una combinazione generica `NET ENERGY | HEAT` come informazione principale, ma una frase operativa calcolata dai valori effettivi con upgrade correnti: `PRODUCES ... ENERGY`, `PRODUCES ... HEAT`, `CONVERTS ... HEAT`, `ADDS ... STORAGE`, `PRODUCES R...`, `SELLS ... ENERGY` o `USES ... ENERGY`. La riga di supporto spiega il ruolo pratico: generatori che necessitano calore vicino, produttori di calore che richiedono un generatore, batterie che evitano sprechi, uffici che convertono energia accumulata in denaro e centri ricerca che sbloccano tecnologie.
 
 RESEARCH usa ora `GetResearchActionText(...)` per chiarire se la ricerca crea un nuovo edificio o abilita automazioni. UPGRADE usa `GetUpgradeTargetText(...)` per mostrare il bersaglio dell'upgrade invece di ripetere una descrizione lunga spesso meno utile nel pulsante. Questo step non modifica regole di gioco o bilanciamento, solo la leggibilità del pannello sinistro.
+
+## 2026-06-06 - Step 19E: purpose nel properties panel
+
+Prosegue la Milestone 19 sulla leggibilità UI. Il pannello proprietà ora espone una riga `PURPOSE` subito dopo `TYPE`, così anche quando si seleziona un edificio, una cella vuota, una foresta, una montagna, una cloud area o un tool BUILD attivo viene spiegato in modo sintetico a cosa serve quell'elemento o quale azione è possibile.
+
+Per gli edifici la riga `PURPOSE` è derivata dalla categoria funzionale: produzione energia, storage, vendita automatica, ricerca, produzione calore, conversione calore o edificio economico avanzato. Per celle vuote e terreni bloccanti la riga chiarisce se la cella è edificabile, se blocca la costruzione, se può essere liberata con asce/mines o se una cloud area permette di sbloccare nuova mappa. Non sono state modificate regole di gioco o bilanciamento.

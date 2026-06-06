@@ -350,3 +350,9 @@ Stato: preparato.
 Prosegue la Milestone 19. I pulsanti BUILD ora usano una riga di effetto principale più esplicita: produzione energia, produzione calore, conversione calore, storage, ricerca o vendita automatica vengono descritti direttamente con verbo e quantità. La quarta riga non ripete più soltanto la descrizione lunga del catalogo, ma fornisce un'indicazione operativa breve, per esempio se un generatore ha bisogno di calore vicino, se un produttore di calore richiede un generatore o se una batteria serve a evitare sprechi di energia.
 
 Anche RESEARCH e UPGRADE sono stati resi più operativi: le ricerche distinguono meglio nuovi edifici e automazioni, mentre gli upgrade mostrano chiaramente il target dell'effetto. Lo scopo è far capire il valore pratico di ogni pulsante senza dover aprire il pannello proprietà.
+
+## 2026-06-06 - Step 19E: purpose nel properties panel
+
+Stato: preparato.
+
+Aggiunta una riga `PURPOSE` nel pannello proprietà. La riga spiega in modo breve il ruolo dell'edificio selezionato, del tool di costruzione attivo o della cella/terreno selezionato. Questo completa il collegamento tra pannello sinistro e properties panel: il pannello sinistro spiega cosa si può scegliere, il properties panel spiega cosa si sta guardando e perché è rilevante.

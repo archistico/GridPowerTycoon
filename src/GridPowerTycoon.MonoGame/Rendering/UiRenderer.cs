@@ -652,6 +652,7 @@ public sealed class UiRenderer
     private static readonly string[] PropertyRowKeys =
     {
         "TYPE",
+        "PURPOSE",
         "STATE",
         "BUILD TOOL",
         "BUILD COST",
@@ -693,6 +694,7 @@ public sealed class UiRenderer
         var managed = ManagerSystem.IsManaged(_world, definition.Id);
 
         rows["TYPE"] = definition.Category.ToString().ToUpperInvariant();
+        rows["PURPOSE"] = GetPropertyPurposeText(definition);
         rows["STATE"] = status.Label;
         rows["BUILD COST"] = "$" + FormatNumber((double)definition.Cost);
         rows["NEXT UPGRADE"] = GetNextUpgradeCostText(definition);
@@ -730,6 +732,7 @@ public sealed class UiRenderer
     private void FillTerrainPropertyRows(Dictionary<string, string> rows, Tile tile, out Color stateColor, out string action)
     {
         rows["TYPE"] = tile.Type.ToString().ToUpperInvariant();
+        rows["PURPOSE"] = tile.Type == TileType.Forest ? "CAN BE CLEARED WITH AXES" : tile.Type == TileType.Mountain ? "CAN BE CLEARED WITH MINES" : "TERRAIN OBSTACLE";
         rows["STATE"] = "BLOCKED";
         rows["SIZE"] = "1 X 1";
 
@@ -759,6 +762,7 @@ public sealed class UiRenderer
         var tilesToUnlock = CountUnlockableCloudTiles(position);
 
         rows["TYPE"] = "CLOUD";
+        rows["PURPOSE"] = "UNLOCKS MORE MAP AREA";
         rows["STATE"] = "LOCKED";
         rows["SIZE"] = "1 X 1";
         rows["REVEAL"] = $"{revealText}, {tilesToUnlock} TILE(S)";
@@ -770,6 +774,7 @@ public sealed class UiRenderer
     private void FillBuildToolPropertyRows(Dictionary<string, string> rows, BuildingDefinition definition, out Color stateColor, out string action)
     {
         rows["TYPE"] = definition.Category.ToString().ToUpperInvariant();
+        rows["PURPOSE"] = GetPropertyPurposeText(definition);
         rows["BUILD TOOL"] = Shorten(definition.Name.ToUpperInvariant(), 24);
         rows["BUILD COST"] = "$" + FormatNumber((double)definition.Cost);
         rows["NEXT UPGRADE"] = GetNextUpgradeCostText(definition);
@@ -786,11 +791,13 @@ public sealed class UiRenderer
     private void FillEmptyTilePropertyRows(Dictionary<string, string> rows, Tile tile, string? selectedBuildingId, out Color stateColor, out string action)
     {
         rows["TYPE"] = GetTileDisplayName(tile.Type).ToUpperInvariant();
+        rows["PURPOSE"] = tile.Type == TileType.Land ? "EMPTY BUILDABLE TERRAIN" : "TERRAIN BLOCKS BUILDING";
         rows["STATE"] = tile.Type == TileType.Land ? "FREE / BUILDABLE" : "NOT BUILDABLE";
 
         if (!string.IsNullOrWhiteSpace(selectedBuildingId) &&
             _world.BuildingCatalog.TryGet(selectedBuildingId, out var selectedDefinition))
         {
+            rows["PURPOSE"] = GetPropertyPurposeText(selectedDefinition);
             rows["BUILD TOOL"] = Shorten(selectedDefinition.Name.ToUpperInvariant(), 24);
             rows["BUILD COST"] = "$" + FormatNumber((double)selectedDefinition.Cost);
             rows["MONEY/S"] = FormatEstimatedMoneyPerSecond(GetEstimatedMoneyPerSecond(selectedDefinition));
@@ -924,6 +931,21 @@ public sealed class UiRenderer
             BuildingCategory.HeatConverter => "Converts heat into energy.",
             BuildingCategory.Corporation => "Advanced economic building.",
             _ => "Building."
+        };
+    }
+
+    private static string GetPropertyPurposeText(BuildingDefinition definition)
+    {
+        return definition.Category switch
+        {
+            BuildingCategory.PowerProducer => "PRODUCES ELECTRIC ENERGY",
+            BuildingCategory.Storage => "STORES UNUSED ENERGY",
+            BuildingCategory.Automation => "SELLS ENERGY FOR MONEY",
+            BuildingCategory.Research => "PRODUCES RESEARCH POINTS",
+            BuildingCategory.HeatProducer => "PRODUCES HEAT FOR GENERATORS",
+            BuildingCategory.HeatConverter => "TURNS HEAT INTO ENERGY",
+            BuildingCategory.Corporation => "ADVANCED ECONOMIC BUILDING",
+            _ => string.IsNullOrWhiteSpace(definition.Description) ? "BUILDING" : definition.Description.ToUpperInvariant()
         };
     }
 
@@ -1238,6 +1260,7 @@ public sealed class UiRenderer
         return key switch
         {
             "BUILD COST" or "UNLOCK COST" or "ACTION" => new Color(255, 225, 120),
+            "PURPOSE" => new Color(185, 205, 225),
             "NEXT UPGRADE" => new Color(210, 190, 255),
             "MONEY/S" or "PAYBACK" => new Color(180, 225, 190),
             "NET ENERGY" => new Color(135, 210, 255),
