@@ -627,3 +627,25 @@ Initial values:
 - lifetime: none.
 
 Balance intent: late-game energy sink that converts surplus energy into research velocity.
+
+## Milestone 26 pause balance summary
+
+Current balance checkpoint after Step 26F:
+
+| Building | Cost | Research cost | Main effect |
+|---|---:|---:|---|
+| `substation_small` | $2,200 | R180 | +10% grid energy efficiency |
+| `heat_sink_small` | $900 | R120 | 18/s heat dissipation, range 1 |
+| `maintenance_center_small` | $3,200 | R300 | 25% slower lifetime wear |
+| `tool_warehouse_small` | $1,800 | R220 | +25 axes and +25 mines capacity |
+| `geothermal_plant` | $12,000 | R1,600 | 180/s heat, 1.5/s energy input |
+| `data_center` | $250,000 | R8,000 | 120/s research, 80/s energy input |
+
+These values are provisional. Do not rebalance them in isolation before the consistency pass and nuclear design are complete.
+
+Next balance work:
+- verify progression from coal to geothermal;
+- verify that Data center energy demand is reachable but meaningful;
+- verify that heat sink and generator capacity make sense with geothermal;
+- verify that maintenance and managers do not overlap too much;
+- verify that tool warehouse helps expansion without trivializing obstacles.

@@ -1066,3 +1066,57 @@ La sezione `RESEARCH` del pannello sinistro a colonna unica è stata portata all
   - `DataCenter_WithStoredEnergy_ShouldConsumeEnergyAndProduceResearch`;
   - `DataCenter_WithoutEnergy_ShouldNotProduceResearch`.
 - No new Core property or enum was required.
+
+## Stop checkpoint - 2026-06-06
+
+Work is intentionally paused after Step 26F.
+
+Current verified status:
+- Core tests passed locally after `Step 26E Fix1`;
+- Step 26F Data center was prepared after that and should be the current project state in the latest zip;
+- the user reported "ottimo test passati" before Step 26F and then requested planning;
+- next practical step should be documentation/consistency, not more gameplay.
+
+Milestone 26 state:
+- 26A Substation / Transformer: done;
+- 26B Heat sink / Raffreddatore: done;
+- 26C Maintenance center / Centro manutenzione: done;
+- 26D Tool warehouse / Magazzino strumenti: done;
+- 26E Geothermal plant / Centrale geotermica: done;
+- 26F Data center: done;
+- 26G-pre New buildings consistency pass: next;
+- 26G Nuclear plant / advanced reactor: planned after 26G-pre;
+- 26H Milestone 26 final documentation and balance pass: planned after 26G.
+
+Important process rule for next work:
+Do not continue with partial Core-only or UI-only fixes when a step touches Core, data, UI and tests. Package coherent step files together and run static checks for:
+- enum/category declarations;
+- BuildingDefinition properties;
+- UI helper methods;
+- `buildings.json` ids;
+- `research.json` ids;
+- required research references;
+- research unlock references;
+- test catalog definitions.
+
+Current new building roles:
+- `substation_small`: grid efficiency support through `EnergyEfficiencyBonus`;
+- `heat_sink_small`: heat safety through `HeatDissipationPerSecond`;
+- `maintenance_center_small`: operational stability through `MaintenanceEfficiencyBonus`;
+- `tool_warehouse_small`: expansion logistics through `ToolCapacityBonus`;
+- `geothermal_plant`: stable heat source using existing HeatProducer mechanics;
+- `data_center`: high energy sink that produces research using existing Research/Corporation mechanics.
+
+Next recommended implementation:
+`Step 26G-pre - New buildings consistency pass`.
+
+26G-pre should add tests/checks, not new gameplay:
+- validate all building required research ids;
+- validate research unlock building ids;
+- validate research prerequisite ids;
+- validate UI BuildButtonIds against building catalog if practical;
+- validate UI ResearchButtonIds against research catalog if practical;
+- update docs with the final status before nuclear.
+
+After 26G-pre:
+Implement `nuclear_reactor` as a high-tier heat producer only if consistency tests are in place.

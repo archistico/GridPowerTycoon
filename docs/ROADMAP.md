@@ -824,3 +824,81 @@ Completed:
 - added simulation tests.
 
 Design role: major energy sink. It gives mature grids a reason to produce large surplus energy by converting it into research throughput.
+
+### 26G-pre - New buildings consistency pass
+
+Status: next.
+
+Before adding the nuclear reactor, do a consistency pass over the new Milestone 26 content.
+
+Scope:
+- verify build button order and research button order;
+- verify that every build button id exists in `buildings.json`;
+- verify that every research button id exists in `research.json`;
+- verify that every `requiredResearchId` in buildings exists;
+- verify that every `unlockBuildingIds` entry in research exists;
+- verify that every `requiredResearchIds` entry in research exists;
+- verify that UI property rows have matching helper methods;
+- verify that the new buildings have clear roles and no duplicated purpose;
+- update docs before gameplay resumes.
+
+This pass is intentionally not a gameplay feature. It exists to avoid the partial Core/UI/test drift that happened during some of the 26B-26C fixes.
+
+### 26G - Nuclear plant / Advanced reactor
+
+Status: planned after 26G-pre.
+
+Design direction:
+- high-tier heat producer;
+- very high cost;
+- large footprint;
+- high heat output;
+- high infrastructure requirement;
+- requires strong heat conversion and/or heat safety;
+- should not be implemented as just a larger coal plant.
+
+Suggested prerequisites:
+- `geothermal_power`;
+- `maintenance_center`;
+- `data_center` or `research_large`.
+
+The nuclear plant should arrive only after the player understands heat producers, generators, heat sinks, maintenance, large energy demand and advanced research.
+
+### 26H - Milestone 26 final documentation and balance pass
+
+Status: planned after 26G.
+
+Close Milestone 26 with:
+- final table of all new buildings and roles;
+- updated balance notes;
+- updated game-design notes;
+- updated AI handoff;
+- explicit list of new Core properties introduced during the milestone;
+- final regression checks for data, UI ids and tests.
+
+## Milestone 27 - Save, stability and quality of life
+
+Status: planned after Milestone 26.
+
+Goal: stabilize persistence and quality-of-life now that many new properties and buildings have been added.
+
+Recommended order:
+- 27A - Save compatibility check for new building properties;
+- 27B - Visible save/data version information;
+- 27C - Safe handling for missing/renamed buildings or research in old saves;
+- 27D - Confirm NEW and EXIT when the current run has changes;
+- 27E - Optional autosave;
+- 27F - Better SAVE/LOAD feedback;
+- 27G - Regression tests for data loading and save compatibility.
+
+Milestone 27 should be completed before treating the game as a stable playable release candidate.
+
+## Stop checkpoint - 2026-06-06
+
+Current stop point:
+- tests passed after Step 26F;
+- Milestone 26 is complete through 26F;
+- next step is 26G-pre, not nuclear yet.
+
+When work resumes, start from:
+`Step 26G-pre - New buildings consistency pass`.

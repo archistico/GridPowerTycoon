@@ -216,3 +216,19 @@ It produces significant heat and consumes a small amount of energy, but it does 
 The Data center is a late-game energy sink.
 
 It consumes a large amount of energy and produces research. It does not generate electricity or money directly. Its purpose is to give the player a reason to scale the grid beyond basic selling and storage.
+
+## Milestone 26 pause point
+
+The first Milestone 26 content block is complete through the Data center.
+
+The current new-building set is intentionally diverse:
+- Substation improves grid efficiency;
+- Heat sink improves heat safety;
+- Maintenance center slows operational wear;
+- Tool warehouse improves expansion logistics;
+- Geothermal plant provides stable heat;
+- Data center consumes large energy and produces research.
+
+The next design step is not another building immediately. The next step is a consistency pass that protects the relationship between Core properties, JSON content, UI rows and tests.
+
+The nuclear reactor remains planned as the final high-tier building for this milestone. It should be introduced only after the consistency pass.
