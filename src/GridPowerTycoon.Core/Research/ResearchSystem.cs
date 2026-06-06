@@ -35,11 +35,11 @@ public sealed class ResearchSystem
     {
         var validation = CanComplete(researchId);
         if (validation != ResearchFailureReason.None)
-            return ResearchResult.Fail(validation);
+            return ResearchResult.Fail(validation, researchId);
 
         var definition = _world.ResearchCatalog.GetRequired(researchId);
         if (!_world.Resources.TrySpendResearch(definition.Cost))
-            return ResearchResult.Fail(ResearchFailureReason.NotEnoughResearch);
+            return ResearchResult.Fail(ResearchFailureReason.NotEnoughResearch, researchId);
 
         _world.Research.Complete(researchId);
         return ResearchResult.Ok(researchId);

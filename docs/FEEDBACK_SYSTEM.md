@@ -70,6 +70,13 @@ The properties panel shows:
 
 The map also shows badge `H` for warning and `G` when a heat producer lacks conversion.
 
+
+## Milestone 28E properties panel contract
+
+The right properties panel now follows a stable row contract. The same row labels remain in the same order whether the player selects a placed building, a terrain obstacle, a cloud cell, an empty buildable cell or an active build tool. Non-applicable values are shown as `-`.
+
+Building data is grouped into compact summaries instead of moving rows around per building category. `PRODUCES` contains energy/research/money output, `CONSUMES` contains energy input and autosell draw, `STORAGE` contains battery/tool/grid support, and `HEAT` contains output, conversion/cooling, stored heat and risk. This keeps the panel readable while preserving the detailed diagnostics introduced by the heat, maintenance and tool systems.
+
 ## Status bar priority
 
 The status bar should avoid random message overwrites. Current intended priority is:
@@ -267,3 +274,44 @@ It appears as a heat source in the build card and property panel. Existing heat 
 The Data center uses existing Corporation/research feedback.
 
 The property panel shows its high energy input and research output. If energy is missing, existing operational status reports `NO ENERGY`.
+
+## Milestone 28 action feedback
+
+Milestone 28 moves build, research and upgrade action explanations into `GameplayFeedbackFormatter` in the Core project.
+
+The status bar now receives contextual failure text for blocked actions: missing money, missing research points, missing prerequisite research, maxed upgrades and invalid build placement all include the relevant name and resource gap where possible.
+
+The left panel also shows hover card details for visible BUILD, RESEARCH and UPGRADE cards. These details are intentionally compact and repeat the most important context before the click: ready/locked/completed state, cost, missing prerequisite, effect, level progress, target building, size and lifetime where relevant. MonoGame only draws the panel; the text itself comes from Core so the same interpretation can be covered by tests.
+
+
+## Critical resource warnings
+
+Milestone 28C adds a passive warning layer to the same Core formatter used by the status bar and card hover details. `GameplayFeedbackFormatter.FormatCriticalWarning()` returns the highest-priority current risk, while `FormatCriticalWarnings()` returns the full ordered list for tests and future UI panels.
+
+The first status-bar fallback is now a critical warning when one exists. It appears only when there is no more specific message from a player action, save/load event, demolition confirmation, selected building or active build tool. This preserves the existing priority model while making hidden problems easier to notice during normal play.
+
+The current warning families are energy starvation, heat coverage/risk, maintenance/end-of-life, exploded buildings and missing terrain-clearing tools. The logic is deliberately read-only and does not alter production, storage, heat, lifetime or tool generation.
+
+
+## Production summary panel
+
+Milestone 28D adds a compact grid-wide summary panel. Unlike the status bar, which is event-driven and shows the most important current message, this panel is a stable dashboard for the player's economy loop. It summarizes energy production and consumption, research and money rates, heat production and coverage, maintenance risk and tool stock/rates.
+
+The panel is intentionally diagnostic. It does not replace the top resource bar and it does not modify any balance rules. It answers the practical question: “what is my grid doing right now?” When the viewport is too narrow, the panel is hidden rather than overlapping the left menu, properties panel or status bar.
+
+The text is produced by `GameplayFeedbackFormatter.FormatProductionSummaryLines()`, keeping the summary calculation inside Core and keeping MonoGame responsible only for drawing.
+
+
+## Card availability contract
+
+Build, research and upgrade cards now use one Core-side availability contract from `GameplayFeedbackFormatter`. The visible card line and the hover panel should therefore agree on the exact cause.
+
+The expected states are:
+
+| Card | States | Detail shown |
+| --- | --- | --- |
+| Build | ready, locked by research, missing money, unknown | cost, current money and missing amount when needed |
+| Research | ready, completed, locked by prerequisite, missing research points, unknown | prerequisite names or cost/current/missing research points |
+| Upgrade | ready, max level, locked by research, missing money, missing research, mixed shortage, unknown | next-level cost, current resources and missing amounts |
+
+The rule is that generic labels such as `REQ RESEARCH` or `NEED RESOURCES` should not be the final explanation shown to the player when the exact blocker is known.

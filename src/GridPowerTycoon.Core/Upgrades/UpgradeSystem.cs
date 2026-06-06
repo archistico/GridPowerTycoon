@@ -39,7 +39,7 @@ public sealed class UpgradeSystem
     {
         var validation = CanPurchase(upgradeId);
         if (validation != UpgradeFailureReason.None)
-            return UpgradeResult.Fail(validation);
+            return UpgradeResult.Fail(validation, upgradeId);
 
         var definition = _world.UpgradeCatalog.GetRequired(upgradeId);
         var currentLevel = _world.Upgrades.GetLevel(upgradeId);
@@ -47,10 +47,10 @@ public sealed class UpgradeSystem
         var researchCost = GetResearchCost(definition, currentLevel);
 
         if (!_world.Resources.TrySpendMoney(moneyCost))
-            return UpgradeResult.Fail(UpgradeFailureReason.NotEnoughMoney);
+            return UpgradeResult.Fail(UpgradeFailureReason.NotEnoughMoney, upgradeId);
 
         if (!_world.Resources.TrySpendResearch(researchCost))
-            return UpgradeResult.Fail(UpgradeFailureReason.NotEnoughResearch);
+            return UpgradeResult.Fail(UpgradeFailureReason.NotEnoughResearch, upgradeId);
 
         _world.Upgrades.SetLevel(upgradeId, currentLevel + 1);
 

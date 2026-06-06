@@ -1042,3 +1042,83 @@ The help action is now attached to the visible HELP button in the future-section
 After applying this patch, run `dotnet test` and manually verify the top menu: clicking the visible HELP button toggles the help panel, clicking the blank space near EXIT does nothing, and clicking EXIT still triggers the dirty-confirm/exit flow.
 
 Next recommended step: Milestone 28A - Better build/research/upgrade feedback messages.
+
+## 2026-06-06 - Step 28A Better build/research/upgrade feedback messages
+
+Step 28A starts Milestone 28, dedicated to player-facing clarity. It adds `GameplayFeedbackFormatter` in `GridPowerTycoon.Core.Feedback`. The formatter depends on `GameWorld` and generates contextual status-bar messages for build, research and upgrade failures.
+
+Build failures can now mention the selected building name, cost, current money, missing money, required research and failed map position. Research failures can now mention the attempted research name, missing prerequisite name, research cost, current research points and missing amount. Upgrade failures can now mention the attempted upgrade, next level, missing money or research cost, required research and max-level state.
+
+To support this without putting lookup logic in MonoGame, `ResearchResult.Fail` and `UpgradeResult.Fail` now accept an optional attempted id, and `ResearchSystem.Complete` / `UpgradeSystem.Purchase` pass the clicked id through on failures. Existing success behavior is unchanged.
+
+`UiRenderer.DrawStatus` now delegates build/research/upgrade failure text to `GameplayFeedbackFormatter`. Terrain clear and cloud unlock still use their existing simple messages for now. A duplicate local variable in `DrawSaveDataInfo` was also cleaned while touching the file.
+
+Added `GameplayFeedbackFormatterTests` for missing build money, build research lock, research prerequisite lock, upgrade research lock and upgrade missing money.
+
+After applying this patch, run `dotnet test` and manually verify a few blocked actions from the status bar.
+
+Next recommended step: Milestone 28B - Tooltip details for locked/available cards.
+
+
+## 2026-06-06 - Step 28B Hover details for build/research/upgrade cards
+
+Step 28B builds on the Milestone 28 feedback formatter. `GameplayFeedbackFormatter` now also exposes compact card-detail methods for build, research and upgrade entries. They provide UI-ready context lines for ready, locked, unaffordable and completed/maxed states, including costs, current resource availability, missing research, level progress, effect summary and target building where relevant.
+
+`UiRenderer.Draw` now receives the current mouse position from `Game1` and draws a floating detail panel when the cursor is over a visible card in the active left panel. The panel is constrained to the safe viewport area, starts outside the left menu where possible, and avoids the status bar. This keeps the cards compact while making locked/available states understandable before the player clicks.
+
+Added `GameplayFeedbackFormatterTests` coverage for locked build card details, locked research card details and locked upgrade card details. No gameplay or balance rules changed.
+
+After applying this patch, run `dotnet test` and manually verify hover details on Build, Research and Upgrade tabs, especially locked battery, locked generator research and locked battery-capacity upgrade.
+
+Next recommended step: Milestone 28C - Critical resource warnings.
+
+
+## 2026-06-06 - Step 28C Critical resource warnings
+
+Step 28C adds passive risk diagnosis to `GameplayFeedbackFormatter`. The new `FormatCriticalWarning()` and `FormatCriticalWarnings()` methods inspect the current world, resource-rate snapshot and operational building state to produce ordered warnings for energy starvation, heat coverage/risk, maintenance/end-of-life, exploded buildings and missing tools for terrain clearing.
+
+`UiRenderer.DrawStatus` now asks the formatter for the top critical warning and uses it before the generic objective hint when no higher-priority message is active. Direct action feedback still wins: build/research/upgrade results, terrain clear/unlock results, save/load messages, demolition confirmation, selected-building status and active build-tool text keep their existing priority.
+
+Added `GameplayFeedbackFormatterTests` coverage for energy-empty consumers, heat producer without coverage, low lifetime warning and exploded-building priority. No gameplay, balancing or save-format behavior changed.
+
+After applying this patch, run `dotnet test` and manually verify that the status bar shows warnings when the player is idle and no more specific message is active.
+
+Next recommended step: Milestone 28D - Production/consumption summary panel.
+
+
+## 2026-06-07 - Step 28D Production/consumption summary panel
+
+Step 28D adds a read-only central summary panel for the main economy loop. `GameplayFeedbackFormatter` now exposes `FormatProductionSummaryLines()`, which summarizes gross energy production, energy consumption, net energy, research rate, money/autosell rate, heat produced, heat managed, unmanaged heat, active/at-risk buildings, lifetime wear multiplier, and tool stock/generation. Keeping this in Core makes the summary testable and avoids embedding calculation rules in MonoGame.
+
+`UiRenderer` draws the panel between the left action list and the right properties panel when the viewport has enough width. The panel is hidden on narrow screens instead of overlapping critical controls. No gameplay, balancing, save format or simulation behavior changed.
+
+Added `GameplayFeedbackFormatterTests` coverage for the production summary. After applying this patch, run `dotnet test` and manually verify the panel during a mixed grid with energy producers, a research consumer, a heat producer, a heat sink and a maintenance building.
+
+Next recommended step: Milestone 28E - Building details panel consistency.
+
+
+## 2026-06-07 - Milestone 28E prepared: building details panel consistency
+
+The right properties panel has been reorganized around a stable row contract. The panel now keeps the same row order for placed buildings, terrain obstacles, cloud cells, empty cells and build-tool preview. Building-specific diagnostics are grouped into compact rows: `PRODUCES`, `CONSUMES`, `STORAGE`, `HEAT`, `MAINTENANCE`, `LIFETIME`, `MANAGER`, `NEXT UPGRADE`, `ECONOMY` and `PAYBACK`. Non-applicable values remain `-`.
+
+This step is UI-only. It does not change Core simulation, economy, balance values, save format or persistence behavior. Manual verification should compare several building categories side by side: wind turbine, battery, research center, solar panel, generator, heat sink, maintenance center, tool warehouse and nuclear reactor.
+
+## 2026-06-07 - Milestone 28F prepared: locked reason visibility pass
+
+Step 28F consolidates locked/ready/missing-resource text for build, research and upgrade cards. `GameplayFeedbackFormatter` now exposes `FormatBuildAvailabilityLine`, `FormatResearchAvailabilityLine` and `FormatUpgradeAvailabilityLine`, so the left menu and hover tooltip use the same Core-side status contract instead of maintaining separate strings in MonoGame.
+
+The formatter now distinguishes concrete causes: missing prerequisite research, missing money, missing research points, mixed money/research shortages, completed research and maxed upgrades. Hover cards and visible left-panel card status lines should now agree on the exact reason an action cannot run.
+
+No gameplay, save, simulation or balance rule changed. After applying this patch, run `dotnet test` and manually verify locked build/research/upgrade cards, unaffordable upgrades and maxed upgrades.
+
+Next recommended step: Milestone 28G - Milestone 28 closure and feedback regression documentation.
+
+## 2026-06-07 - Milestone 28G prepared: feedback closure and regression pass
+
+Step 28G closes the Milestone 28 feedback work. It adds `docs/MILESTONE_28_FEEDBACK.md`, which records the final feedback contract: status bar priority, left-card availability, hover details, right properties panel stability, production summary panel and map badges.
+
+The Core formatter remains the single owner of player-facing feedback text. MonoGame should keep using `GameplayFeedbackFormatter` instead of duplicating cost, prerequisite, shortage or summary calculations in renderer code.
+
+Regression tests were added to `GameplayFeedbackFormatterTests` for availability-line/hover-detail alignment, completed research and maxed upgrade states, and the stable six-line production summary contract. No gameplay, save-format, balance or simulation behavior changed.
+
+After applying this patch, run `dotnet test`. If tests pass, Milestone 28 can be considered complete. Recommended next milestone: Milestone 29 - Gameplay flow and progression polish.

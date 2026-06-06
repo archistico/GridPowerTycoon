@@ -18,8 +18,8 @@ public sealed class ResearchResult
         return new ResearchResult(true, ResearchFailureReason.None, researchId);
     }
 
-    public static ResearchResult Fail(ResearchFailureReason reason)
+    public static ResearchResult Fail(ResearchFailureReason reason, string? researchId = null)
     {
-        return new ResearchResult(false, reason, null);
+        return new ResearchResult(false, reason, researchId);
     }
 }

@@ -20,8 +20,8 @@ public sealed class UpgradeResult
         return new UpgradeResult(true, UpgradeFailureReason.None, upgradeId, newLevel);
     }
 
-    public static UpgradeResult Fail(UpgradeFailureReason reason)
+    public static UpgradeResult Fail(UpgradeFailureReason reason, string? upgradeId = null)
     {
-        return new UpgradeResult(false, reason, null, 0);
+        return new UpgradeResult(false, reason, upgradeId, 0);
     }
 }

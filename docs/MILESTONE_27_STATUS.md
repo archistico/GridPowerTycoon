@@ -240,3 +240,9 @@ Recommended next step:
 ```text
 Milestone 28A - Better build/research/upgrade feedback messages
 ```
+
+## Step 27J result
+
+Step 27J cleaned the top-menu HELP/EXIT hit-test before Milestone 28. The invisible HELP hotspot near EXIT was removed, and the help action now lives only on the visible HELP button after UPGRADE. This closes the last small UX inconsistency found before starting the feedback milestone.
+
+Milestone 27 can now be treated as complete once local tests pass.

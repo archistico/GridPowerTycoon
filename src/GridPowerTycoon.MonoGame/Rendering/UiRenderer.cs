@@ -2,6 +2,7 @@ using GridPowerTycoon.Core.Build;
 using GridPowerTycoon.Core.Buildings;
 using GridPowerTycoon.Core.Economy;
 using GridPowerTycoon.Core.Expansion;
+using GridPowerTycoon.Core.Feedback;
 using GridPowerTycoon.Core.Research;
 using GridPowerTycoon.Core.Map;
 using GridPowerTycoon.Core.Managers;
@@ -134,6 +135,7 @@ public sealed class UiRenderer
         string? selectedBuildingId,
         BuildResult? lastBuildResult,
         ResearchResult? lastResearchResult,
+        GridPosition? lastBuildFailurePosition,
         GridPosition? selectedTilePosition,
         Guid? selectedMapBuildingId,
         GridPosition? selectedTerrainPosition,
@@ -144,7 +146,8 @@ public sealed class UiRenderer
         string? saveLoadMessage,
         string saveDataInfo,
         bool showHelpPanel,
-        Guid? pendingDemolishBuildingId)
+        Guid? pendingDemolishBuildingId,
+        Point mousePosition)
     {
         var topBar = GetTopBarRectangle(viewport);
         var sideMenu = GetSideMenuRectangle(viewport);
@@ -161,9 +164,11 @@ public sealed class UiRenderer
         DrawMenuStrip(spriteBatch, viewport, activeLeftPanelMode);
 
         DrawPropertiesPanel(spriteBatch, viewport, selectedBuildingId, selectedTilePosition, selectedMapBuildingId, selectedTerrainPosition, selectedCloudPosition, pendingDemolishBuildingId);
+        DrawProductionSummaryPanel(spriteBatch, viewport);
         DrawEarlyChecklist(spriteBatch, viewport);
         DrawHelpPanel(spriteBatch, viewport, showHelpPanel);
-        DrawStatus(spriteBatch, viewport, selectedBuildingId, selectedMapBuildingId, lastBuildResult, lastResearchResult, lastTerrainClearResult, lastAreaUnlockResult, lastUpgradeResult, saveLoadMessage, saveDataInfo, pendingDemolishBuildingId);
+        DrawStatus(spriteBatch, viewport, selectedBuildingId, selectedMapBuildingId, lastBuildResult, lastResearchResult, lastBuildFailurePosition, lastTerrainClearResult, lastAreaUnlockResult, lastUpgradeResult, saveLoadMessage, saveDataInfo, pendingDemolishBuildingId);
+        DrawHoveredCardDetails(spriteBatch, viewport, activeLeftPanelMode, mousePosition);
     }
 
     public bool IsMouseOverUi(Point mousePosition, Viewport viewport)
@@ -317,6 +322,8 @@ public sealed class UiRenderer
             buildingId = null;
             return false;
         }
+
+        var formatter = new GameplayFeedbackFormatter(_world);
 
         for (var i = 0; i < BuildButtonIds.Length; i++)
         {
@@ -513,6 +520,7 @@ public sealed class UiRenderer
 
     private void DrawBuildMenu(SpriteBatch spriteBatch, Viewport viewport, string? selectedBuildingId)
     {
+        var formatter = new GameplayFeedbackFormatter(_world);
         var headerX = GetBuildColumnX();
         DrawColumnScrollHint(spriteBatch, viewport, headerX, _buildScrollOffset, BuildButtonIds.Length, MenuButtonStride);
 
@@ -546,14 +554,10 @@ public sealed class UiRenderer
                         ? new Color(255, 225, 120)
                         : new Color(255, 110, 90);
             var costText = definition is null
-                ? "BUILD COST ?"
+                ? formatter.FormatBuildAvailabilityLine(id)
                 : isSelected
-                    ? $"ACTIVE - BUILD COST ${FormatNumber((double)definition.Cost)}"
-                    : isLocked
-                        ? "LOCKED - " + GetBuildLockedText(definition)
-                        : canAfford
-                            ? $"READY - BUILD COST ${FormatNumber((double)definition.Cost)}"
-                            : $"NEED MONEY - BUILD COST ${FormatNumber((double)definition.Cost)}";
+                    ? "ACTIVE - " + formatter.FormatBuildAvailabilityLine(id)
+                    : formatter.FormatBuildAvailabilityLine(id);
             var primaryText = definition is null ? "MAIN EFFECT ?" : GetBuildButtonMainEffectText(definition);
             var supportText = definition is null ? id : GetBuildButtonSupportText(definition);
 
@@ -570,6 +574,7 @@ public sealed class UiRenderer
     {
         var headerX = GetBuildColumnX();
         DrawColumnScrollHint(spriteBatch, viewport, headerX, _researchScrollOffset, ResearchButtonIds.Length, MenuButtonStride);
+        var formatter = new GameplayFeedbackFormatter(_world);
 
         for (var i = 0; i < ResearchButtonIds.Length; i++)
         {
@@ -606,16 +611,7 @@ public sealed class UiRenderer
             spriteBatch.Draw(_pixel, new Rectangle(rect.X, rect.Y, 5, rect.Height), stripeColor);
 
             var name = definition?.Name ?? id;
-            var cost = definition is null ? "?" : FormatNumber(definition.Cost);
-            var status = definition is null
-                ? "?"
-                : completed
-                    ? "DONE - RESEARCH COMPLETED"
-                    : missingPrereq
-                        ? "LOCKED - " + GetResearchPrerequisiteText(definition)
-                        : canAfford
-                            ? $"READY - COST R{cost}"
-                            : $"NEED RESEARCH - COST R{cost}";
+            var status = formatter.FormatResearchAvailabilityLine(id);
             var unlockText = definition is null ? "" : GetResearchUnlockText(definition);
             var description = definition is null ? id : GetResearchActionText(definition);
             var detail = definition is null ? "RESEARCH" : GetResearchButtonDetailText(definition);
@@ -639,6 +635,7 @@ public sealed class UiRenderer
     {
         var headerX = GetBuildColumnX();
         DrawColumnScrollHint(spriteBatch, viewport, headerX, _upgradeScrollOffset, UpgradeButtonIds.Length, MenuButtonStride);
+        var formatter = new GameplayFeedbackFormatter(_world);
 
         for (var i = 0; i < UpgradeButtonIds.Length; i++)
         {
@@ -680,15 +677,7 @@ public sealed class UiRenderer
             var name = definition?.Name ?? id;
             var effect = definition is null ? "?" : GetUpgradeEffectText(definition);
             var targetText = definition is null ? "" : GetUpgradeTargetText(definition);
-            var status = definition is null
-                ? "?"
-                : completed
-                    ? $"MAX LEVEL {level}"
-                    : missingResearch
-                        ? "LOCKED - REQ RESEARCH"
-                        : canAfford
-                            ? "READY - " + GetUpgradeCostText(definition, level)
-                            : "NEED RESOURCES - " + GetUpgradeCostText(definition, level);
+            var status = formatter.FormatUpgradeAvailabilityLine(id);
             var detailText = definition is null ? id : GetUpgradeButtonDetailText(definition, level, completed);
 
             _text.DrawString(spriteBatch, Shorten(name, 28), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonTitleY), new Color(235, 240, 245), 2);
@@ -706,6 +695,103 @@ public sealed class UiRenderer
         }
     }
 
+
+
+
+    private void DrawHoveredCardDetails(SpriteBatch spriteBatch, Viewport viewport, LeftPanelMode activeLeftPanelMode, Point mousePosition)
+    {
+        if (!TryGetHoveredCardDetails(mousePosition, viewport, activeLeftPanelMode, out var lines))
+            return;
+
+        var visibleLines = lines
+            .Where(line => !string.IsNullOrWhiteSpace(line))
+            .Take(7)
+            .ToArray();
+
+        if (visibleLines.Length == 0)
+            return;
+
+        var width = 410;
+        var lineHeight = 17;
+        var height = 18 + visibleLines.Length * lineHeight + 12;
+        var x = mousePosition.X + 18;
+        var y = mousePosition.Y + 18;
+
+        if (x + width > viewport.Width - 12)
+            x = mousePosition.X - width - 18;
+        if (y + height > viewport.Height - StatusBarHeight - 8)
+            y = viewport.Height - StatusBarHeight - height - 8;
+        if (x < SideMenuWidth + 8)
+            x = SideMenuWidth + 8;
+        if (y < TopBarHeight + MenuStripHeight + 8)
+            y = TopBarHeight + MenuStripHeight + 8;
+
+        var panel = new Rectangle(x, y, width, height);
+        spriteBatch.Draw(_pixel, panel, new Color(24, 30, 42, 238));
+        DrawOutline(spriteBatch, panel, new Color(120, 140, 170), 2);
+
+        for (var i = 0; i < visibleLines.Length; i++)
+        {
+            var color = i == 0
+                ? new Color(255, 225, 120)
+                : i == 1 && visibleLines[i].StartsWith("LOCKED", StringComparison.OrdinalIgnoreCase)
+                    ? new Color(255, 170, 130)
+                    : i == 1 && visibleLines[i].StartsWith("NEED", StringComparison.OrdinalIgnoreCase)
+                        ? new Color(255, 150, 120)
+                        : i == 1 && visibleLines[i].StartsWith("READY", StringComparison.OrdinalIgnoreCase)
+                            ? new Color(160, 245, 175)
+                            : new Color(220, 230, 240);
+
+            _text.DrawString(spriteBatch, Shorten(visibleLines[i], 64), new Vector2(panel.X + 12, panel.Y + 11 + i * lineHeight), color, 1);
+        }
+    }
+
+    private bool TryGetHoveredCardDetails(Point mousePosition, Viewport viewport, LeftPanelMode activeLeftPanelMode, out IReadOnlyList<string> lines)
+    {
+        var formatter = new GameplayFeedbackFormatter(_world);
+
+        switch (activeLeftPanelMode)
+        {
+            case LeftPanelMode.Build:
+                for (var i = 0; i < BuildButtonIds.Length; i++)
+                {
+                    var rect = GetBuildButtonRectangle(i);
+                    if (IsMenuButtonVisible(rect, viewport) && rect.Contains(mousePosition))
+                    {
+                        lines = formatter.FormatBuildCardDetails(BuildButtonIds[i]);
+                        return true;
+                    }
+                }
+                break;
+
+            case LeftPanelMode.Research:
+                for (var i = 0; i < ResearchButtonIds.Length; i++)
+                {
+                    var rect = GetResearchButtonRectangle(i);
+                    if (IsMenuButtonVisible(rect, viewport) && rect.Contains(mousePosition))
+                    {
+                        lines = formatter.FormatResearchCardDetails(ResearchButtonIds[i]);
+                        return true;
+                    }
+                }
+                break;
+
+            case LeftPanelMode.Upgrade:
+                for (var i = 0; i < UpgradeButtonIds.Length; i++)
+                {
+                    var rect = GetUpgradeButtonRectangle(i);
+                    if (IsMenuButtonVisible(rect, viewport) && rect.Contains(mousePosition))
+                    {
+                        lines = formatter.FormatUpgradeCardDetails(UpgradeButtonIds[i]);
+                        return true;
+                    }
+                }
+                break;
+        }
+
+        lines = Array.Empty<string>();
+        return false;
+    }
 
     private void DrawMenuStateBadge(SpriteBatch spriteBatch, Rectangle buttonRect, string text, Color fillColor, Color textColor)
     {
@@ -752,6 +838,44 @@ public sealed class UiRenderer
             _text.DrawString(spriteBatch, marker, new Vector2(panel.X + 12, y), markerColor, 1);
             _text.DrawString(spriteBatch, Shorten(item.Text, 48), new Vector2(panel.X + 39, y), textColor, 1);
             y += itemHeight;
+        }
+    }
+
+    private void DrawProductionSummaryPanel(SpriteBatch spriteBatch, Viewport viewport)
+    {
+        var properties = GetPropertiesPanelRectangle(viewport);
+        var x = SideMenuWidth + 16;
+        var width = properties.X - x - 16;
+        if (width < 440)
+            return;
+
+        var lines = CreateFeedbackFormatter().FormatProductionSummaryLines();
+        var lineHeight = 17;
+        var height = 32 + (lines.Count - 1) * lineHeight + 12;
+        var panel = new Rectangle(x, TopBarHeight + MenuStripHeight + 16, Math.Min(width, 620), height);
+
+        if (panel.Bottom > viewport.Height - StatusBarHeight - 12)
+            return;
+
+        spriteBatch.Draw(_pixel, panel, new Color(24, 31, 42, 225));
+        DrawOutline(spriteBatch, panel, new Color(85, 108, 132, 220), 2);
+
+        _text.DrawString(spriteBatch, lines[0], new Vector2(panel.X + 12, panel.Y + 10), new Color(235, 240, 245), 1);
+
+        var y = panel.Y + 31;
+        for (var i = 1; i < lines.Count; i++)
+        {
+            var color = i switch
+            {
+                1 => new Color(135, 210, 255),
+                2 => new Color(255, 225, 120),
+                3 => new Color(255, 175, 120),
+                4 => new Color(180, 220, 185),
+                _ => new Color(210, 225, 238)
+            };
+
+            _text.DrawString(spriteBatch, Shorten(lines[i], 92), new Vector2(panel.X + 12, y), color, 1);
+            y += lineHeight;
         }
     }
 
@@ -848,31 +972,21 @@ public sealed class UiRenderer
         "STATE",
         "ISSUE",
         "BUILD TOOL",
-        "BUILD COST",
-        "NEXT UPGRADE",
-        "MONEY/S",
-        "NET ENERGY",
-        "GRID BONUS",
-        "MAINTENANCE",
-        "TOOL STORAGE",
-        "PAYBACK",
-        "LIFE",
-        "MANAGED",
-        "MANAGER",
-        "ENERGY IN",
-        "ENERGY OUT",
-        "HEAT OUT",
-        "HEAT STORED",
-        "HEAT RISK",
-        "HEAT IN",
-        "HEAT TO ENERGY",
-        "HEAT DISSIPATE",
-        "RESEARCH OUT",
-        "AUTO SELL",
-        "BATTERY",
+        "COST",
         "SIZE",
+        "REQUIRES",
+        "PRODUCES",
+        "CONSUMES",
+        "STORAGE",
+        "HEAT",
+        "MAINTENANCE",
+        "LIFETIME",
+        "MANAGER",
+        "NEXT UPGRADE",
+        "ECONOMY",
+        "PAYBACK",
         "REVEAL",
-        "CLEAR COST",
+        "TERRAIN COST",
         "UNLOCK COST"
     };
 
@@ -896,37 +1010,19 @@ public sealed class UiRenderer
         rows["PURPOSE"] = GetPropertyPurposeText(definition);
         rows["STATE"] = status.Label;
         rows["ISSUE"] = GetOperationalIssueText(status, definition);
-        rows["BUILD COST"] = "$" + FormatNumber((double)definition.Cost);
-        rows["NEXT UPGRADE"] = GetNextUpgradeCostText(definition);
-        rows["MONEY/S"] = FormatEstimatedMoneyPerSecond(GetEstimatedMoneyPerSecond(status));
-        rows["NET ENERGY"] = FormatNetEnergy(status);
-        rows["GRID BONUS"] = FormatEnergyEfficiencyBonus(definition);
-        rows["MAINTENANCE"] = FormatMaintenanceEfficiencyBonus(definition);
-        rows["TOOL STORAGE"] = FormatToolCapacityBonus(definition);
-        rows["PAYBACK"] = FormatPayback(definition.Cost, GetEstimatedMoneyPerSecond(status));
-        rows["LIFE"] = FormatLifetime(instance.RemainingLifetimeSeconds, effectiveLifetime);
-        rows["MANAGED"] = managed ? "YES" : "NO";
-        rows["MANAGER"] = GetManagerStatusText(definition.Id, managed);
-        rows["ENERGY IN"] = status.EnergyInputPerSecond > 0 ? $"-{FormatNumber(status.EnergyInputPerSecond)}/S" : "-";
-        rows["ENERGY OUT"] = FormatEffectiveGross(status.EnergyOutputPerSecond, UpgradeCalculator.GetEnergyPerSecond(_world, definition));
-        rows["HEAT OUT"] = FormatEffectiveGross(status.HeatOutputPerSecond, UpgradeCalculator.GetHeatPerSecond(_world, definition));
-        rows["HEAT STORED"] = (instance.AccumulatedHeat > 0 || UpgradeCalculator.GetHeatPerSecond(_world, definition) > 0)
-            ? $"{FormatNumber(status.HeatStored)} / {FormatNumber(status.HeatExplosionThreshold)}"
-            : "-";
-        rows["HEAT RISK"] = GetHeatRiskText(status);
-        rows["HEAT IN"] = UpgradeCalculator.GetHeatConversionPerSecond(_world, definition) > 0
-            ? $"ABSORBS {FormatNumber(status.HeatConversionInputPerSecond)}/S, RANGE {definition.HeatRange} CELLS"
-            : "-";
-        rows["HEAT TO ENERGY"] = UpgradeCalculator.GetHeatConversionPerSecond(_world, definition) > 0
-            ? $"PRODUCES {FormatNumber(status.HeatConversionEnergyOutputPerSecond)}/S ENERGY"
-            : "-";
-        rows["HEAT DISSIPATE"] = UpgradeCalculator.GetHeatDissipationPerSecond(_world, definition) > 0
-            ? $"REMOVES {FormatNumber(UpgradeCalculator.GetHeatDissipationPerSecond(_world, definition))}/S, RANGE {definition.HeatRange} CELLS"
-            : "-";
-        rows["RESEARCH OUT"] = FormatEffectiveGross(status.ResearchOutputPerSecond, UpgradeCalculator.GetResearchPerSecond(_world, definition));
-        rows["AUTO SELL"] = FormatEffectiveGross(status.AutoSellInputPerSecond, UpgradeCalculator.GetAutoSellPerSecond(_world, definition));
-        rows["BATTERY"] = status.BatteryCapacity > 0 ? "+" + FormatNumber(status.BatteryCapacity) : "-";
+        rows["COST"] = "$" + FormatNumber((double)definition.Cost);
         rows["SIZE"] = $"{definition.Width} X {definition.Height}";
+        rows["REQUIRES"] = GetBuildingRequirementText(definition);
+        rows["PRODUCES"] = FormatBuildingProduction(status, definition);
+        rows["CONSUMES"] = FormatBuildingConsumption(status);
+        rows["STORAGE"] = FormatBuildingStorage(status, definition);
+        rows["HEAT"] = FormatBuildingHeat(status, definition);
+        rows["MAINTENANCE"] = FormatBuildingMaintenance(definition);
+        rows["LIFETIME"] = FormatLifetime(instance.RemainingLifetimeSeconds, effectiveLifetime);
+        rows["MANAGER"] = GetManagerStatusText(definition.Id, managed);
+        rows["NEXT UPGRADE"] = GetNextUpgradeCostText(definition);
+        rows["ECONOMY"] = FormatEstimatedMoneyPerSecond(GetEstimatedMoneyPerSecond(status));
+        rows["PAYBACK"] = FormatPayback(definition.Cost, GetEstimatedMoneyPerSecond(status));
 
         stateColor = GetOperationalStateColor(status.State);
         if (instance.State == BuildingState.Exploded)
@@ -935,6 +1031,172 @@ public sealed class UiRenderer
             action = _world.Resources.Money >= definition.Cost ? "REPLACE OR DEMOLISH" : "NEED MONEY TO REPLACE";
         else
             action = "DEMOLISH AVAILABLE";
+    }
+
+    private string GetBuildingRequirementText(BuildingDefinition definition)
+    {
+        if (string.IsNullOrWhiteSpace(definition.RequiredResearchId))
+            return "NONE";
+
+        var researchName = _world.ResearchCatalog.TryGet(definition.RequiredResearchId, out var research)
+            ? research.Name.ToUpperInvariant()
+            : definition.RequiredResearchId.ToUpperInvariant();
+
+        return _world.Research.IsCompleted(definition.RequiredResearchId)
+            ? "DONE: " + researchName
+            : "LOCKED: " + researchName;
+    }
+
+    private string FormatBuildingProduction(BuildingOperationalStatus status, BuildingDefinition definition)
+    {
+        var parts = new List<string>();
+
+        if (status.EnergyOutputPerSecond > 0 || UpgradeCalculator.GetEnergyPerSecond(_world, definition) > 0)
+            parts.Add("E " + FormatEffectiveGross(status.EnergyOutputPerSecond, UpgradeCalculator.GetEnergyPerSecond(_world, definition)));
+
+        if (status.HeatConversionEnergyOutputPerSecond > 0 || UpgradeCalculator.GetHeatConversionPerSecond(_world, definition) > 0)
+            parts.Add("HEAT->E +" + FormatNumber(status.HeatConversionEnergyOutputPerSecond) + "/S");
+
+        if (status.ResearchOutputPerSecond > 0 || UpgradeCalculator.GetResearchPerSecond(_world, definition) > 0)
+            parts.Add("R " + FormatEffectiveGross(status.ResearchOutputPerSecond, UpgradeCalculator.GetResearchPerSecond(_world, definition)));
+
+        var moneyPerSecond = GetEstimatedMoneyPerSecond(status);
+        if (moneyPerSecond > 0)
+            parts.Add("$ +" + FormatNumber(moneyPerSecond) + "/S");
+
+        return parts.Count == 0 ? "-" : string.Join(" | ", parts);
+    }
+
+    private string FormatBuildingProduction(BuildingDefinition definition)
+    {
+        var parts = new List<string>();
+        var energy = UpgradeCalculator.GetEnergyPerSecond(_world, definition);
+        var heatConversion = UpgradeCalculator.GetHeatConversionPerSecond(_world, definition);
+        var research = UpgradeCalculator.GetResearchPerSecond(_world, definition);
+        var moneyPerSecond = GetEstimatedMoneyPerSecond(definition);
+
+        if (energy > 0)
+            parts.Add("E +" + FormatNumber(energy) + "/S");
+
+        if (heatConversion > 0)
+            parts.Add("HEAT->E +" + FormatNumber(heatConversion) + "/S");
+
+        if (research > 0)
+            parts.Add("R +" + FormatNumber(research) + "/S");
+
+        if (moneyPerSecond > 0)
+            parts.Add("$ +" + FormatNumber(moneyPerSecond) + "/S");
+
+        return parts.Count == 0 ? "-" : string.Join(" | ", parts);
+    }
+
+    private string FormatBuildingConsumption(BuildingOperationalStatus status)
+    {
+        var parts = new List<string>();
+
+        if (status.EnergyInputPerSecond > 0)
+            parts.Add("E -" + FormatNumber(status.EnergyInputPerSecond) + "/S");
+
+        if (status.AutoSellInputPerSecond > 0)
+            parts.Add("AUTOSELL -" + FormatNumber(status.AutoSellInputPerSecond) + "/S");
+
+        return parts.Count == 0 ? "-" : string.Join(" | ", parts);
+    }
+
+    private string FormatBuildingConsumption(BuildingDefinition definition)
+    {
+        var parts = new List<string>();
+        var energyIn = UpgradeCalculator.GetEnergyConsumptionPerSecond(_world, definition);
+        var autoSell = UpgradeCalculator.GetAutoSellPerSecond(_world, definition);
+
+        if (energyIn > 0)
+            parts.Add("E -" + FormatNumber(energyIn) + "/S");
+
+        if (autoSell > 0)
+            parts.Add("AUTOSELL -" + FormatNumber(autoSell) + "/S");
+
+        return parts.Count == 0 ? "-" : string.Join(" | ", parts);
+    }
+
+    private static string FormatBuildingStorage(BuildingOperationalStatus status, BuildingDefinition definition)
+    {
+        var parts = new List<string>();
+
+        if (status.BatteryCapacity > 0)
+            parts.Add("BATTERY +" + FormatNumber(status.BatteryCapacity));
+
+        if (definition.ToolCapacityBonus > 0)
+            parts.Add("TOOLS +" + FormatNumber(definition.ToolCapacityBonus));
+
+        if (definition.EnergyEfficiencyBonus > 0)
+            parts.Add("GRID +" + FormatPercent(definition.EnergyEfficiencyBonus));
+
+        return parts.Count == 0 ? "-" : string.Join(" | ", parts);
+    }
+
+    private static string FormatBuildingStorage(BuildingDefinition definition)
+    {
+        var parts = new List<string>();
+
+        if (definition.BatteryCapacity > 0)
+            parts.Add("BATTERY +" + FormatNumber(definition.BatteryCapacity));
+
+        if (definition.ToolCapacityBonus > 0)
+            parts.Add("TOOLS +" + FormatNumber(definition.ToolCapacityBonus));
+
+        if (definition.EnergyEfficiencyBonus > 0)
+            parts.Add("GRID +" + FormatPercent(definition.EnergyEfficiencyBonus));
+
+        return parts.Count == 0 ? "-" : string.Join(" | ", parts);
+    }
+
+    private string FormatBuildingHeat(BuildingOperationalStatus status, BuildingDefinition definition)
+    {
+        var parts = new List<string>();
+
+        if (status.HeatOutputPerSecond > 0 || UpgradeCalculator.GetHeatPerSecond(_world, definition) > 0)
+            parts.Add("OUT " + FormatEffectiveGross(status.HeatOutputPerSecond, UpgradeCalculator.GetHeatPerSecond(_world, definition)));
+
+        if (UpgradeCalculator.GetHeatConversionPerSecond(_world, definition) > 0)
+            parts.Add("IN " + FormatNumber(status.HeatConversionInputPerSecond) + "/S R" + definition.HeatRange);
+
+        if (UpgradeCalculator.GetHeatDissipationPerSecond(_world, definition) > 0)
+            parts.Add("COOL " + FormatNumber(UpgradeCalculator.GetHeatDissipationPerSecond(_world, definition)) + "/S R" + definition.HeatRange);
+
+        if (status.HeatStored > 0 || UpgradeCalculator.GetHeatPerSecond(_world, definition) > 0)
+            parts.Add("STORED " + FormatNumber(status.HeatStored) + "/" + FormatNumber(status.HeatExplosionThreshold));
+
+        var risk = GetHeatRiskText(status);
+        if (risk != "-")
+            parts.Add(risk);
+
+        return parts.Count == 0 ? "-" : string.Join(" | ", parts);
+    }
+
+    private string FormatBuildingHeat(BuildingDefinition definition)
+    {
+        var parts = new List<string>();
+        var heatOut = UpgradeCalculator.GetHeatPerSecond(_world, definition);
+        var heatIn = UpgradeCalculator.GetHeatConversionPerSecond(_world, definition);
+        var heatDissipation = UpgradeCalculator.GetHeatDissipationPerSecond(_world, definition);
+
+        if (heatOut > 0)
+            parts.Add("OUT +" + FormatNumber(heatOut) + "/S");
+
+        if (heatIn > 0)
+            parts.Add("IN " + FormatNumber(heatIn) + "/S R" + definition.HeatRange);
+
+        if (heatDissipation > 0)
+            parts.Add("COOL " + FormatNumber(heatDissipation) + "/S R" + definition.HeatRange);
+
+        return parts.Count == 0 ? "-" : string.Join(" | ", parts);
+    }
+
+    private static string FormatBuildingMaintenance(BuildingDefinition definition)
+    {
+        return definition.MaintenanceEfficiencyBonus > 0
+            ? "WEAR -" + FormatPercent(definition.MaintenanceEfficiencyBonus)
+            : "-";
     }
 
     private string GetManagerStatusText(string buildingDefinitionId, bool managed)
@@ -1030,7 +1292,7 @@ public sealed class UiRenderer
             var required = _world.ToolSettings.ForestClearAxesCost;
             var available = _world.Resources.Axes;
             rows["ISSUE"] = available >= required ? "READY TO CLEAR" : $"NEED {required - available:0} AXES";
-            rows["CLEAR COST"] = $"{available:0} / {required} AXES";
+            rows["TERRAIN COST"] = $"{available:0} / {required} AXES";
             action = available >= required ? "CLEAR AVAILABLE" : "NEED AXES";
         }
         else if (tile.Type == TileType.Mountain)
@@ -1038,7 +1300,7 @@ public sealed class UiRenderer
             var required = _world.ToolSettings.MountainClearMinesCost;
             var available = _world.Resources.Mines;
             rows["ISSUE"] = available >= required ? "READY TO CLEAR" : $"NEED {required - available:0} MINES";
-            rows["CLEAR COST"] = $"{available:0} / {required} MINES";
+            rows["TERRAIN COST"] = $"{available:0} / {required} MINES";
             action = available >= required ? "CLEAR AVAILABLE" : "NEED MINES";
         }
         else
@@ -1147,15 +1409,17 @@ public sealed class UiRenderer
         rows["PURPOSE"] = GetPropertyPurposeText(definition);
         rows["ISSUE"] = GetBuildToolHintText(definition);
         rows["BUILD TOOL"] = Shorten(definition.Name.ToUpperInvariant(), 24);
-        rows["BUILD COST"] = "$" + FormatNumber((double)definition.Cost);
-        rows["NEXT UPGRADE"] = GetNextUpgradeCostText(definition);
-        rows["MONEY/S"] = FormatEstimatedMoneyPerSecond(GetEstimatedMoneyPerSecond(definition));
-        rows["NET ENERGY"] = FormatNetEnergy(definition);
-        rows["GRID BONUS"] = FormatEnergyEfficiencyBonus(definition);
-        rows["MAINTENANCE"] = FormatMaintenanceEfficiencyBonus(definition);
-        rows["TOOL STORAGE"] = FormatToolCapacityBonus(definition);
-        rows["PAYBACK"] = FormatPayback(definition.Cost, GetEstimatedMoneyPerSecond(definition));
+        rows["COST"] = "$" + FormatNumber((double)definition.Cost);
         rows["SIZE"] = $"{definition.Width} X {definition.Height}";
+        rows["REQUIRES"] = GetBuildingRequirementText(definition);
+        rows["PRODUCES"] = FormatBuildingProduction(definition);
+        rows["CONSUMES"] = FormatBuildingConsumption(definition);
+        rows["STORAGE"] = FormatBuildingStorage(definition);
+        rows["HEAT"] = FormatBuildingHeat(definition);
+        rows["MAINTENANCE"] = FormatBuildingMaintenance(definition);
+        rows["NEXT UPGRADE"] = GetNextUpgradeCostText(definition);
+        rows["ECONOMY"] = FormatEstimatedMoneyPerSecond(GetEstimatedMoneyPerSecond(definition));
+        rows["PAYBACK"] = FormatPayback(definition.Cost, GetEstimatedMoneyPerSecond(definition));
         action = _world.Resources.Money >= definition.Cost
             ? GetBuildToolActionText(definition)
             : "NEED MONEY TO BUILD";
@@ -1174,14 +1438,16 @@ public sealed class UiRenderer
             rows["PURPOSE"] = GetPropertyPurposeText(selectedDefinition);
             rows["ISSUE"] = GetBuildToolHintText(selectedDefinition);
             rows["BUILD TOOL"] = Shorten(selectedDefinition.Name.ToUpperInvariant(), 24);
-            rows["BUILD COST"] = "$" + FormatNumber((double)selectedDefinition.Cost);
-            rows["MONEY/S"] = FormatEstimatedMoneyPerSecond(GetEstimatedMoneyPerSecond(selectedDefinition));
-            rows["NET ENERGY"] = FormatNetEnergy(selectedDefinition);
-            rows["GRID BONUS"] = FormatEnergyEfficiencyBonus(selectedDefinition);
-            rows["MAINTENANCE"] = FormatMaintenanceEfficiencyBonus(selectedDefinition);
-            rows["TOOL STORAGE"] = FormatToolCapacityBonus(selectedDefinition);
-            rows["PAYBACK"] = FormatPayback(selectedDefinition.Cost, GetEstimatedMoneyPerSecond(selectedDefinition));
+            rows["COST"] = "$" + FormatNumber((double)selectedDefinition.Cost);
             rows["SIZE"] = $"{selectedDefinition.Width} X {selectedDefinition.Height}";
+            rows["REQUIRES"] = GetBuildingRequirementText(selectedDefinition);
+            rows["PRODUCES"] = FormatBuildingProduction(selectedDefinition);
+            rows["CONSUMES"] = FormatBuildingConsumption(selectedDefinition);
+            rows["STORAGE"] = FormatBuildingStorage(selectedDefinition);
+            rows["HEAT"] = FormatBuildingHeat(selectedDefinition);
+            rows["MAINTENANCE"] = FormatBuildingMaintenance(selectedDefinition);
+            rows["ECONOMY"] = FormatEstimatedMoneyPerSecond(GetEstimatedMoneyPerSecond(selectedDefinition));
+            rows["PAYBACK"] = FormatPayback(selectedDefinition.Cost, GetEstimatedMoneyPerSecond(selectedDefinition));
 
             if (tile.Type != TileType.Land)
                 action = "TOOL ACTIVE - NOT BUILDABLE";
@@ -1697,19 +1963,17 @@ public sealed class UiRenderer
 
     private static bool IsPropertyGroupStart(string label)
     {
-        return label is "BUILD COST" or "LIFE" or "ENERGY IN" or "REVEAL";
+        return label is "COST" or "PRODUCES" or "LIFETIME" or "REVEAL";
     }
 
     private static string GetPropertyDisplayLabel(string label)
     {
         return label switch
         {
-            "MONEY/S" => "MONEY / S",
-            "RESEARCH OUT" => "RESEARCH / S",
-            "AUTO SELL" => "AUTO SELL / S",
-            "BATTERY" => "STORAGE",
+            "ECONOMY" => "MONEY / S",
             "SIZE" => "FOOTPRINT",
             "REVEAL" => "REVEALS",
+            "TERRAIN COST" => "CLEAR COST",
             _ => label
         };
     }
@@ -1718,13 +1982,12 @@ public sealed class UiRenderer
     {
         return label switch
         {
-            "TYPE" or "PURPOSE" or "STATE" or "ISSUE" or "BUILD TOOL" => new Color(175, 190, 210),
-            "BUILD COST" or "NEXT UPGRADE" or "MONEY/S" or "PAYBACK" => new Color(205, 190, 150),
-            "LIFE" or "MANAGED" or "MANAGER" => new Color(170, 195, 170),
-            "ENERGY IN" or "ENERGY OUT" or "NET ENERGY" or "GRID BONUS" or "MAINTENANCE" or "TOOL STORAGE" or "BATTERY" => new Color(145, 195, 225),
-            "HEAT OUT" or "HEAT STORED" or "HEAT RISK" or "HEAT IN" or "HEAT TO ENERGY" => new Color(220, 150, 95),
-            "RESEARCH OUT" or "AUTO SELL" => new Color(195, 175, 225),
-            "REVEAL" or "CLEAR COST" or "UNLOCK COST" => new Color(190, 190, 170),
+            "TYPE" or "PURPOSE" or "STATE" or "ISSUE" or "BUILD TOOL" or "REQUIRES" => new Color(175, 190, 210),
+            "COST" or "NEXT UPGRADE" or "ECONOMY" or "PAYBACK" => new Color(205, 190, 150),
+            "LIFETIME" or "MANAGER" or "MAINTENANCE" => new Color(170, 195, 170),
+            "PRODUCES" or "CONSUMES" or "STORAGE" => new Color(145, 195, 225),
+            "HEAT" => new Color(220, 150, 95),
+            "REVEAL" or "TERRAIN COST" or "UNLOCK COST" => new Color(190, 190, 170),
             "ACTION" => new Color(255, 225, 120),
             _ => new Color(155, 170, 190)
         };
@@ -1819,21 +2082,17 @@ public sealed class UiRenderer
     {
         return key switch
         {
-            "BUILD COST" or "UNLOCK COST" or "ACTION" => new Color(255, 225, 120),
+            "COST" or "UNLOCK COST" or "TERRAIN COST" or "ACTION" => new Color(255, 225, 120),
             "PURPOSE" => new Color(185, 205, 225),
-            "ISSUE" => new Color(255, 225, 120),
+            "ISSUE" or "REQUIRES" => new Color(255, 225, 120),
             "NEXT UPGRADE" => new Color(210, 190, 255),
-            "MONEY/S" or "PAYBACK" => new Color(180, 225, 190),
-            "NET ENERGY" => new Color(135, 210, 255),
+            "ECONOMY" or "PAYBACK" => new Color(180, 225, 190),
+            "PRODUCES" => new Color(135, 210, 255),
+            "CONSUMES" => new Color(255, 165, 120),
             "BUILD TOOL" => new Color(255, 220, 80),
-            "ENERGY IN" => new Color(255, 165, 120),
-            "ENERGY OUT" or "HEAT TO ENERGY" => new Color(135, 210, 255),
-            "HEAT OUT" or "HEAT STORED" or "HEAT RISK" => new Color(245, 145, 55),
-            "HEAT IN" => new Color(70, 220, 190),
-            "RESEARCH OUT" => new Color(210, 190, 255),
-            "AUTO SELL" => new Color(180, 225, 190),
-            "BATTERY" => new Color(240, 205, 70),
-            "MANAGER" => new Color(170, 230, 170),
+            "HEAT" => new Color(245, 145, 55),
+            "STORAGE" => new Color(240, 205, 70),
+            "MANAGER" or "MAINTENANCE" or "LIFETIME" => new Color(170, 230, 170),
             _ => new Color(210, 222, 235)
         };
     }
@@ -2125,29 +2384,30 @@ public sealed class UiRenderer
         y += 18;
     }
 
-    private void DrawStatus(SpriteBatch spriteBatch, Viewport viewport, string? selectedBuildingId, Guid? selectedMapBuildingId, BuildResult? lastBuildResult, ResearchResult? lastResearchResult, TerrainClearResult? lastTerrainClearResult, AreaUnlockResult? lastAreaUnlockResult, UpgradeResult? lastUpgradeResult, string? saveLoadMessage, string saveDataInfo, Guid? pendingDemolishBuildingId)
+    private void DrawStatus(SpriteBatch spriteBatch, Viewport viewport, string? selectedBuildingId, Guid? selectedMapBuildingId, BuildResult? lastBuildResult, ResearchResult? lastResearchResult, GridPosition? lastBuildFailurePosition, TerrainClearResult? lastTerrainClearResult, AreaUnlockResult? lastAreaUnlockResult, UpgradeResult? lastUpgradeResult, string? saveLoadMessage, string saveDataInfo, Guid? pendingDemolishBuildingId)
     {
         var statusBar = GetStatusBarRectangle(viewport);
         var y = statusBar.Y + 14;
         var selectedStatusMessage = GetSelectedBuildingStatusMessage(selectedMapBuildingId);
         var objectiveHint = GetCurrentObjectiveHint();
+        var criticalWarning = CreateFeedbackFormatter().FormatCriticalWarning();
         var message = selectedStatusMessage ??
                       (selectedBuildingId is null
-                          ? objectiveHint
+                          ? criticalWarning ?? objectiveHint
                           : $"BUILD TOOL {selectedBuildingId} - LEFT CLICK BUILD, RIGHT CLICK CANCEL");
 
         if (lastResearchResult is not null)
         {
             message = lastResearchResult.Success
                 ? $"RESEARCH OK {lastResearchResult.ResearchId}"
-                : GetResearchFailureMessage(lastResearchResult.FailureReason);
+                : CreateFeedbackFormatter().FormatResearchFailure(lastResearchResult);
         }
 
         if (lastBuildResult is not null)
         {
             message = lastBuildResult.Success
                 ? "BUILD OK"
-                : GetBuildFailureMessage(lastBuildResult.FailureReason);
+                : CreateFeedbackFormatter().FormatBuildFailure(lastBuildResult.FailureReason, selectedBuildingId, lastBuildFailurePosition);
         }
 
         if (lastTerrainClearResult is not null)
@@ -2168,7 +2428,7 @@ public sealed class UiRenderer
         {
             message = lastUpgradeResult.Success
                 ? $"UPGRADE OK {lastUpgradeResult.UpgradeId} LV {lastUpgradeResult.NewLevel}"
-                : GetUpgradeFailureMessage(lastUpgradeResult.FailureReason);
+                : CreateFeedbackFormatter().FormatUpgradeFailure(lastUpgradeResult);
         }
 
         if (!string.IsNullOrWhiteSpace(saveLoadMessage))
@@ -2196,6 +2456,11 @@ public sealed class UiRenderer
         var y = statusBar.Y + 14;
 
         _text.DrawString(spriteBatch, text, new Vector2(x, y), new Color(165, 180, 200), 1);
+    }
+
+    private GameplayFeedbackFormatter CreateFeedbackFormatter()
+    {
+        return new GameplayFeedbackFormatter(_world);
     }
 
     private string GetCurrentBottleneckHint()

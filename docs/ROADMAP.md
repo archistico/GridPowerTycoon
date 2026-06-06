@@ -1028,3 +1028,67 @@ Next recommended step:
 ```text
 Milestone 28A - Better build/research/upgrade feedback messages
 ```
+
+## Step 28A - Better build/research/upgrade feedback messages
+
+Stato: preparato.
+
+Aggiunto `GameplayFeedbackFormatter` nel Core per trasformare gli errori di build, research e upgrade in messaggi più utili per il giocatore. La UI non mostra più solo messaggi generici come `NEED MONEY` o `MISSING PREREQUISITE`: quando possibile indica nome dell'edificio, ricerca o upgrade, costo, risorsa disponibile, quantità mancante e prerequisito richiesto.
+
+`ResearchResult` e `UpgradeResult` mantengono ora l'id tentato anche in caso di fallimento. Questo permette alla status bar di spiegare quale ricerca o upgrade è bloccato senza dover duplicare logica nella UI.
+
+Aggiunti test dedicati in `GameplayFeedbackFormatterTests`. Il gameplay e il bilanciamento non cambiano.
+
+Prossimo step consigliato:
+
+```text
+Milestone 28B - Tooltip details for locked/available cards
+```
+
+
+## Milestone 28A - Better build/research/upgrade feedback messages
+
+Stato: completato.
+
+Aggiunto `GameplayFeedbackFormatter` per trasformare errori di build, ricerca e upgrade in messaggi più concreti nella status bar, con costi, risorse disponibili e prerequisiti mancanti.
+
+## Milestone 28B - Hover details for locked/available cards
+
+Stato: preparato.
+
+Le card BUILD, RESEARCH e UPGRADE ora mostrano un pannello flottante di dettaglio al passaggio del mouse. Il pannello riassume stato, costo, prerequisiti, effetto, livello e target in base al tipo di card. La logica dei testi resta nel Core tramite `GameplayFeedbackFormatter`, mentre MonoGame si limita a disegnare il pannello.
+
+Prossimo step consigliato: Milestone 28C - Critical resource warnings.
+
+
+## Milestone 28D - Production/consumption summary panel
+
+Prepared. Adds a read-only grid summary panel for energy production/consumption/net, research and money rate, heat produced/managed/free, maintenance risk and tool stock/rates. The summary is formatted in Core through `GameplayFeedbackFormatter` and drawn by MonoGame only when there is enough safe central screen space.
+
+Next recommended step: Milestone 28E - Building details panel consistency.
+
+
+## Milestone 28E - Building details panel consistency
+
+Stato: preparato.
+
+Il pannello proprietà a destra usa ora un ordine stabile di righe per edifici, terreno, nuvole, celle vuote e preview del build tool. I valori non applicabili rimangono `-`, mentre i dettagli edificio sono aggregati in righe compatte per produzione, consumi, storage, calore, manutenzione e vita utile. La modifica è solo UI e non cambia gameplay, bilanciamento o salvataggi.
+
+
+## Milestone 28F - Locked reason visibility pass
+
+Status: prepared. Build, research and upgrade card availability is now formatted by Core-side `GameplayFeedbackFormatter` helpers so visible card status and hover details share the same concrete lock/missing-resource reason.
+
+## Milestone 28G - Milestone 28 closure and feedback regression documentation
+
+Stato: preparato.
+
+Questo step chiude il Milestone 28 con documentazione finale e regressioni mirate. Aggiunge `docs/MILESTONE_28_FEEDBACK.md` come contratto del sistema feedback e rafforza `GameplayFeedbackFormatterTests` per evitare divergenze future tra stato visibile delle card, hover details, stati completati/maxed e formato del pannello riepilogo produzione.
+
+Non cambia gameplay, economia, bilanciamento, salvataggi o rendering operativo. Dopo il passaggio dei test, il Milestone 28 può essere considerato completato.
+
+Prossimo milestone consigliato:
+
+```text
+Milestone 29 - Gameplay flow and progression polish
+```

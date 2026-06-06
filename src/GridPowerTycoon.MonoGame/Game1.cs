@@ -313,6 +313,7 @@ public sealed class Game1 : Game
             _selectedBuildingId,
             _mapInput.LastBuildResult,
             _lastResearchResult,
+            _mapInput.LastBuildFailurePosition,
             _mapInput.SelectedTilePosition,
             _mapInput.SelectedMapBuildingId,
             _mapInput.SelectedTerrainPosition,
@@ -323,7 +324,8 @@ public sealed class Game1 : Game
             _lastSaveLoadMessage,
             GetSaveDataInfoForUi(),
             _showHelpPanel,
-            _pendingDemolishBuildingId);
+            _pendingDemolishBuildingId,
+            new Point(_input.CurrentMouse.X, _input.CurrentMouse.Y));
 
         _spriteBatch.End();
 
