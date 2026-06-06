@@ -1,5 +1,6 @@
 using GridPowerTycoon.Core.Build;
 using GridPowerTycoon.Core.Buildings;
+using GridPowerTycoon.Core.Expansion;
 using GridPowerTycoon.Core.Map;
 using GridPowerTycoon.Core.Managers;
 using GridPowerTycoon.Core.Operations;
@@ -15,12 +16,14 @@ public sealed class MapRenderer
     public const int TileSize = 64;
 
     private readonly GameWorld _world;
+    private readonly AreaUnlockSystem _areaUnlockSystem;
     private readonly Texture2D _pixel;
     private readonly PixelTextRenderer _text;
 
-    public MapRenderer(GameWorld world, Texture2D pixel)
+    public MapRenderer(GameWorld world, AreaUnlockSystem areaUnlockSystem, Texture2D pixel)
     {
         _world = world;
+        _areaUnlockSystem = areaUnlockSystem;
         _pixel = pixel;
         _text = new PixelTextRenderer(pixel);
     }
@@ -29,15 +32,22 @@ public sealed class MapRenderer
         SpriteBatch spriteBatch,
         GridPosition? hoveredTile,
         GridPosition? selectedTile,
+        Guid? selectedMapBuildingId,
+        GridPosition? selectedTerrainPosition,
+        GridPosition? selectedCloudPosition,
         string? selectedBuildingId,
         BuildSystem buildSystem,
         GridPosition? lastBuildFailurePosition,
         BuildFailureReason? lastBuildFailureReason)
     {
         DrawTiles(spriteBatch);
-        DrawBuildings(spriteBatch);
+        DrawSelectedHeatRangeOverlay(spriteBatch, selectedMapBuildingId);
+        DrawBuildings(spriteBatch, selectedMapBuildingId);
         DrawSelectedTile(spriteBatch, selectedTile);
+        DrawTerrainClearPreview(spriteBatch, selectedTerrainPosition);
+        DrawCloudUnlockPreview(spriteBatch, selectedCloudPosition);
         DrawBuildFailureMarker(spriteBatch, lastBuildFailurePosition, lastBuildFailureReason);
+        DrawBuildRangePreview(spriteBatch, hoveredTile, selectedBuildingId, buildSystem);
         DrawHoverAndBuildPreview(spriteBatch, hoveredTile, selectedBuildingId, buildSystem);
     }
 
@@ -52,7 +62,15 @@ public sealed class MapRenderer
         }
     }
 
-    private void DrawBuildings(SpriteBatch spriteBatch)
+    private void DrawSelectedHeatRangeOverlay(SpriteBatch spriteBatch, Guid? selectedMapBuildingId)
+    {
+        if (!TryGetSelectedHeatConverter(selectedMapBuildingId, out var selectedInstance, out var selectedDefinition))
+            return;
+
+        DrawHeatRangeOverlay(spriteBatch, selectedInstance.Position, selectedDefinition.HeatRange, selectedInstance.IsActive, includeCenterMarker: false);
+    }
+
+    private void DrawBuildings(SpriteBatch spriteBatch, Guid? selectedMapBuildingId)
     {
         foreach (var instance in _world.BuildingInstances.Values)
         {
@@ -72,11 +90,92 @@ public sealed class MapRenderer
             DrawOperationalBadge(spriteBatch, inner, status);
             DrawManagerBadge(spriteBatch, inner, instance);
 
+            if (IsHeatProducerCoveredBySelectedRange(selectedMapBuildingId, instance, definition))
+                DrawOutline(spriteBatch, inner, new Color(130, 245, 210, 245), 3);
+
+            if (IsHeatConverterCoveringSelectedProducer(selectedMapBuildingId, instance, definition))
+                DrawOutline(spriteBatch, inner, new Color(255, 225, 120, 245), 3);
+
             if (instance.State == BuildingState.Expired)
             {
                 DrawDiagonal(spriteBatch, inner, new Color(255, 255, 255, 180));
             }
         }
+    }
+
+    private bool TryGetSelectedHeatConverter(Guid? selectedMapBuildingId, out BuildingInstance selectedInstance, out BuildingDefinition selectedDefinition)
+    {
+        selectedInstance = null!;
+        selectedDefinition = null!;
+
+        if (!selectedMapBuildingId.HasValue)
+            return false;
+
+        if (!_world.TryGetBuilding(selectedMapBuildingId.Value, out selectedInstance))
+            return false;
+
+        if (!_world.BuildingCatalog.TryGet(selectedInstance.DefinitionId, out selectedDefinition))
+            return false;
+
+        return selectedDefinition.HeatRange > 0 &&
+               UpgradeCalculator.GetHeatConversionPerSecond(_world, selectedDefinition) > 0;
+    }
+
+    private bool IsHeatProducerCoveredBySelectedRange(Guid? selectedMapBuildingId, BuildingInstance instance, BuildingDefinition definition)
+    {
+        if (selectedMapBuildingId == instance.Id)
+            return false;
+
+        if (UpgradeCalculator.GetHeatPerSecond(_world, definition) <= 0)
+            return false;
+
+        if (!TryGetSelectedHeatConverter(selectedMapBuildingId, out var selectedInstance, out var selectedDefinition))
+            return false;
+
+        return GetChebyshevDistance(selectedInstance.Position, instance.Position) <= selectedDefinition.HeatRange;
+    }
+
+    private bool IsHeatConverterCoveringSelectedProducer(Guid? selectedMapBuildingId, BuildingInstance instance, BuildingDefinition definition)
+    {
+        if (selectedMapBuildingId == instance.Id)
+            return false;
+
+        if (!instance.IsActive)
+            return false;
+
+        if (definition.HeatRange <= 0 || UpgradeCalculator.GetHeatConversionPerSecond(_world, definition) <= 0)
+            return false;
+
+        if (!TryGetSelectedHeatProducer(selectedMapBuildingId, out var selectedProducer))
+            return false;
+
+        return GetChebyshevDistance(instance.Position, selectedProducer.Position) <= definition.HeatRange;
+    }
+
+    private bool TryGetSelectedHeatProducer(Guid? selectedMapBuildingId, out BuildingInstance selectedProducer)
+    {
+        selectedProducer = null!;
+
+        if (!selectedMapBuildingId.HasValue)
+            return false;
+
+        if (!_world.TryGetBuilding(selectedMapBuildingId.Value, out selectedProducer))
+            return false;
+
+        if (!selectedProducer.IsActive)
+            return false;
+
+        if (!_world.BuildingCatalog.TryGet(selectedProducer.DefinitionId, out var selectedDefinition))
+            return false;
+
+        return UpgradeCalculator.GetHeatPerSecond(_world, selectedDefinition) > 0;
+    }
+
+    private static int GetChebyshevDistance(GridPosition a, GridPosition b)
+    {
+        var dx = Math.Abs(a.X - b.X);
+        var dy = Math.Abs(a.Y - b.Y);
+        return Math.Max(dx, dy);
     }
 
     private void DrawLifetimeBar(SpriteBatch spriteBatch, Rectangle buildingRect, BuildingInstance instance, BuildingDefinition definition)
@@ -209,6 +308,69 @@ public sealed class MapRenderer
     }
 
 
+    private void DrawTerrainClearPreview(SpriteBatch spriteBatch, GridPosition? selectedTerrainPosition)
+    {
+        if (!selectedTerrainPosition.HasValue || !_world.Map.Contains(selectedTerrainPosition.Value))
+            return;
+
+        var tile = _world.Map.GetTile(selectedTerrainPosition.Value);
+        if (tile.Type != TileType.Forest && tile.Type != TileType.Mountain)
+            return;
+
+        var canClear = CanClearSelectedTerrain(tile.Type);
+        var rect = GetTileRectangle(selectedTerrainPosition.Value);
+        var inset = new Rectangle(rect.X + 7, rect.Y + 7, rect.Width - 14, rect.Height - 14);
+
+        spriteBatch.Draw(_pixel, inset, canClear ? new Color(85, 185, 95, 70) : new Color(180, 80, 70, 75));
+        DrawOutline(spriteBatch, inset, canClear ? new Color(145, 240, 135, 235) : new Color(255, 120, 110, 235), 3);
+
+        var label = tile.Type == TileType.Forest
+            ? "A" + _world.ToolSettings.ForestClearAxesCost.ToString("0")
+            : "M" + _world.ToolSettings.MountainClearMinesCost.ToString("0");
+
+        var marker = new Rectangle(rect.X + 9, rect.Y + 9, 34, 22);
+        spriteBatch.Draw(_pixel, marker, canClear ? new Color(38, 92, 45, 235) : new Color(95, 35, 35, 235));
+        DrawOutline(spriteBatch, marker, canClear ? new Color(165, 245, 145) : new Color(255, 125, 115), 1);
+        _text.DrawString(spriteBatch, label, new Vector2(marker.X + 5, marker.Y + 7), new Color(235, 245, 235), 1);
+    }
+
+    private bool CanClearSelectedTerrain(TileType tileType)
+    {
+        return tileType switch
+        {
+            TileType.Forest => _world.Resources.Axes >= _world.ToolSettings.ForestClearAxesCost,
+            TileType.Mountain => _world.Resources.Mines >= _world.ToolSettings.MountainClearMinesCost,
+            _ => false
+        };
+    }
+
+    private void DrawCloudUnlockPreview(SpriteBatch spriteBatch, GridPosition? selectedCloudPosition)
+    {
+        if (!selectedCloudPosition.HasValue)
+            return;
+
+        var tiles = _areaUnlockSystem.GetUnlockableCloudTiles(selectedCloudPosition.Value);
+        if (tiles.Count == 0)
+            return;
+
+        var canUnlock = _areaUnlockSystem.CanUnlockCloud(selectedCloudPosition.Value) == AreaUnlockFailureReason.None;
+
+        foreach (var position in tiles)
+        {
+            var rect = GetTileRectangle(position);
+            var inset = new Rectangle(rect.X + 6, rect.Y + 6, rect.Width - 12, rect.Height - 12);
+
+            spriteBatch.Draw(_pixel, inset, canUnlock ? new Color(95, 170, 240, 70) : new Color(180, 80, 70, 70));
+            DrawOutline(spriteBatch, inset, canUnlock ? new Color(120, 210, 255, 230) : new Color(255, 120, 110, 230), 3);
+        }
+
+        var selectedRect = GetTileRectangle(selectedCloudPosition.Value);
+        var marker = new Rectangle(selectedRect.X + 9, selectedRect.Y + 9, 30, 22);
+        spriteBatch.Draw(_pixel, marker, canUnlock ? new Color(28, 70, 105, 235) : new Color(95, 35, 35, 235));
+        DrawOutline(spriteBatch, marker, canUnlock ? new Color(160, 225, 255) : new Color(255, 125, 115), 1);
+        _text.DrawString(spriteBatch, tiles.Count.ToString("0"), new Vector2(marker.X + 8, marker.Y + 7), new Color(235, 245, 255), 1);
+    }
+
     private void DrawSelectedTile(SpriteBatch spriteBatch, GridPosition? selectedTile)
     {
         if (selectedTile is null)
@@ -238,6 +400,58 @@ public sealed class MapRenderer
         DrawOutline(spriteBatch, marker, new Color(255, 85, 85, 245), 3);
         _text.DrawString(spriteBatch, "$", new Vector2(marker.X + 12, marker.Y + 7), new Color(255, 225, 120), 4);
         DrawDiagonal(spriteBatch, new Rectangle(marker.X + 4, marker.Y + 4, marker.Width - 8, marker.Height - 8), new Color(255, 245, 245, 245), 4);
+    }
+
+    private void DrawBuildRangePreview(SpriteBatch spriteBatch, GridPosition? hoveredTile, string? selectedBuildingId, BuildSystem buildSystem)
+    {
+        if (hoveredTile is null || string.IsNullOrWhiteSpace(selectedBuildingId))
+            return;
+
+        if (!_world.BuildingCatalog.TryGet(selectedBuildingId, out var definition))
+            return;
+
+        if (definition.HeatRange <= 0 || UpgradeCalculator.GetHeatConversionPerSecond(_world, definition) <= 0)
+            return;
+
+        var position = hoveredTile.Value;
+        if (!_world.Map.Contains(position))
+            return;
+
+        var canBuild = buildSystem.CanBuild(selectedBuildingId, position) == BuildFailureReason.None;
+        DrawHeatRangeOverlay(spriteBatch, position, definition.HeatRange, canBuild, includeCenterMarker: true);
+    }
+
+    private void DrawHeatRangeOverlay(SpriteBatch spriteBatch, GridPosition center, int range, bool active, bool includeCenterMarker)
+    {
+        var fill = active ? new Color(55, 180, 150, 42) : new Color(180, 75, 70, 38);
+        var outline = active ? new Color(95, 235, 195, 120) : new Color(255, 115, 105, 105);
+
+        for (var y = center.Y - range; y <= center.Y + range; y++)
+        {
+            for (var x = center.X - range; x <= center.X + range; x++)
+            {
+                var position = new GridPosition(x, y);
+                if (!_world.Map.Contains(position))
+                    continue;
+
+                if (GetChebyshevDistance(center, position) > range)
+                    continue;
+
+                var rect = GetTileRectangle(position);
+                var inset = new Rectangle(rect.X + 4, rect.Y + 4, rect.Width - 8, rect.Height - 8);
+                spriteBatch.Draw(_pixel, inset, fill);
+                DrawOutline(spriteBatch, inset, outline, 1);
+            }
+        }
+
+        if (!includeCenterMarker)
+            return;
+
+        var centerRect = GetTileRectangle(center);
+        var marker = new Rectangle(centerRect.X + 9, centerRect.Y + centerRect.Height - 31, 34, 22);
+        spriteBatch.Draw(_pixel, marker, active ? new Color(28, 85, 72, 230) : new Color(95, 35, 35, 230));
+        DrawOutline(spriteBatch, marker, active ? new Color(150, 245, 205) : new Color(255, 125, 115), 1);
+        _text.DrawString(spriteBatch, "R" + range.ToString("0"), new Vector2(marker.X + 5, marker.Y + 7), new Color(235, 250, 245), 1);
     }
 
     private void DrawHoverAndBuildPreview(SpriteBatch spriteBatch, GridPosition? hoveredTile, string? selectedBuildingId, BuildSystem buildSystem)

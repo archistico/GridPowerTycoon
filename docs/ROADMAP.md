@@ -564,3 +564,74 @@ Completed:
 - manager research cards now show how many built structures they will manage or already manage;
 - expired covered buildings are reported directly on the manager research card;
 - no gameplay logic changes.
+
+### Step 23A - Cloud unlock map preview
+
+Completed:
+- selected cloud area now previews the exact cells that would be revealed;
+- preview uses existing `AreaUnlockSystem` logic;
+- preview shows whether unlock is currently affordable/valid;
+- no gameplay logic changes.
+
+### Step 23B - Terrain clear map preview
+
+Completed:
+- selected forest/mountain cells now show a clear preview;
+- preview shows required tool type and amount;
+- preview indicates whether the player has enough tools;
+- no gameplay logic changes.
+
+### Step 23C - Expansion and obstacle property clarity
+
+Completed:
+- forest/mountain properties now explain required tools and missing amount;
+- cloud properties now show current resources against unlock cost;
+- cloud issue text distinguishes missing money, missing research and nothing to reveal;
+- no gameplay logic changes.
+
+### Step 23D - Area unlock result summary
+
+Completed:
+- cloud unlock success messages now include a compact summary of revealed terrain types;
+- status feedback now distinguishes land, forest, mountain and other tile types after unlock;
+- no gameplay logic changes.
+
+### Step 23E - Expansion system documentation
+
+Completed:
+- documented Milestone 23 expansion and obstacle feedback in `docs/EXPANSION_SYSTEM.md`;
+- added expansion feedback section to `docs/FEEDBACK_SYSTEM.md`;
+- no code changes.
+
+### Step 23F - Building range overlay
+
+Completed:
+- selecting a built heat converter now shows its operational range on the map;
+- covered heat producers are highlighted;
+- overlay uses the same Chebyshev distance model as heat conversion;
+- no gameplay logic changes.
+
+### Step 23G - Heat coverage inverse feedback
+
+Completed:
+- selecting a heat producer now highlights converters that cover it;
+- existing selected-converter range overlay remains unchanged;
+- no gameplay logic changes.
+
+### Step 23H - Heat converter placement range preview
+
+Completed:
+- heat converter building tools now show future range under the mouse;
+- invalid placement range preview is shown in red/attenuated form;
+- selected converter range and build preview share the same overlay helper;
+- no gameplay logic changes.
+
+### Step 23I - Milestone 23 final documentation
+
+Completed:
+- consolidated final expansion/range feedback documentation;
+- documented final Milestone 23 state;
+- closed Milestone 23 as a map readability milestone;
+- no code changes.
+
+Milestone 23 is now complete.

@@ -924,22 +924,29 @@ public sealed class UiRenderer
     private void FillTerrainPropertyRows(Dictionary<string, string> rows, Tile tile, out Color stateColor, out string action)
     {
         rows["TYPE"] = tile.Type.ToString().ToUpperInvariant();
-        rows["PURPOSE"] = tile.Type == TileType.Forest ? "CAN BE CLEARED WITH AXES" : tile.Type == TileType.Mountain ? "CAN BE CLEARED WITH MINES" : "TERRAIN OBSTACLE";
+        rows["PURPOSE"] = tile.Type == TileType.Forest ? "BLOCKS BUILDING, CLEAR WITH AXES" : tile.Type == TileType.Mountain ? "BLOCKS BUILDING, CLEAR WITH MINES" : "TERRAIN OBSTACLE";
         rows["STATE"] = "BLOCKED";
         rows["SIZE"] = "1 X 1";
 
         if (tile.Type == TileType.Forest)
         {
-            rows["CLEAR COST"] = $"{_world.ToolSettings.ForestClearAxesCost} AXES";
-            action = _world.Resources.Axes >= _world.ToolSettings.ForestClearAxesCost ? "CLEAR AVAILABLE" : "NEED AXES";
+            var required = _world.ToolSettings.ForestClearAxesCost;
+            var available = _world.Resources.Axes;
+            rows["ISSUE"] = available >= required ? "READY TO CLEAR" : $"NEED {required - available:0} AXES";
+            rows["CLEAR COST"] = $"{available:0} / {required} AXES";
+            action = available >= required ? "CLEAR AVAILABLE" : "NEED AXES";
         }
         else if (tile.Type == TileType.Mountain)
         {
-            rows["CLEAR COST"] = $"{_world.ToolSettings.MountainClearMinesCost} MINES";
-            action = _world.Resources.Mines >= _world.ToolSettings.MountainClearMinesCost ? "CLEAR AVAILABLE" : "NEED MINES";
+            var required = _world.ToolSettings.MountainClearMinesCost;
+            var available = _world.Resources.Mines;
+            rows["ISSUE"] = available >= required ? "READY TO CLEAR" : $"NEED {required - available:0} MINES";
+            rows["CLEAR COST"] = $"{available:0} / {required} MINES";
+            action = available >= required ? "CLEAR AVAILABLE" : "NEED MINES";
         }
         else
         {
+            rows["ISSUE"] = "NOT CLEARABLE";
             action = "-";
         }
 
@@ -952,15 +959,38 @@ public sealed class UiRenderer
             ? tile.CoveredType.Value.ToString().ToUpperInvariant()
             : "UNKNOWN";
         var tilesToUnlock = CountUnlockableCloudTiles(position);
+        var moneyCost = _world.AreaUnlockSettings.CloudUnlockMoneyCost;
+        var researchCost = _world.AreaUnlockSettings.CloudUnlockResearchCost;
+        var hasMoney = _world.Resources.Money >= moneyCost;
+        var hasResearch = _world.Resources.Research >= researchCost;
+        var canUnlock = CanUnlockCloud();
 
         rows["TYPE"] = "CLOUD";
         rows["PURPOSE"] = "UNLOCKS MORE MAP AREA";
-        rows["STATE"] = "LOCKED";
+        rows["STATE"] = canUnlock ? "READY TO UNLOCK" : "LOCKED";
+        rows["ISSUE"] = GetCloudUnlockIssueText(hasMoney, hasResearch, tile.CoveredType.HasValue, tilesToUnlock);
         rows["SIZE"] = "1 X 1";
         rows["REVEAL"] = $"{revealText}, {tilesToUnlock} TILE(S)";
-        rows["UNLOCK COST"] = $"${FormatNumber((double)_world.AreaUnlockSettings.CloudUnlockMoneyCost)} + R{FormatNumber(_world.AreaUnlockSettings.CloudUnlockResearchCost)}";
-        action = CanUnlockCloud() ? "UNLOCK AVAILABLE" : "NEED RESOURCES";
-        stateColor = new Color(145, 155, 170);
+        rows["UNLOCK COST"] = $"${FormatNumber((double)_world.Resources.Money)} / ${FormatNumber((double)moneyCost)} + R{FormatNumber(_world.Resources.Research)} / R{FormatNumber(researchCost)}";
+        action = canUnlock ? "UNLOCK AVAILABLE" : "NEED RESOURCES";
+        stateColor = canUnlock ? new Color(150, 220, 245) : new Color(145, 155, 170);
+    }
+
+    private static string GetCloudUnlockIssueText(bool hasMoney, bool hasResearch, bool hasHiddenTile, int tilesToUnlock)
+    {
+        if (!hasHiddenTile || tilesToUnlock <= 0)
+            return "NOTHING TO REVEAL";
+
+        if (!hasMoney && !hasResearch)
+            return "NEED MONEY AND RESEARCH";
+
+        if (!hasMoney)
+            return "NEED MONEY";
+
+        if (!hasResearch)
+            return "NEED RESEARCH";
+
+        return "READY TO REVEAL";
     }
 
     private void FillBuildToolPropertyRows(Dictionary<string, string> rows, BuildingDefinition definition, out Color stateColor, out string action)
@@ -1878,7 +1908,7 @@ public sealed class UiRenderer
         if (lastAreaUnlockResult is not null)
         {
             message = lastAreaUnlockResult.Success
-                ? $"AREA UNLOCKED {lastAreaUnlockResult.TilesUnlocked} TILES"
+                ? GetAreaUnlockSuccessMessage(lastAreaUnlockResult)
                 : GetAreaUnlockFailureMessage(lastAreaUnlockResult.FailureReason);
         }
 
@@ -1992,6 +2022,20 @@ public sealed class UiRenderer
             TerrainClearFailureReason.OutOfMap => "CLEAR FAILED: OUT OF MAP",
             _ => $"CLEAR FAILED: {reason}"
         };
+    }
+
+    private static string GetAreaUnlockSuccessMessage(AreaUnlockResult result)
+    {
+        if (result.RevealedTiles.Count == 0)
+            return "AREA UNLOCKED";
+
+        var summary = string.Join(", ",
+            result.RevealedTiles
+                .GroupBy(tile => tile.RevealedTileType)
+                .OrderBy(group => group.Key.ToString())
+                .Select(group => $"{group.Key.ToString().ToUpperInvariant()} {group.Count()}"));
+
+        return $"AREA UNLOCKED {result.TilesUnlocked}: {summary}";
     }
 
     private static string GetAreaUnlockFailureMessage(AreaUnlockFailureReason reason)

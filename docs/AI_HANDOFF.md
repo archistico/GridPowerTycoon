@@ -633,3 +633,101 @@ La sezione `RESEARCH` del pannello sinistro a colonna unica è stata portata all
   - `MANAGING 5 BUILT | EXPIRED 2`
 - The count is based on current building instances whose definition id appears in the research `managedBuildingIds`.
 - No manager behavior, simulation, economy, balance or save-data logic was changed.
+
+## Step 23A - Cloud unlock map preview
+
+- Started Milestone 23 map expansion/obstacles.
+- Updated `MapRenderer` to receive `AreaUnlockSystem`.
+- Added cloud unlock preview on the map for the selected cloud tile.
+- Preview uses `AreaUnlockSystem.GetUnlockableCloudTiles`, so it matches the real unlock logic.
+- Preview coloring:
+  - blue overlay/border when the selected cloud can be unlocked;
+  - red overlay/border when the selected cloud cannot currently be unlocked.
+- The selected cloud shows a small number marker indicating how many cloud tiles will be revealed.
+- Updated `Game1.cs` to pass `_areaUnlockSystem` and selected cloud position to the map renderer.
+- No expansion logic, economy, balance or save-data logic was changed.
+
+## Step 23B - Terrain clear map preview
+
+- Added selected obstacle clear preview to `MapRenderer.cs`.
+- Forest and mountain cells now show a colored preview when selected:
+  - green when the player has enough tools to clear;
+  - red when tools are missing.
+- The preview marker shows the required tool and amount:
+  - `A#` for axes required by forests;
+  - `M#` for mines required by mountains.
+- Updated `Game1.cs` to pass selected terrain position to the map renderer.
+- No terrain clear logic, tool generation, economy, balance or save-data logic was changed.
+
+## Step 23C - Expansion and obstacle property clarity
+
+- Improved selected obstacle and cloud property rows in `UiRenderer.cs`.
+- Forest and mountain properties now show:
+  - clearer `PURPOSE`;
+  - actionable `ISSUE`;
+  - `CLEAR COST` as available / required tools.
+- Cloud properties now show:
+  - `STATE` as `READY TO UNLOCK` when possible;
+  - actionable `ISSUE`;
+  - `UNLOCK COST` as current money/research compared with required money/research.
+- No terrain clear logic, cloud unlock logic, economy, balance or save-data logic was changed.
+
+## Step 23D - Area unlock result summary
+
+- Improved cloud unlock success feedback in `UiRenderer.cs`.
+- The status bar now summarizes revealed terrain types after a successful area unlock.
+- Example:
+  - `AREA UNLOCKED 5: FOREST 1, LAND 3, MOUNTAIN 1`
+- Uses `AreaUnlockResult.RevealedTiles`; no unlock logic was duplicated or changed.
+- No expansion logic, economy, balance or save-data logic was changed.
+
+## Step 23E - Expansion system documentation
+
+- Added `docs/EXPANSION_SYSTEM.md`.
+- Updated `docs/FEEDBACK_SYSTEM.md` with Milestone 23 expansion feedback rules.
+- Documented:
+  - cloud unlock preview;
+  - cloud property rows;
+  - cloud unlock result summary;
+  - forest/mountain clear preview;
+  - obstacle property rows;
+  - implementation boundaries between `AreaUnlockSystem`, `TerrainClearSystem`, `MapRenderer` and `UiRenderer`.
+- No code, expansion logic, economy, balance or save-data logic was changed.
+
+## Step 23F - Building range overlay
+
+- Added selected building range overlay in `MapRenderer.cs`.
+- When a built heat converter with `HeatRange > 0` is selected, the map now highlights the covered cells.
+- The overlay uses Chebyshev distance, matching the existing heat conversion logic.
+- Heat producers covered by the selected converter receive a highlighted outline.
+- Updated `Game1.cs` to pass `SelectedMapBuildingId` into `MapRenderer.Draw`.
+- No heat conversion logic, economy, balance or save-data logic was changed.
+
+## Step 23G - Heat coverage inverse feedback
+
+- Improved heat coverage map feedback in `MapRenderer.cs`.
+- Selecting a heat producer now highlights active heat converters that cover it.
+- The previous Step 23F behavior remains unchanged: selecting a converter still shows its range and highlights covered producers.
+- Color distinction:
+  - aqua outline = producer covered by selected converter;
+  - yellow outline = converter covering selected producer.
+- Uses Chebyshev distance, matching existing heat conversion logic.
+- No heat conversion logic, economy, balance or save-data logic was changed.
+
+## Step 23H - Heat converter placement range preview
+
+- Added build-time range preview in `MapRenderer.cs`.
+- When a heat converter building tool is selected and the mouse is over the map, the future `HeatRange` is previewed around the hovered tile.
+- The preview appears only for building definitions with `HeatRange > 0` and positive heat conversion.
+- Valid placements use the normal range overlay color; invalid placements use a red/attenuated overlay.
+- Added a compact `R#` marker on the hovered cell to show the converter range.
+- Refactored selected-converter range drawing to reuse `DrawHeatRangeOverlay`.
+- No build logic, heat conversion logic, economy, balance or save-data logic was changed.
+
+## Step 23I - Milestone 23 final documentation
+
+- Consolidated Milestone 23 documentation.
+- Updated `docs/EXPANSION_SYSTEM.md` with a final milestone state section.
+- Updated `docs/FEEDBACK_SYSTEM.md` with a feedback summary for cloud unlocks, obstacles and heat coverage.
+- Recorded that Milestone 23 is UI/readability-only and does not change map data, unlock logic, clear logic, heat conversion, economy or save-data format.
+- No code, gameplay, balance or data changes were made.

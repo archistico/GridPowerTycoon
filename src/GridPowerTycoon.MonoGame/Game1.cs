@@ -142,7 +142,7 @@ public sealed class Game1 : Game
 
         if (_pixel is not null)
         {
-            _mapRenderer = new MapRenderer(_world, _pixel);
+            _mapRenderer = new MapRenderer(_world, _areaUnlockSystem, _pixel);
             _uiRenderer = new UiRenderer(_world, _pixel);
             _mapInput = new MapInputController(
                 _world,
@@ -259,6 +259,9 @@ public sealed class Game1 : Game
             _spriteBatch,
             _mapInput.HoveredTile,
             _mapInput.SelectedTilePosition,
+            _mapInput.SelectedMapBuildingId,
+            _mapInput.SelectedTerrainPosition,
+            _mapInput.SelectedCloudPosition,
             _selectedBuildingId,
             _buildSystem,
             _mapInput.LastBuildFailurePosition,

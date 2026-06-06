@@ -381,3 +381,72 @@ Examples:
 - `MANAGING 5 BUILT | EXPIRED 2`
 
 This is a UI/readability step only.
+
+## Step 23A - Cloud unlock map preview
+
+This pass begins map expansion readability.
+
+Selecting a cloud tile now highlights the exact cloud tiles that would be revealed by the unlock action. The preview uses the same `AreaUnlockSystem.GetUnlockableCloudTiles` method used by the real unlock logic.
+
+The preview is blue when the unlock is currently possible and red when the selected cloud cannot currently be unlocked, usually because money or research is missing.
+
+This is a UI/readability step only.
+
+## Step 23B - Terrain clear map preview
+
+Selected obstacles now show a direct map preview for clearing.
+
+Forests display an `A#` marker for required axes. Mountains display an `M#` marker for required mines. The preview is green when the player can clear the tile and red when the required tools are missing.
+
+This is a readability/UI step only.
+
+## Step 23C - Expansion and obstacle property clarity
+
+Selected forests, mountains and cloud tiles now communicate expansion costs more directly.
+
+Forests and mountains show available tools against required tools, for example `2 / 3 AXES` or `1 / 4 MINES`. Cloud unlocks show current money and research against the required values, and the `ISSUE` row explains whether money, research or revealable tiles are missing.
+
+This is a readability/UI step only.
+
+## Step 23D - Area unlock result summary
+
+Successful cloud unlocks now show a compact terrain summary in the status bar.
+
+Example:
+`AREA UNLOCKED 5: FOREST 1, LAND 3, MOUNTAIN 1`
+
+The message is generated from the existing unlock result and does not change expansion behavior.
+
+## Step 23E - Expansion system documentation
+
+This pass consolidates Milestone 23.
+
+A new `docs/EXPANSION_SYSTEM.md` file records the current expansion loop: cloud unlock preview, obstacle clear preview, properties panel text, unlock result summaries and the source-of-truth systems.
+
+This is a documentation-only step.
+
+## Step 23F - Building range overlay
+
+Selecting a built heat converter now highlights its operational range directly on the map. Heat producers inside the selected converter range receive a stronger outline.
+
+This improves readability only. Heat conversion behavior, range values and balance are unchanged.
+
+## Step 23G - Heat coverage inverse feedback
+
+Selecting a heat producer now highlights the active heat converters that cover it. This complements the Step 23F range overlay, which starts from the converter side.
+
+This improves map readability only. Heat conversion behavior, ranges and balance are unchanged.
+
+## Step 23H - Heat converter placement range preview
+
+When a heat converter building tool is selected, the map now previews the future operational range around the hovered tile. Valid placement uses the normal range overlay; invalid placement is shown in red/attenuated form.
+
+This is a UI/readability step only. Build validation, heat conversion behavior and balance are unchanged.
+
+## Step 23I - Milestone 23 final documentation
+
+This pass closes Milestone 23.
+
+The milestone now covers map expansion readability, obstacle clearing readability and heat range readability. All changes in this final documentation pass are descriptive only.
+
+No balance values were changed.

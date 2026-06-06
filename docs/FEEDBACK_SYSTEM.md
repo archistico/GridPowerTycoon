@@ -125,3 +125,59 @@ The `M` badge is separate from operational problem badges:
 - `E/G/H/T/X` still describe operational problems or lifecycle states.
 
 A managed building can still show both a manager badge and an operational problem badge.
+
+## Expansion feedback
+
+Milestone 23 adds direct feedback for map expansion and obstacles.
+
+Cloud selection now previews which hidden tiles will be revealed. The cloud preview is blue when the unlock is currently valid and red when the selected cloud cannot currently be unlocked. The selected cloud also shows a small number marker with the amount of tiles that would be revealed.
+
+Forest and mountain selection now previews clearing status. The preview is green when the player has enough tools and red when tools are missing. The map badge uses `A#` for axes and `M#` for mines.
+
+The properties panel mirrors these previews:
+- cloud tiles show `ISSUE`, `REVEAL` and `UNLOCK COST`;
+- obstacle tiles show `ISSUE` and `CLEAR COST`.
+
+After a successful unlock, the status bar summarizes the revealed terrain types, for example:
+
+```text
+AREA UNLOCKED 5: FOREST 1, LAND 3, MOUNTAIN 1
+```
+
+## Building range feedback
+
+Selecting a built heat converter shows its current operational range on the map. The overlay highlights the covered cells and gives covered heat producers a stronger outline.
+
+The range uses the same Chebyshev distance model as heat conversion, so the visual coverage should match the actual system behavior.
+
+## Heat coverage relation feedback
+
+Heat coverage can now be read from both directions.
+
+Selecting a heat converter shows its operational range and covered heat producers. Selecting a heat producer highlights active heat converters that cover it.
+
+## Heat converter placement preview
+
+Heat converter building tools now show future coverage while hovering over the map. The range preview helps place generators before committing the build.
+
+## Milestone 23 feedback summary
+
+The map now gives immediate visual feedback for expansion, obstacles and heat coverage.
+
+Clouds:
+- selected cloud previews reveal area;
+- blue means unlock is currently valid;
+- red means unlock is currently blocked;
+- successful unlocks summarize revealed terrain types in the status bar.
+
+Obstacles:
+- forests show axe requirements;
+- mountains show mine requirements;
+- green means the player can clear;
+- red means tools are missing.
+
+Heat coverage:
+- selected converters show range;
+- selected converters highlight covered heat producers;
+- selected heat producers highlight active converters covering them;
+- converter build tools preview future range before placement.
