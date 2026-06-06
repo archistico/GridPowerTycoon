@@ -1090,5 +1090,82 @@ Non cambia gameplay, economia, bilanciamento, salvataggi o rendering operativo. 
 Prossimo milestone consigliato:
 
 ```text
-Milestone 29 - Gameplay flow and progression polish
+Milestone 29 - Pixel art visual foundation
+```
+
+## Milestone 29 - Pixel art visual foundation
+
+Stato: avviato.
+
+Il Milestone 29 sposta il focus sulla resa visiva del mondo di gioco: terreno, foreste, montagne, edifici, stati visivi e prime animazioni. La direzione ufficiale è pixel art rigorosa, top-down ortogonale, griglia quadrata e tile base 32x32 px.
+
+Questo milestone non deve partire disegnando asset sparsi. Prima viene fissato un contratto visivo e tecnico, poi si procede con terrain/nature, edifici principali, animazioni e overlay.
+
+## Milestone 29A.1 - Pixel art rules, style guide and asset pipeline
+
+Stato: preparato.
+
+Aggiunti `docs/PIXEL_ART_STYLE_GUIDE.md`, `docs/ASSET_PIPELINE.md` e `docs/MILESTONE_29_VISUALS.md`.
+
+Le decisioni fissate sono:
+
+- pixel art rigorosa per mondo, effetti e overlay;
+- vista top-down ortogonale, non isometrica;
+- tile ufficiale 32x32 px;
+- rendering pixel-perfect con point/nearest sampling;
+- palette limitata e coerente;
+- terreno più quieto degli edifici;
+- animazioni brevi, leggibili e solo dove comunicano stato;
+- separazione futura tra ids gameplay e definizioni visuali.
+
+Non cambia rendering runtime, gameplay, economia, bilanciamento o salvataggi.
+
+Prossimo step consigliato:
+
+```text
+Milestone 29B - Terrain and nature prototype pass
+```
+
+
+## Milestone 29 visual update
+
+Milestone 29A.1 established the pixel-art foundation and asset pipeline. Milestone 29B adds the first source PNG prototypes for grass, dirt, rock, cloud/hidden coverage, forests and mountains. Milestone 29C wires the terrain/nature prototypes into runtime map rendering through a small `TerrainSpriteCatalog`, stable per-tile variant selection and color fallback when assets are missing. Milestone 29C.1 refines those terrain/nature sprites before building art begins, keeping the same runtime paths while improving grass breathing room, forest modularity, mountain silhouettes and cloud/hidden readability. Milestone 29D adds the first runtime building sprite pipeline and four core 1x1 building sprites while preserving category-color fallback for missing building visuals.
+
+
+## Milestone 29C.1 - Terrain and nature refinement pass
+
+Stato: preparato.
+
+Questo step sostituisce i primi PNG prototipo di terreno e natura con una versione più matura, mantenendo invariati nomi file, cartelle e integrazione runtime. Non cambia codice di rendering, gameplay, salvataggi, economia o bilanciamento.
+
+Il pass applica regole pixel art più precise: erba più calma e meno rumorosa, foreste costruite come masse modulari di chioma, montagne con facce rocciose leggibili, cloud/hidden più morbidi e coerenti, luce condivisa da alto-sinistra. Anche dirt e rock vengono rifiniti per restare coerenti con il nuovo terreno.
+
+Prossimo step consigliato:
+
+```text
+Milestone 29D - Core building sprite prototype
+```
+
+
+## Milestone 29D - Core building sprite prototype
+
+Stato: preparato.
+
+Questo step introduce `BuildingSpriteCatalog` e i primi sprite runtime per edifici. Gli asset vengono caricati da `Content/Sprites/Buildings/<building_id>/` e sono collegati al renderer senza rimuovere il fallback precedente a rettangoli colorati. Il fallback resta fondamentale finché tutti gli edifici non hanno uno sprite dedicato.
+
+Sprite aggiunti:
+
+```text
+wind_turbine/wind_turbine_idle.png
+solar_panel/solar_panel_idle.png
+battery_small/battery_small_idle.png
+research_small/research_small_idle.png
+```
+
+Il renderer continua a disegnare sopra gli sprite lifetime bar, heat bar, badge operativi, badge manager, overlay di range e diagonale per edifici scaduti. Non cambia gameplay, salvataggi, simulazione, input, economia o bilanciamento.
+
+Prossimo step consigliato:
+
+```text
+Milestone 29E - First animation pass
 ```

@@ -19,12 +19,21 @@ public sealed class MapRenderer
     private readonly AreaUnlockSystem _areaUnlockSystem;
     private readonly Texture2D _pixel;
     private readonly PixelTextRenderer _text;
+    private readonly TerrainSpriteCatalog? _terrainSprites;
+    private readonly BuildingSpriteCatalog? _buildingSprites;
 
-    public MapRenderer(GameWorld world, AreaUnlockSystem areaUnlockSystem, Texture2D pixel)
+    public MapRenderer(
+        GameWorld world,
+        AreaUnlockSystem areaUnlockSystem,
+        Texture2D pixel,
+        TerrainSpriteCatalog? terrainSprites = null,
+        BuildingSpriteCatalog? buildingSprites = null)
     {
         _world = world;
         _areaUnlockSystem = areaUnlockSystem;
         _pixel = pixel;
+        _terrainSprites = terrainSprites;
+        _buildingSprites = buildingSprites;
         _text = new PixelTextRenderer(pixel);
     }
 
@@ -57,8 +66,12 @@ public sealed class MapRenderer
         {
             var rect = GetTileRectangle(tile.Position);
 
-            spriteBatch.Draw(_pixel, rect, GetTileColor(tile.Type));
-            DrawOutline(spriteBatch, rect, new Color(0, 0, 0, 80), 1);
+            if (_terrainSprites is not null && _terrainSprites.TryGet(tile.Type, tile.Position, out var terrainSprite))
+                spriteBatch.Draw(terrainSprite, rect, Color.White);
+            else
+                spriteBatch.Draw(_pixel, rect, GetTileColor(tile.Type));
+
+            DrawOutline(spriteBatch, rect, new Color(0, 0, 0, 60), 1);
         }
     }
 
@@ -80,8 +93,7 @@ public sealed class MapRenderer
             var rect = GetBuildingRectangle(instance, definition);
             var inner = new Rectangle(rect.X + 8, rect.Y + 8, rect.Width - 16, rect.Height - 16);
 
-            spriteBatch.Draw(_pixel, inner, GetBuildingColor(definition.Category, instance.State));
-            DrawOutline(spriteBatch, inner, new Color(10, 14, 20), 2);
+            DrawBuildingBase(spriteBatch, instance, definition, rect, inner);
 
             DrawLifetimeBar(spriteBatch, inner, instance, definition);
             DrawHeatBar(spriteBatch, inner, instance, definition);
@@ -101,6 +113,35 @@ public sealed class MapRenderer
                 DrawDiagonal(spriteBatch, inner, new Color(255, 255, 255, 180));
             }
         }
+    }
+
+
+    private void DrawBuildingBase(
+        SpriteBatch spriteBatch,
+        BuildingInstance instance,
+        BuildingDefinition definition,
+        Rectangle rect,
+        Rectangle inner)
+    {
+        if (_buildingSprites is not null && _buildingSprites.TryGet(instance.DefinitionId, instance.State, out var buildingSprite))
+        {
+            spriteBatch.Draw(buildingSprite, rect, GetBuildingSpriteTint(instance.State));
+            DrawOutline(spriteBatch, inner, new Color(10, 14, 20, 190), 1);
+            return;
+        }
+
+        spriteBatch.Draw(_pixel, inner, GetBuildingColor(definition.Category, instance.State));
+        DrawOutline(spriteBatch, inner, new Color(10, 14, 20), 2);
+    }
+
+    private static Color GetBuildingSpriteTint(BuildingState state)
+    {
+        return state switch
+        {
+            BuildingState.Expired => new Color(150, 150, 150, 255),
+            BuildingState.Exploded => new Color(205, 95, 80, 255),
+            _ => Color.White
+        };
     }
 
     private bool TryGetSelectedHeatConverter(Guid? selectedMapBuildingId, out BuildingInstance selectedInstance, out BuildingDefinition selectedDefinition)

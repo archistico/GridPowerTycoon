@@ -1122,3 +1122,53 @@ The Core formatter remains the single owner of player-facing feedback text. Mono
 Regression tests were added to `GameplayFeedbackFormatterTests` for availability-line/hover-detail alignment, completed research and maxed upgrade states, and the stable six-line production summary contract. No gameplay, save-format, balance or simulation behavior changed.
 
 After applying this patch, run `dotnet test`. If tests pass, Milestone 28 can be considered complete. Recommended next milestone: Milestone 29 - Gameplay flow and progression polish.
+
+## 2026-06-07 - Milestone 29A.1 prepared: pixel art foundation and asset pipeline
+
+Milestone 29 has been redirected toward visual identity and pixel-art world rendering. The official direction is strict pixel art, top-down orthogonal grid, 32x32 px world tiles, no isometric projection, limited coherent palette, quiet terrain, readable building silhouettes and short purposeful animations.
+
+Added `docs/PIXEL_ART_STYLE_GUIDE.md` to define the visual contract: tile size, pixel-perfect rendering requirements, lighting direction, palette families, terrain/nature/building rules, animation rules, overlay language and acceptance checklist.
+
+Added `docs/ASSET_PIPELINE.md` to define the asset organization and future integration path: `Content/Sprites/Terrain`, `Nature`, `Buildings`, `Effects` and `UI`; lower snake-case file names; 32x32 footprint multiples; horizontal animation strips; and a future visual registry direction with `BuildingVisualDefinition`, `TerrainVisualDefinition`, `AnimatedSpriteDefinition`, `AnimatedSpritePlayer` and `BuildingVisualState`.
+
+Added `docs/MILESTONE_29_VISUALS.md` to track the visual milestone. The first step is documentation-only and intentionally does not change runtime rendering, gameplay, save format, economy or balance. Also added `src/GridPowerTycoon.MonoGame/Content/Sprites/README.md` as a placeholder explaining the sprite folder purpose before actual assets are committed.
+
+Next recommended step: Milestone 29B - Terrain and nature prototype pass. That step should introduce first 32x32 pixel-art terrain/nature assets for grass, dirt, rocky ground, forest, mountain and hidden/cloud tiles while preserving current map logic and UI behavior.
+
+
+## 2026-06-07 - Milestone 29B terrain/nature prototype assets
+
+Milestone 29B adds first strict pixel-art prototype source PNGs under `src/GridPowerTycoon.MonoGame/Content/Sprites`. The new families are grass x4, dirt x3, rock x3, cloud x3, hidden x2, forest x4 and mountain x3. All are 32x32 px and follow the asset pipeline naming contract.
+
+The assets are deliberately not integrated into runtime rendering yet. The next recommended step is a terrain sprite renderer integration pass: map tile types to these sprite families, choose stable per-tile variants deterministically, and draw with point/nearest sampling without changing gameplay, save data or economy.
+
+## 2026-06-07 - Milestone 29C terrain sprite renderer integration
+
+Milestone 29C integrates the prototype terrain/nature PNGs into runtime rendering. Added `TerrainSpriteCatalog` in MonoGame rendering. It loads PNGs directly from `Content/Sprites` at startup, maps `Land` to grass, `Forest` to forest, `Mountain` to mountain and `Cloud` to cloud. `Water` intentionally remains color fallback until a dedicated water family is created.
+
+`MapRenderer` now accepts an optional `TerrainSpriteCatalog`. `DrawTiles` uses sprite drawing when a family is available and falls back to the previous color rectangle when assets are missing. Variant selection is deterministic from tile type and coordinates, so tiles do not visually change between frames. The current runtime tile remains 64 px; the 32x32 source sprites are scaled with `SamplerState.PointClamp`, preserving pixel-art edges.
+
+`GridPowerTycoon.MonoGame.csproj` now copies `Content/Sprites/**/*.png` to the output directory. No gameplay, save, input, economy or balance behavior changed. Manual verification should focus on map rendering: grass/forest/mountain/cloud visible, no flicker while moving the camera, overlays still visible, and fallback still safe if a sprite folder is missing.
+
+Next recommended step: Milestone 29D - Core building sprite prototype.
+
+
+## 2026-06-07 - Milestone 29C.1 terrain/nature refinement pass
+
+Milestone 29C.1 refines the already-integrated 32x32 terrain and nature assets without changing runtime code. The files keep the same names and folders, so `TerrainSpriteCatalog` and `MapRenderer` continue to work exactly as introduced in 29C.
+
+Updated families: grass x4, dirt x3, rock x3, cloud x3, hidden x2, forest x4 and mountain x3. The new pass reduces random pixel noise, adds more negative space to grass, gives forests modular canopy masses, gives mountains clearer faceted silhouettes, and makes cloud/hidden coverage softer and more readable. Lighting remains top-left across terrain and nature.
+
+No gameplay, save, input, economy, balance or rendering-code behavior changed. Manual verification should focus on visual quality: no flicker, overlays still readable, cloud/hidden distinct, forests and mountains recognizable at gameplay scale, and the map less obviously patterned than the first prototype pass.
+
+Next recommended step: Milestone 29D - Core building sprite prototype. Start with wind_turbine, solar_panel, battery and research_center while preserving category-color fallback for buildings that do not yet have sprites.
+
+## 2026-06-07 - Milestone 29D core building sprite prototype
+
+Milestone 29D adds the first runtime support for building sprites. `BuildingSpriteCatalog` loads PNGs from `Content/Sprites/Buildings/<building_id>/` and resolves sprite states by filename suffix. Supported suffixes are currently `idle`, `active`, `damaged`, `expired` and `exploded`; when a state-specific file is missing the catalog falls back to `idle`. `MapRenderer` now accepts the optional building catalog and draws a sprite for buildings that have one, otherwise it preserves the previous category-color rectangle fallback.
+
+The first committed building sprites are 32x32 strict pixel-art idle sprites for `wind_turbine`, `solar_panel`, `battery_small` and `research_small`. They are scaled to the existing 64 px runtime tile through PointClamp. Existing map overlays, lifetime bars, heat bars, badges, heat-range outlines and expired diagonal overlays remain drawn above the sprite. No gameplay, save, simulation, input, balance or economy behavior changed.
+
+Manual verification should place these four buildings and confirm they render as pixel-art sprites, then place buildings without sprites such as generators, heat sinks, maintenance center, tool warehouse and nuclear reactor to confirm fallback rendering still works.
+
+Next recommended step: Milestone 29E - First animation pass. Start with a minimal animation contract and the wind turbine blade loop.

@@ -22,6 +22,8 @@ public sealed class Game1 : Game
     private readonly GraphicsDeviceManager _graphics;
     private SpriteBatch _spriteBatch = null!;
     private Texture2D _pixel = null!;
+    private TerrainSpriteCatalog? _terrainSprites;
+    private BuildingSpriteCatalog? _buildingSprites;
 
     private GameWorld _world = null!;
     private BuildSystem _buildSystem = null!;
@@ -162,7 +164,7 @@ public sealed class Game1 : Game
 
         if (_pixel is not null)
         {
-            _mapRenderer = new MapRenderer(_world, _areaUnlockSystem, _pixel);
+            _mapRenderer = new MapRenderer(_world, _areaUnlockSystem, _pixel, _terrainSprites, _buildingSprites);
             _uiRenderer = new UiRenderer(_world, _pixel);
             _mapInput = new MapInputController(
                 _world,
@@ -194,7 +196,20 @@ public sealed class Game1 : Game
         _pixel = new Texture2D(GraphicsDevice, 1, 1);
         _pixel.SetData(new[] { Color.White });
 
+        var contentRoot = Path.Combine(AppContext.BaseDirectory, "Content");
+        _terrainSprites = TerrainSpriteCatalog.Load(GraphicsDevice, contentRoot);
+        _buildingSprites = BuildingSpriteCatalog.Load(GraphicsDevice, contentRoot);
+
         ConfigureWorld(_world);
+    }
+
+    protected override void UnloadContent()
+    {
+        _terrainSprites?.Dispose();
+        _buildingSprites?.Dispose();
+        _terrainSprites = null;
+        _buildingSprites = null;
+        base.UnloadContent();
     }
 
     protected override void Update(GameTime gameTime)
