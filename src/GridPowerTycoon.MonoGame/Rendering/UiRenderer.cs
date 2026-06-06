@@ -14,23 +14,33 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace GridPowerTycoon.MonoGame.Rendering;
 
+public enum LeftPanelMode
+{
+    Build,
+    Research,
+    Upgrade
+}
+
 public sealed class UiRenderer
 {
     public const int TopBarHeight = 74;
-    public const int SideMenuWidth = 740;
+    public const int SideMenuWidth = 430;
+    private const int MenuStripHeight = 38;
+    private const int StatusBarHeight = 44;
 
     private const int PanelMargin = 12;
-    private const int ColumnWidth = 230;
+    private const int ColumnWidth = SideMenuWidth - (PanelMargin * 2);
     private const int ColumnGap = 12;
-    private const int MenuHeaderY = TopBarHeight + 14;
-    private const int MenuButtonsY = TopBarHeight + 48;
-    private const int MenuButtonHeight = 72;
-    private const int MenuButtonStride = 80;
-    private const int MenuButtonTextX = 8;
-    private const int MenuButtonTitleY = 5;
-    private const int MenuButtonMetaY = 24;
-    private const int MenuButtonPrimaryY = 40;
-    private const int MenuButtonPurposeY = 56;
+    private const int MenuHeaderY = TopBarHeight + MenuStripHeight + 8;
+    private const int MenuButtonsY = TopBarHeight + MenuStripHeight + 10;
+    private const int MenuButtonHeight = 96;
+    private const int MenuButtonStride = 104;
+    private const int MenuButtonTextX = 10;
+    private const int MenuButtonTitleY = 7;
+    private const int MenuButtonMetaY = 31;
+    private const int MenuButtonPrimaryY = 49;
+    private const int MenuButtonPurposeY = 66;
+    private const int MenuButtonDetailY = 82;
 
     private static readonly string[] BuildButtonIds =
     {
@@ -103,6 +113,7 @@ public sealed class UiRenderer
     public void Draw(
         SpriteBatch spriteBatch,
         Viewport viewport,
+        LeftPanelMode activeLeftPanelMode,
         string? selectedBuildingId,
         BuildResult? lastBuildResult,
         ResearchResult? lastResearchResult,
@@ -122,10 +133,14 @@ public sealed class UiRenderer
         spriteBatch.Draw(_pixel, topBar, new Color(32, 39, 52));
         spriteBatch.Draw(_pixel, sideMenu, new Color(38, 48, 62));
 
+        DrawActiveLeftMenu(spriteBatch, viewport, activeLeftPanelMode, selectedBuildingId);
+
+        // Draw the top bars after the scrollable menu. They act as a hard visual mask
+        // if a scrolled card would otherwise spill outside the left list area.
+        spriteBatch.Draw(_pixel, topBar, new Color(32, 39, 52));
         DrawTopBar(spriteBatch, topBar, viewport);
-        DrawBuildMenu(spriteBatch, viewport, selectedBuildingId);
-        DrawResearchMenu(spriteBatch, viewport);
-        DrawUpgradeMenu(spriteBatch, viewport);
+        DrawMenuStrip(spriteBatch, viewport, activeLeftPanelMode);
+
         DrawPropertiesPanel(spriteBatch, viewport, selectedBuildingId, selectedTilePosition, selectedMapBuildingId, selectedTerrainPosition, selectedCloudPosition, pendingDemolishBuildingId);
         DrawStatus(spriteBatch, viewport, selectedBuildingId, lastBuildResult, lastResearchResult, lastTerrainClearResult, lastAreaUnlockResult, lastUpgradeResult, saveLoadMessage, pendingDemolishBuildingId);
     }
@@ -133,11 +148,12 @@ public sealed class UiRenderer
     public bool IsMouseOverUi(Point mousePosition, Viewport viewport)
     {
         return GetTopBarRectangle(viewport).Contains(mousePosition) ||
+               GetMenuStripRectangle(viewport).Contains(mousePosition) ||
                GetSideMenuRectangle(viewport).Contains(mousePosition) ||
                GetPropertiesPanelRectangle(viewport).Contains(mousePosition);
     }
 
-    public void HandleScroll(Point mousePosition, int scrollDelta, Viewport viewport)
+    public void HandleScroll(Point mousePosition, int scrollDelta, LeftPanelMode activeLeftPanelMode, Viewport viewport)
     {
         if (scrollDelta == 0)
             return;
@@ -145,23 +161,20 @@ public sealed class UiRenderer
         if (!GetSideMenuRectangle(viewport).Contains(mousePosition))
             return;
 
-        const int scrollStep = 90;
-        var delta = scrollDelta > 0 ? -scrollStep : scrollStep;
+        var delta = scrollDelta > 0 ? -MenuButtonStride : MenuButtonStride;
 
-        if (mousePosition.X >= GetBuildColumnX() && mousePosition.X < GetBuildColumnX() + ColumnWidth)
+        switch (activeLeftPanelMode)
         {
-            _buildScrollOffset = ClampScrollOffset(_buildScrollOffset + delta, BuildButtonIds.Length, MenuButtonStride, viewport);
-            return;
+            case LeftPanelMode.Build:
+                _buildScrollOffset = ClampScrollOffset(_buildScrollOffset + delta, BuildButtonIds.Length, MenuButtonStride, viewport);
+                break;
+            case LeftPanelMode.Research:
+                _researchScrollOffset = ClampScrollOffset(_researchScrollOffset + delta, ResearchButtonIds.Length, MenuButtonStride, viewport);
+                break;
+            case LeftPanelMode.Upgrade:
+                _upgradeScrollOffset = ClampScrollOffset(_upgradeScrollOffset + delta, UpgradeButtonIds.Length, MenuButtonStride, viewport);
+                break;
         }
-
-        if (mousePosition.X >= GetResearchColumnX() && mousePosition.X < GetResearchColumnX() + ColumnWidth)
-        {
-            _researchScrollOffset = ClampScrollOffset(_researchScrollOffset + delta, ResearchButtonIds.Length, MenuButtonStride, viewport);
-            return;
-        }
-
-        if (mousePosition.X >= GetUpgradeColumnX() && mousePosition.X < GetUpgradeColumnX() + ColumnWidth)
-            _upgradeScrollOffset = ClampScrollOffset(_upgradeScrollOffset + delta, UpgradeButtonIds.Length, MenuButtonStride, viewport);
     }
 
     public bool IsSellButtonAt(Point mousePosition, Viewport viewport)
@@ -192,6 +205,30 @@ public sealed class UiRenderer
     public bool IsExitButtonAt(Point mousePosition, Viewport viewport)
     {
         return GetExitButtonRectangle(viewport).Contains(mousePosition);
+    }
+
+    public bool TryGetLeftPanelModeButtonAt(Point mousePosition, Viewport viewport, out LeftPanelMode mode)
+    {
+        if (GetBuildTabButtonRectangle(viewport).Contains(mousePosition))
+        {
+            mode = LeftPanelMode.Build;
+            return true;
+        }
+
+        if (GetResearchTabButtonRectangle(viewport).Contains(mousePosition))
+        {
+            mode = LeftPanelMode.Research;
+            return true;
+        }
+
+        if (GetUpgradeTabButtonRectangle(viewport).Contains(mousePosition))
+        {
+            mode = LeftPanelMode.Upgrade;
+            return true;
+        }
+
+        mode = LeftPanelMode.Build;
+        return false;
     }
 
     public bool IsReplaceButtonAt(Point mousePosition, Viewport viewport, Guid? selectedMapBuildingId)
@@ -246,8 +283,14 @@ public sealed class UiRenderer
         return GetUnlockCloudButtonRectangle(viewport).Contains(mousePosition);
     }
 
-    public bool TryGetBuildingButtonAt(Point mousePosition, Viewport viewport, out string? buildingId)
+    public bool TryGetBuildingButtonAt(Point mousePosition, Viewport viewport, LeftPanelMode activeLeftPanelMode, out string? buildingId)
     {
+        if (activeLeftPanelMode != LeftPanelMode.Build)
+        {
+            buildingId = null;
+            return false;
+        }
+
         for (var i = 0; i < BuildButtonIds.Length; i++)
         {
             var rect = GetBuildButtonRectangle(i);
@@ -262,8 +305,14 @@ public sealed class UiRenderer
         return false;
     }
 
-    public bool TryGetResearchButtonAt(Point mousePosition, Viewport viewport, out string researchId)
+    public bool TryGetResearchButtonAt(Point mousePosition, Viewport viewport, LeftPanelMode activeLeftPanelMode, out string researchId)
     {
+        if (activeLeftPanelMode != LeftPanelMode.Research)
+        {
+            researchId = "";
+            return false;
+        }
+
         for (var i = 0; i < ResearchButtonIds.Length; i++)
         {
             var rect = GetResearchButtonRectangle(i);
@@ -278,8 +327,14 @@ public sealed class UiRenderer
         return false;
     }
 
-    public bool TryGetUpgradeButtonAt(Point mousePosition, Viewport viewport, out string upgradeId)
+    public bool TryGetUpgradeButtonAt(Point mousePosition, Viewport viewport, LeftPanelMode activeLeftPanelMode, out string upgradeId)
     {
+        if (activeLeftPanelMode != LeftPanelMode.Upgrade)
+        {
+            upgradeId = "";
+            return false;
+        }
+
         for (var i = 0; i < UpgradeButtonIds.Length; i++)
         {
             var rect = GetUpgradeButtonRectangle(i);
@@ -297,6 +352,76 @@ public sealed class UiRenderer
     public IReadOnlyList<string> GetBuildButtonIds()
     {
         return BuildButtonIds;
+    }
+
+    private void DrawMenuStrip(SpriteBatch spriteBatch, Viewport viewport, LeftPanelMode activeLeftPanelMode)
+    {
+        var strip = GetMenuStripRectangle(viewport);
+        spriteBatch.Draw(_pixel, strip, new Color(28, 36, 48));
+        DrawOutline(spriteBatch, strip, new Color(70, 84, 104), 1);
+
+        DrawTabButton(spriteBatch, GetBuildTabButtonRectangle(viewport), "BUILD", activeLeftPanelMode == LeftPanelMode.Build);
+        DrawTabButton(spriteBatch, GetResearchTabButtonRectangle(viewport), "RESEARCH", activeLeftPanelMode == LeftPanelMode.Research);
+        DrawTabButton(spriteBatch, GetUpgradeTabButtonRectangle(viewport), "UPGRADE", activeLeftPanelMode == LeftPanelMode.Upgrade);
+        DrawFutureSectionButtons(spriteBatch, viewport);
+
+        DrawSmallCommandButton(spriteBatch, GetNewGameButtonRectangle(viewport), "NEW", new Color(74, 64, 96));
+        DrawSmallCommandButton(spriteBatch, GetLoadButtonRectangle(viewport), "LOAD", new Color(54, 78, 103));
+        DrawSmallCommandButton(spriteBatch, GetSaveButtonRectangle(viewport), "SAVE", new Color(54, 78, 103));
+        DrawSmallCommandButton(spriteBatch, GetToggleFullscreenButtonRectangle(viewport), "VIEW", new Color(66, 82, 78));
+        DrawSmallCommandButton(spriteBatch, GetExitButtonRectangle(viewport), "EXIT", new Color(96, 58, 58));
+    }
+
+    private void DrawTabButton(SpriteBatch spriteBatch, Rectangle rect, string label, bool isActive)
+    {
+        spriteBatch.Draw(_pixel, rect, isActive ? new Color(67, 86, 110) : new Color(48, 60, 76));
+        DrawOutline(spriteBatch, rect, isActive ? new Color(255, 220, 80) : new Color(90, 104, 124), isActive ? 2 : 1);
+        _text.DrawString(spriteBatch, label, new Vector2(rect.X + 10, rect.Y + 9), new Color(235, 240, 245), 1);
+    }
+
+    private void DrawActiveLeftMenu(SpriteBatch spriteBatch, Viewport viewport, LeftPanelMode activeLeftPanelMode, string? selectedBuildingId)
+    {
+        switch (activeLeftPanelMode)
+        {
+            case LeftPanelMode.Build:
+                DrawBuildMenu(spriteBatch, viewport, selectedBuildingId);
+                break;
+            case LeftPanelMode.Research:
+                DrawResearchMenu(spriteBatch, viewport);
+                break;
+            case LeftPanelMode.Upgrade:
+                DrawUpgradeMenu(spriteBatch, viewport);
+                break;
+        }
+    }
+
+    private void DrawFutureSectionButtons(SpriteBatch spriteBatch, Viewport viewport)
+    {
+        var x = GetUpgradeTabButtonRectangle(viewport).Right + 12;
+        var maxRight = GetNewGameButtonRectangle(viewport).X - 12;
+        var y = TopBarHeight + 5;
+        const int gap = 8;
+
+        DrawFutureSectionButtonIfFits(spriteBatch, "STATS", 72, ref x, y, maxRight, gap);
+        DrawFutureSectionButtonIfFits(spriteBatch, "HELP", 64, ref x, y, maxRight, gap);
+        DrawFutureSectionButtonIfFits(spriteBatch, "SETTINGS", 96, ref x, y, maxRight, gap);
+    }
+
+    private void DrawFutureSectionButtonIfFits(SpriteBatch spriteBatch, string label, int width, ref int x, int y, int maxRight, int gap)
+    {
+        var rect = new Rectangle(x, y, width, 28);
+        if (rect.Right > maxRight)
+            return;
+
+        DrawDisabledCommandButton(spriteBatch, rect, label);
+        x = rect.Right + gap;
+    }
+
+    private void DrawDisabledCommandButton(SpriteBatch spriteBatch, Rectangle rect, string label)
+    {
+        spriteBatch.Draw(_pixel, rect, new Color(42, 48, 58));
+        DrawOutline(spriteBatch, rect, new Color(70, 80, 96), 1);
+        _text.DrawString(spriteBatch, label, new Vector2(rect.X + 8, rect.Y + 8), new Color(120, 132, 150), 1);
     }
 
     private void DrawTopBar(SpriteBatch spriteBatch, Rectangle topBar, Viewport viewport)
@@ -352,8 +477,6 @@ public sealed class UiRenderer
     private void DrawBuildMenu(SpriteBatch spriteBatch, Viewport viewport, string? selectedBuildingId)
     {
         var headerX = GetBuildColumnX();
-        _text.DrawString(spriteBatch, "BUILD", new Vector2(headerX, MenuHeaderY), new Color(230, 238, 245), 2);
-
         DrawColumnScrollHint(spriteBatch, viewport, headerX, _buildScrollOffset, BuildButtonIds.Length, MenuButtonStride);
 
         for (var i = 0; i < BuildButtonIds.Length; i++)
@@ -378,52 +501,37 @@ public sealed class UiRenderer
 
             var name = definition?.Name ?? id;
             var textColor = isLocked ? new Color(150, 155, 165) : new Color(235, 240, 245);
-            var stateText = definition is null
-                ? "?"
-                : isSelected
-                    ? "ACTIVE"
-                    : isLocked
-                        ? "LOCKED"
-                        : canAfford
-                            ? "READY"
-                            : "NEED $";
-            var stateColor = definition is null
-                ? new Color(120, 80, 130)
-                : isSelected
-                    ? new Color(255, 220, 80)
-                    : isLocked
-                        ? new Color(85, 90, 100)
-                        : canAfford
-                            ? new Color(80, 135, 90)
-                            : new Color(145, 70, 60);
-            var costColor = isLocked
-                ? new Color(255, 150, 120)
-                : canAfford
-                    ? new Color(255, 225, 120)
-                    : new Color(255, 110, 90);
+            var costColor = isSelected
+                ? new Color(255, 220, 80)
+                : isLocked
+                    ? new Color(255, 150, 120)
+                    : canAfford
+                        ? new Color(255, 225, 120)
+                        : new Color(255, 110, 90);
             var costText = definition is null
                 ? "BUILD COST ?"
-                : isLocked
-                    ? "LOCKED - " + GetBuildLockedText(definition)
-                    : canAfford
-                        ? $"READY - BUILD COST ${FormatNumber((double)definition.Cost)}"
-                        : $"NEED MONEY - ${FormatNumber((double)definition.Cost)}";
+                : isSelected
+                    ? $"ACTIVE - BUILD COST ${FormatNumber((double)definition.Cost)}"
+                    : isLocked
+                        ? "LOCKED - " + GetBuildLockedText(definition)
+                        : canAfford
+                            ? $"READY - BUILD COST ${FormatNumber((double)definition.Cost)}"
+                            : $"NEED MONEY - BUILD COST ${FormatNumber((double)definition.Cost)}";
             var primaryText = definition is null ? "MAIN EFFECT ?" : GetBuildButtonMainEffectText(definition);
             var supportText = definition is null ? id : GetBuildButtonSupportText(definition);
 
-            _text.DrawString(spriteBatch, Shorten(name, 12), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonTitleY), textColor, 2);
-            DrawMenuStateBadge(spriteBatch, rect, stateText, stateColor, new Color(245, 248, 252));
-            _text.DrawString(spriteBatch, Shorten(costText, 35), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonMetaY), costColor, 1);
-            _text.DrawString(spriteBatch, Shorten(primaryText, 36), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonPrimaryY), new Color(170, 210, 235), 1);
-            _text.DrawString(spriteBatch, Shorten(supportText, 36), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonPurposeY), isLocked ? new Color(135, 140, 150) : new Color(175, 188, 205), 1);
+            _text.DrawString(spriteBatch, Shorten(name, 28), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonTitleY), textColor, 2);
+            _text.DrawString(spriteBatch, Shorten(costText, 60), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonMetaY), costColor, 1);
+            _text.DrawString(spriteBatch, Shorten(primaryText, 62), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonPrimaryY), new Color(170, 210, 235), 1);
+            _text.DrawString(spriteBatch, Shorten(supportText, 62), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonPurposeY), isLocked ? new Color(135, 140, 150) : new Color(175, 188, 205), 1);
+            if (definition is not null)
+                _text.DrawString(spriteBatch, Shorten(GetBuildButtonDetailText(definition), 62), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonDetailY), isLocked ? new Color(120, 128, 138) : new Color(145, 160, 178), 1);
         }
     }
 
     private void DrawResearchMenu(SpriteBatch spriteBatch, Viewport viewport)
     {
-        var headerX = GetResearchColumnX();
-        _text.DrawString(spriteBatch, "RESEARCH", new Vector2(headerX, MenuHeaderY), new Color(230, 238, 245), 2);
-
+        var headerX = GetBuildColumnX();
         DrawColumnScrollHint(spriteBatch, viewport, headerX, _researchScrollOffset, ResearchButtonIds.Length, MenuButtonStride);
 
         for (var i = 0; i < ResearchButtonIds.Length; i++)
@@ -447,26 +555,21 @@ public sealed class UiRenderer
             spriteBatch.Draw(_pixel, rect, background);
             DrawOutline(spriteBatch, rect, completed ? new Color(130, 230, 150) : new Color(80, 86, 105), 1);
 
+            var stripeColor = definition is null
+                ? Color.Magenta
+                : completed
+                    ? new Color(90, 175, 105)
+                    : missingPrereq
+                        ? new Color(90, 95, 105)
+                        : definition.ManagedBuildingIds.Count > 0
+                            ? new Color(120, 105, 220)
+                            : definition.UnlockBuildingIds.Count > 0
+                                ? new Color(95, 165, 230)
+                                : new Color(180, 150, 230);
+            spriteBatch.Draw(_pixel, new Rectangle(rect.X, rect.Y, 5, rect.Height), stripeColor);
+
             var name = definition?.Name ?? id;
             var cost = definition is null ? "?" : FormatNumber(definition.Cost);
-            var stateText = definition is null
-                ? "?"
-                : completed
-                    ? "DONE"
-                    : missingPrereq
-                        ? "LOCKED"
-                        : canAfford
-                            ? "READY"
-                            : "NEED R";
-            var stateColor = definition is null
-                ? new Color(120, 80, 130)
-                : completed
-                    ? new Color(65, 135, 80)
-                    : missingPrereq
-                        ? new Color(85, 90, 100)
-                        : canAfford
-                            ? new Color(95, 85, 145)
-                            : new Color(125, 85, 145);
             var status = definition is null
                 ? "?"
                 : completed
@@ -475,23 +578,29 @@ public sealed class UiRenderer
                         ? "LOCKED - " + GetResearchPrerequisiteText(definition)
                         : canAfford
                             ? $"READY - COST R{cost}"
-                            : $"NEED RESEARCH - R{cost}";
+                            : $"NEED RESEARCH - COST R{cost}";
             var unlockText = definition is null ? "" : GetResearchUnlockText(definition);
             var description = definition is null ? id : GetResearchActionText(definition);
+            var detail = definition is null ? "RESEARCH" : GetResearchButtonDetailText(definition);
 
-            _text.DrawString(spriteBatch, Shorten(name, 12), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonTitleY), new Color(235, 240, 245), 2);
-            DrawMenuStateBadge(spriteBatch, rect, stateText, stateColor, new Color(245, 248, 252));
-            _text.DrawString(spriteBatch, Shorten(status, 35), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonMetaY), completed ? new Color(160, 245, 175) : new Color(210, 190, 255), 1);
-            _text.DrawString(spriteBatch, Shorten(unlockText, 36), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonPrimaryY), new Color(190, 215, 255), 1);
-            _text.DrawString(spriteBatch, Shorten(description, 36), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonPurposeY), new Color(175, 188, 205), 1);
+            _text.DrawString(spriteBatch, Shorten(name, 30), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonTitleY), new Color(235, 240, 245), 2);
+            var statusColor = completed
+                ? new Color(160, 245, 175)
+                : missingPrereq
+                    ? new Color(255, 170, 130)
+                    : canAfford
+                        ? new Color(210, 190, 255)
+                        : new Color(255, 150, 120);
+            _text.DrawString(spriteBatch, Shorten(status, 58), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonMetaY), statusColor, 1);
+            _text.DrawString(spriteBatch, Shorten(unlockText, 60), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonPrimaryY), new Color(190, 215, 255), 1);
+            _text.DrawString(spriteBatch, Shorten(description, 60), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonPurposeY), new Color(175, 188, 205), 1);
+            _text.DrawString(spriteBatch, Shorten(detail, 62), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonDetailY), completed ? new Color(130, 190, 145) : new Color(145, 160, 178), 1);
         }
     }
 
     private void DrawUpgradeMenu(SpriteBatch spriteBatch, Viewport viewport)
     {
-        var headerX = GetUpgradeColumnX();
-        _text.DrawString(spriteBatch, "UPGRADE", new Vector2(headerX, MenuHeaderY), new Color(230, 238, 245), 2);
-
+        var headerX = GetBuildColumnX();
         DrawColumnScrollHint(spriteBatch, viewport, headerX, _upgradeScrollOffset, UpgradeButtonIds.Length, MenuButtonStride);
 
         for (var i = 0; i < UpgradeButtonIds.Length; i++)
@@ -524,27 +633,16 @@ public sealed class UiRenderer
             spriteBatch.Draw(_pixel, rect, background);
             DrawOutline(spriteBatch, rect, completed ? new Color(130, 230, 150) : new Color(80, 86, 105), 1);
 
+            var accentColor = definition is null ? Color.Magenta : GetUpgradeAccentColor(definition);
+            if (completed)
+                accentColor = new Color(80, 175, 95);
+            else if (missingResearch)
+                accentColor = new Color(90, 95, 105);
+            spriteBatch.Draw(_pixel, new Rectangle(rect.X, rect.Y, 5, rect.Height), accentColor);
+
             var name = definition?.Name ?? id;
             var effect = definition is null ? "?" : GetUpgradeEffectText(definition);
             var targetText = definition is null ? "" : GetUpgradeTargetText(definition);
-            var stateText = definition is null
-                ? "?"
-                : completed
-                    ? "MAX"
-                    : missingResearch
-                        ? "LOCKED"
-                        : canAfford
-                            ? "READY"
-                            : "NEED";
-            var stateColor = definition is null
-                ? new Color(120, 80, 130)
-                : completed
-                    ? new Color(65, 135, 80)
-                    : missingResearch
-                        ? new Color(85, 90, 100)
-                        : canAfford
-                            ? new Color(95, 85, 145)
-                            : new Color(145, 95, 65);
             var status = definition is null
                 ? "?"
                 : completed
@@ -554,14 +652,20 @@ public sealed class UiRenderer
                         : canAfford
                             ? "READY - " + GetUpgradeCostText(definition, level)
                             : "NEED RESOURCES - " + GetUpgradeCostText(definition, level);
+            var detailText = definition is null ? id : GetUpgradeButtonDetailText(definition, level, completed);
 
-            var levelText = definition is null ? "" : $"LV {level}/{definition.MaxLevel}";
-            _text.DrawString(spriteBatch, Shorten(name, 12), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonTitleY), new Color(235, 240, 245), 2);
-            DrawMenuStateBadge(spriteBatch, rect, stateText, stateColor, new Color(245, 248, 252));
-            _text.DrawString(spriteBatch, levelText, new Vector2(rect.Right - 62, rect.Y + MenuButtonMetaY), new Color(180, 210, 240), 1);
-            _text.DrawString(spriteBatch, Shorten(effect, 22), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonMetaY), new Color(190, 215, 255), 1);
-            _text.DrawString(spriteBatch, Shorten(status, 36), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonPrimaryY), completed ? new Color(160, 245, 175) : new Color(255, 225, 120), 1);
-            _text.DrawString(spriteBatch, Shorten(targetText, 36), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonPurposeY), new Color(175, 188, 205), 1);
+            _text.DrawString(spriteBatch, Shorten(name, 28), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonTitleY), new Color(235, 240, 245), 2);
+            var statusColor = completed
+                ? new Color(160, 245, 175)
+                : missingResearch
+                    ? new Color(255, 170, 130)
+                    : canAfford
+                        ? new Color(255, 225, 120)
+                        : new Color(255, 150, 120);
+            _text.DrawString(spriteBatch, Shorten(status, 58), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonMetaY), statusColor, 1);
+            _text.DrawString(spriteBatch, Shorten(effect, 58), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonPrimaryY), new Color(190, 215, 255), 1);
+            _text.DrawString(spriteBatch, Shorten(targetText, 58), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonPurposeY), new Color(175, 188, 205), 1);
+            _text.DrawString(spriteBatch, Shorten(detailText, 58), new Vector2(rect.X + MenuButtonTextX, rect.Y + MenuButtonDetailY), completed ? new Color(140, 210, 155) : new Color(145, 160, 178), 1);
         }
     }
 
@@ -883,6 +987,23 @@ public sealed class UiRenderer
         return $"NET ENERGY {FormatNetEnergy(definition)}";
     }
 
+    private static string GetBuildButtonDetailText(BuildingDefinition definition)
+    {
+        var category = definition.Category switch
+        {
+            BuildingCategory.PowerProducer => "POWER",
+            BuildingCategory.Storage => "STORAGE",
+            BuildingCategory.Automation => "AUTO SELL",
+            BuildingCategory.Research => "RESEARCH",
+            BuildingCategory.HeatProducer => "HEAT SOURCE",
+            BuildingCategory.HeatConverter => "HEAT CONVERTER",
+            BuildingCategory.Corporation => "CORPORATION",
+            _ => "BUILDING"
+        };
+
+        return $"SIZE {definition.Width} X {definition.Height} | {category}";
+    }
+
     private string GetBuildButtonSupportText(BuildingDefinition definition)
     {
         var energyIn = UpgradeCalculator.GetEnergyConsumptionPerSecond(_world, definition);
@@ -1009,6 +1130,40 @@ public sealed class UiRenderer
             : definition.Description;
     }
 
+    private string GetResearchButtonDetailText(ResearchDefinition definition)
+    {
+        if (definition.UnlockBuildingIds.Count > 0)
+        {
+            var names = definition.UnlockBuildingIds
+                .Select(id => _world.BuildingCatalog.TryGet(id, out var building) ? building.Name : id)
+                .Take(2)
+                .ToList();
+
+            if (definition.UnlockBuildingIds.Count > 2)
+                return "UNLOCK LIST " + string.Join(", ", names) + $" +{definition.UnlockBuildingIds.Count - 2}";
+
+            return "UNLOCK LIST " + string.Join(", ", names);
+        }
+
+        if (definition.ManagedBuildingIds.Count > 0)
+        {
+            var names = definition.ManagedBuildingIds
+                .Select(id => _world.BuildingCatalog.TryGet(id, out var building) ? building.Name : id)
+                .Take(2)
+                .ToList();
+
+            if (definition.ManagedBuildingIds.Count > 2)
+                return "AUTO MANAGEMENT " + string.Join(", ", names) + $" +{definition.ManagedBuildingIds.Count - 2}";
+
+            return "AUTO MANAGEMENT " + string.Join(", ", names);
+        }
+
+        if (!string.IsNullOrWhiteSpace(definition.Description))
+            return definition.Description.ToUpperInvariant();
+
+        return "RESEARCH IMPROVEMENT";
+    }
+
     private string GetUpgradeTargetText(UpgradeDefinition definition)
     {
         if (!string.IsNullOrWhiteSpace(definition.TargetBuildingId) &&
@@ -1022,6 +1177,42 @@ public sealed class UiRenderer
             UpgradeEffectType.MultiplyToolAxesGeneration => "TARGET AXES PRODUCTION",
             UpgradeEffectType.MultiplyToolMinesGeneration => "TARGET MINES PRODUCTION",
             _ => string.IsNullOrWhiteSpace(definition.Description) ? "IMPROVES THE GRID" : definition.Description
+        };
+    }
+
+    private string GetUpgradeButtonDetailText(UpgradeDefinition definition, int level, bool completed)
+    {
+        var levelText = $"LV {level} / {definition.MaxLevel}";
+        if (completed)
+            return levelText + " | UPGRADE COMPLETE";
+
+        if (!string.IsNullOrWhiteSpace(definition.RequiredResearchId) &&
+            !_world.Research.IsCompleted(definition.RequiredResearchId))
+        {
+            var researchName = _world.ResearchCatalog.TryGet(definition.RequiredResearchId, out var research)
+                ? research.Name
+                : "RESEARCH";
+            return levelText + " | REQUIRES " + researchName;
+        }
+
+        var nextLevel = Math.Min(level + 1, definition.MaxLevel);
+        return levelText + $" | NEXT LEVEL {nextLevel}";
+    }
+
+    private static Color GetUpgradeAccentColor(UpgradeDefinition definition)
+    {
+        return definition.EffectType switch
+        {
+            UpgradeEffectType.MultiplyEnergyProduction => new Color(135, 210, 255),
+            UpgradeEffectType.MultiplyLifetime => new Color(255, 210, 95),
+            UpgradeEffectType.MultiplyResearchProduction => new Color(210, 190, 255),
+            UpgradeEffectType.MultiplyHeatProduction => new Color(245, 145, 55),
+            UpgradeEffectType.MultiplyBatteryCapacity => new Color(240, 205, 70),
+            UpgradeEffectType.MultiplyAutoSell => new Color(180, 225, 190),
+            UpgradeEffectType.MultiplyHeatConversion => new Color(70, 220, 190),
+            UpgradeEffectType.MultiplyToolAxesGeneration => new Color(210, 235, 190),
+            UpgradeEffectType.MultiplyToolMinesGeneration => new Color(230, 210, 170),
+            _ => new Color(190, 215, 255)
         };
     }
 
@@ -1161,13 +1352,55 @@ public sealed class UiRenderer
 
     private void DrawPropertyRow(SpriteBatch spriteBatch, Rectangle panel, ref int y, int rowIndex, string label, string value, Color valueColor)
     {
+        if (IsPropertyGroupStart(label) && rowIndex > 0)
+        {
+            var separator = new Rectangle(panel.X + 10, y - 6, panel.Width - 20, 1);
+            spriteBatch.Draw(_pixel, separator, new Color(70, 86, 108, 150));
+        }
+
         var row = new Rectangle(panel.X + 10, y - 3, panel.Width - 20, 18);
         if (rowIndex % 2 == 0)
             spriteBatch.Draw(_pixel, row, new Color(36, 45, 60, 120));
 
-        _text.DrawString(spriteBatch, label, new Vector2(panel.X + 14, y), new Color(155, 170, 190), 1);
-        _text.DrawString(spriteBatch, Shorten(value, 27), new Vector2(panel.X + 146, y), valueColor, 1);
+        var displayLabel = GetPropertyDisplayLabel(label);
+        _text.DrawString(spriteBatch, displayLabel, new Vector2(panel.X + 14, y), GetPropertyLabelColor(label), 1);
+        _text.DrawString(spriteBatch, Shorten(value, 34), new Vector2(panel.X + 136, y), valueColor, 1);
         y += 20;
+    }
+
+    private static bool IsPropertyGroupStart(string label)
+    {
+        return label is "BUILD COST" or "LIFE" or "ENERGY IN" or "REVEAL";
+    }
+
+    private static string GetPropertyDisplayLabel(string label)
+    {
+        return label switch
+        {
+            "MONEY/S" => "MONEY / S",
+            "RESEARCH OUT" => "RESEARCH / S",
+            "AUTO SELL" => "AUTO SELL / S",
+            "BATTERY" => "STORAGE",
+            "SIZE" => "FOOTPRINT",
+            "REVEAL" => "REVEALS",
+            _ => label
+        };
+    }
+
+    private static Color GetPropertyLabelColor(string label)
+    {
+        return label switch
+        {
+            "TYPE" or "PURPOSE" or "STATE" or "BUILD TOOL" => new Color(175, 190, 210),
+            "BUILD COST" or "NEXT UPGRADE" or "MONEY/S" or "PAYBACK" => new Color(205, 190, 150),
+            "LIFE" or "MANAGED" => new Color(170, 195, 170),
+            "ENERGY IN" or "ENERGY OUT" or "NET ENERGY" or "BATTERY" => new Color(145, 195, 225),
+            "HEAT OUT" or "HEAT STORED" or "HEAT IN" or "HEAT TO ENERGY" => new Color(220, 150, 95),
+            "RESEARCH OUT" or "AUTO SELL" => new Color(195, 175, 225),
+            "REVEAL" or "CLEAR COST" or "UNLOCK COST" => new Color(190, 190, 170),
+            "ACTION" => new Color(255, 225, 120),
+            _ => new Color(155, 170, 190)
+        };
     }
 
     private void DrawContextActionButton(SpriteBatch spriteBatch, Viewport viewport, Guid? selectedMapBuildingId, GridPosition? selectedTerrainPosition, GridPosition? selectedCloudPosition, Guid? pendingDemolishBuildingId)
@@ -1510,7 +1743,8 @@ public sealed class UiRenderer
 
     private void DrawStatus(SpriteBatch spriteBatch, Viewport viewport, string? selectedBuildingId, BuildResult? lastBuildResult, ResearchResult? lastResearchResult, TerrainClearResult? lastTerrainClearResult, AreaUnlockResult? lastAreaUnlockResult, UpgradeResult? lastUpgradeResult, string? saveLoadMessage, Guid? pendingDemolishBuildingId)
     {
-        var y = viewport.Height - 34;
+        var statusBar = GetStatusBarRectangle(viewport);
+        var y = statusBar.Y + 14;
         var message = selectedBuildingId is null
             ? "SELECT BUILDING"
             : $"BUILD TOOL {selectedBuildingId} - LEFT CLICK BUILD, RIGHT CLICK CANCEL";
@@ -1556,11 +1790,9 @@ public sealed class UiRenderer
         if (pendingDemolishBuildingId.HasValue)
             message = "DEMOLISH REQUIRES CONFIRMATION: CLICK CONFIRM DEMOLISH";
 
-        var properties = GetPropertiesPanelRectangle(viewport);
-        spriteBatch.Draw(_pixel, new Rectangle(SideMenuWidth, viewport.Height - 44, Math.Max(0, properties.X - SideMenuWidth), 44), new Color(25, 31, 42));
-        _text.DrawString(spriteBatch, Shorten(message, 68), new Vector2(SideMenuWidth + 14, y), new Color(230, 238, 245), 1);
-
-        DrawGameCommandButtons(spriteBatch, viewport);
+        spriteBatch.Draw(_pixel, statusBar, new Color(25, 31, 42));
+        DrawOutline(spriteBatch, statusBar, new Color(55, 67, 84), 1);
+        _text.DrawString(spriteBatch, Shorten(message, 110), new Vector2(statusBar.X + 14, y), new Color(230, 238, 245), 1);
     }
 
     private void DrawGameCommandButtons(SpriteBatch spriteBatch, Viewport viewport)
@@ -1590,9 +1822,19 @@ public sealed class UiRenderer
         return new Rectangle(0, 0, viewport.Width, TopBarHeight);
     }
 
+    private static Rectangle GetMenuStripRectangle(Viewport viewport)
+    {
+        return new Rectangle(0, TopBarHeight, viewport.Width, MenuStripHeight);
+    }
+
+    private static Rectangle GetStatusBarRectangle(Viewport viewport)
+    {
+        return new Rectangle(0, Math.Max(0, viewport.Height - StatusBarHeight), viewport.Width, StatusBarHeight);
+    }
+
     private static Rectangle GetSideMenuRectangle(Viewport viewport)
     {
-        return new Rectangle(0, TopBarHeight, SideMenuWidth, Math.Max(0, viewport.Height - TopBarHeight));
+        return new Rectangle(0, TopBarHeight + MenuStripHeight, SideMenuWidth, Math.Max(0, viewport.Height - TopBarHeight - MenuStripHeight - StatusBarHeight));
     }
 
     private static Rectangle GetSellButtonRectangle(Viewport viewport)
@@ -1608,28 +1850,45 @@ public sealed class UiRenderer
         return new Rectangle(Math.Max(10, sellButton.X - width - 14), 21, width, 32);
     }
 
+    private static Rectangle GetBuildTabButtonRectangle(Viewport viewport)
+    {
+        return new Rectangle(PanelMargin, TopBarHeight + 5, 70, 28);
+    }
+
+    private static Rectangle GetResearchTabButtonRectangle(Viewport viewport)
+    {
+        var build = GetBuildTabButtonRectangle(viewport);
+        return new Rectangle(build.Right + 8, build.Y, 96, 28);
+    }
+
+    private static Rectangle GetUpgradeTabButtonRectangle(Viewport viewport)
+    {
+        var research = GetResearchTabButtonRectangle(viewport);
+        return new Rectangle(research.Right + 8, research.Y, 90, 28);
+    }
+
     private static Rectangle GetSaveButtonRectangle(Viewport viewport)
     {
-        var x = GetGameCommandButtonsStartX(viewport);
-        return new Rectangle(x, viewport.Height - 36, 56, 28);
+        var load = GetLoadButtonRectangle(viewport);
+        return new Rectangle(load.Right + 8, load.Y, 56, 28);
     }
 
     private static Rectangle GetLoadButtonRectangle(Viewport viewport)
     {
-        var save = GetSaveButtonRectangle(viewport);
-        return new Rectangle(save.Right + 8, save.Y, 56, 28);
+        var newGame = GetNewGameButtonRectangle(viewport);
+        return new Rectangle(newGame.Right + 8, newGame.Y, 56, 28);
     }
 
     private static Rectangle GetNewGameButtonRectangle(Viewport viewport)
     {
-        var load = GetLoadButtonRectangle(viewport);
-        return new Rectangle(load.Right + 8, load.Y, 48, 28);
+        var x = GetGameCommandButtonsStartX(viewport);
+        return new Rectangle(x, TopBarHeight + 5, 48, 28);
     }
 
     private static Rectangle GetToggleFullscreenButtonRectangle(Viewport viewport)
     {
-        var newGame = GetNewGameButtonRectangle(viewport);
-        return new Rectangle(newGame.Right + 8, newGame.Y, 56, 28);
+        var save = GetSaveButtonRectangle(viewport);
+        return new Rectangle(save.Right + 8, save.Y, 56, 28);
     }
 
     private static Rectangle GetExitButtonRectangle(Viewport viewport)
@@ -1641,8 +1900,8 @@ public sealed class UiRenderer
     private static int GetGameCommandButtonsStartX(Viewport viewport)
     {
         var properties = GetPropertiesPanelRectangle(viewport);
-        const int totalWidth = 56 + 8 + 56 + 8 + 48 + 8 + 56 + 8 + 56;
-        return Math.Max(SideMenuWidth + 360, properties.X - totalWidth - 12);
+        const int totalWidth = 48 + 8 + 56 + 8 + 56 + 8 + 56 + 8 + 56;
+        return Math.Max(GetUpgradeTabButtonRectangle(viewport).Right + 24, properties.X - totalWidth - 16);
     }
 
     public const int PropertiesPanelWidth = 380;
@@ -1651,8 +1910,8 @@ public sealed class UiRenderer
     {
         var width = Math.Min(PropertiesPanelWidth, Math.Max(280, viewport.Width - SideMenuWidth - 120));
         var x = Math.Max(SideMenuWidth + 20, viewport.Width - width);
-        var y = TopBarHeight;
-        var height = Math.Max(0, viewport.Height - TopBarHeight - 44);
+        var y = TopBarHeight + MenuStripHeight;
+        var height = Math.Max(0, viewport.Height - TopBarHeight - MenuStripHeight - StatusBarHeight);
         return new Rectangle(x, y, width, height);
     }
 
@@ -1684,9 +1943,16 @@ public sealed class UiRenderer
         return new Rectangle(panel.X + 12, panel.Bottom - 44, panel.Width - 24, 32);
     }
 
+    private static Rectangle GetLeftMenuListRectangle(Viewport viewport)
+    {
+        var top = MenuButtonsY;
+        var bottom = Math.Max(top, viewport.Height - StatusBarHeight - 8);
+        return new Rectangle(0, top, SideMenuWidth, bottom - top);
+    }
+
     private static int GetBuildColumnX() => PanelMargin;
-    private static int GetResearchColumnX() => PanelMargin + ColumnWidth + ColumnGap;
-    private static int GetUpgradeColumnX() => PanelMargin + (ColumnWidth + ColumnGap) * 2;
+    private static int GetResearchColumnX() => GetBuildColumnX();
+    private static int GetUpgradeColumnX() => GetBuildColumnX();
 
     private Rectangle GetBuildButtonRectangle(int index)
     {
@@ -1705,30 +1971,24 @@ public sealed class UiRenderer
 
     private static bool IsMenuButtonVisible(Rectangle rect, Viewport viewport)
     {
-        return rect.Top >= MenuButtonsY && rect.Bottom <= viewport.Height - 8;
+        var list = GetLeftMenuListRectangle(viewport);
+        return rect.Top >= list.Top && rect.Bottom <= list.Bottom;
     }
 
     private static int ClampScrollOffset(int offset, int itemCount, int itemStride, Viewport viewport)
     {
-        var contentHeight = itemCount * itemStride;
-        var visibleHeight = Math.Max(1, viewport.Height - MenuButtonsY - 14);
-        var maxOffset = Math.Max(0, contentHeight - visibleHeight);
-        return Math.Clamp(offset, 0, maxOffset);
+        var visibleHeight = Math.Max(1, GetLeftMenuListRectangle(viewport).Height);
+        var visibleItemCount = Math.Max(1, visibleHeight / itemStride);
+        var maxFirstVisibleIndex = Math.Max(0, itemCount - visibleItemCount);
+        var requestedFirstVisibleIndex = (int)Math.Round(offset / (double)itemStride, MidpointRounding.AwayFromZero);
+        var clampedIndex = Math.Clamp(requestedFirstVisibleIndex, 0, maxFirstVisibleIndex);
+        return clampedIndex * itemStride;
     }
 
     private void DrawColumnScrollHint(SpriteBatch spriteBatch, Viewport viewport, int x, int offset, int itemCount, int itemStride)
     {
-        var maxOffset = ClampScrollOffset(int.MaxValue, itemCount, itemStride, viewport);
-        if (maxOffset <= 0)
-            return;
-
-        var text = offset <= 0
-            ? "MORE"
-            : offset >= maxOffset
-                ? "TOP"
-                : "SCROLL";
-
-        _text.DrawString(spriteBatch, text, new Vector2(x + ColumnWidth - 54, MenuHeaderY + 9), new Color(165, 180, 200), 1);
+        // Intentionally hidden: the list already responds to mouse wheel scrolling.
+        // Keeping text hints between the tab bar and the left panel made the layout feel cluttered.
     }
 
     private static string GetUpgradeCostText(UpgradeDefinition definition, int currentLevel)

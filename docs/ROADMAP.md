@@ -356,3 +356,95 @@ Anche RESEARCH e UPGRADE sono stati resi più operativi: le ricerche distinguono
 Stato: preparato.
 
 Aggiunta una riga `PURPOSE` nel pannello proprietà. La riga spiega in modo breve il ruolo dell'edificio selezionato, del tool di costruzione attivo o della cella/terreno selezionato. Questo completa il collegamento tra pannello sinistro e properties panel: il pannello sinistro spiega cosa si può scegliere, il properties panel spiega cosa si sta guardando e perché è rilevante.
+
+
+## 2026-06-06 - Step 19F: single left panel mode
+
+Stato: preparato.
+
+Il pannello laterale sinistro non mostra più tre colonne contemporaneamente. È stata introdotta una fascia di navigazione con `BUILD`, `RESEARCH` e `UPGRADE`; solo la sezione attiva viene disegnata nella colonna sinistra unica. I comandi `NEW`, `LOAD`, `SAVE` ed `EXIT` sono stati spostati nella stessa fascia, liberando la status bar e preparando spazio futuro per `STATS`, `HELP` e `SETTINGS`.
+
+La colonna unica usa più larghezza per testi e nomi, mentre i badge duplicati sono stati rimossi: lo stato resta espresso nella seconda riga del pulsante e il tool BUILD attivo è riconoscibile dal bordo giallo.
+
+## 2026-06-06 - Step 19G: BUILD column full-width cards
+The single-column left panel now gives BUILD cards more width and height. Building names can be displayed with fewer abbreviations, cards show state/cost, main effect, operational note, and a final detail row with size/category. Next UI passes should apply the same full-width treatment to RESEARCH and UPGRADE cards.
+
+## 2026-06-06 - Step 19H: RESEARCH column full-width cards
+
+Stato: preparato.
+
+La colonna `RESEARCH` usa ora schede più informative nella nuova interfaccia a colonna singola. Ogni ricerca mostra titolo, stato/costo, effetto principale, descrizione operativa e dettaglio sugli edifici sbloccati o gestiti. Prossimo passaggio consigliato: applicare lo stesso trattamento alla sezione `UPGRADE`.
+
+### Step 19I - UPGRADE full-width cards
+
+Completed:
+- full-width upgrade cards aligned with the new single-column left panel;
+- clearer lines for status/cost, effect, target and level;
+- effect-colored accent bars for faster visual scanning;
+- no gameplay or balance changes.
+
+### Step 19J - Left panel clipping and full-width status bar
+
+Completed:
+- fixed left panel scroll clipping for full-width cards;
+- prevented scrolled research/upgrade cards from invading the top resource area;
+- changed the status bar to span the full window width;
+- kept properties panel above the status bar.
+
+### Step 19J Fix1 - Top mask draw order and removed scroll hint
+
+Completed:
+- redrew top resource bar and tab bar after the scrollable left list to prevent visual overlap;
+- removed the `MORE/TOP/SCROLL` label from the tab/list gap;
+- retained the full-width status bar.
+
+### Step 19J Fix2 - StatusBarHeight compile fix
+
+Completed:
+- added the missing `StatusBarHeight` constant required by the full-width status bar layout.
+
+### Step 19J Fix3 - Card-aligned left panel scrolling
+
+Completed:
+- snapped left panel scroll offsets to whole card positions;
+- fixed the top empty gap caused by hiding partially visible cards;
+- retained clipping and status bar fixes.
+
+### Step 19K - Left panel card state polish
+
+Completed:
+- clearer card state line for active build tools;
+- clearer `NEED MONEY` build text;
+- distinct status colors for research and upgrade states;
+- no gameplay changes.
+
+### Step 19L - Properties panel readability polish
+
+Completed:
+- clearer display labels for properties;
+- wider value column;
+- subtle group separators;
+- group-colored labels;
+- no gameplay changes.
+
+### Step 19M - Command strip future sections and status alignment
+
+Completed:
+- prepared disabled `STATS`, `HELP`, `SETTINGS` placeholders in the command strip;
+- prevented future placeholders from overlapping save/load/new/exit commands;
+- removed old `VIEW` strip residue;
+- aligned status text from the status bar rectangle.
+
+### Step 19M Fix1 - Restore VIEW command
+
+Completed:
+- restored `VIEW` in the command strip;
+- restored the toggle fullscreen button rectangle;
+- updated command-strip width calculation to include `VIEW`.
+
+### Step 19N - Responsive command strip placeholders
+
+Completed:
+- future command placeholders now appear progressively based on available width;
+- command buttons keep a slightly safer gap from the properties panel area;
+- no gameplay changes.

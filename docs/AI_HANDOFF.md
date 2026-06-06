@@ -382,3 +382,99 @@ RESEARCH usa ora `GetResearchActionText(...)` per chiarire se la ricerca crea un
 Prosegue la Milestone 19 sulla leggibilità UI. Il pannello proprietà ora espone una riga `PURPOSE` subito dopo `TYPE`, così anche quando si seleziona un edificio, una cella vuota, una foresta, una montagna, una cloud area o un tool BUILD attivo viene spiegato in modo sintetico a cosa serve quell'elemento o quale azione è possibile.
 
 Per gli edifici la riga `PURPOSE` è derivata dalla categoria funzionale: produzione energia, storage, vendita automatica, ricerca, produzione calore, conversione calore o edificio economico avanzato. Per celle vuote e terreni bloccanti la riga chiarisce se la cella è edificabile, se blocca la costruzione, se può essere liberata con asce/mines o se una cloud area permette di sbloccare nuova mappa. Non sono state modificate regole di gioco o bilanciamento.
+
+
+## 2026-06-06 - Step 19F: single left panel mode
+
+Riorganizzata l'interfaccia principale per evitare le tre colonne laterali sempre aperte. `BUILD`, `RESEARCH` e `UPGRADE` sono ora modalità del pannello sinistro: è visibile una sola lista alla volta, selezionata dalla nuova fascia di navigazione sotto la top bar delle risorse. La larghezza della colonna unica è maggiore rispetto alle vecchie colonne affiancate, così nomi e testi descrittivi hanno più spazio e non devono essere abbreviati inutilmente.
+
+I comandi di partita `NEW`, `LOAD`, `SAVE` ed `EXIT` sono stati spostati nella stessa fascia dei tab di navigazione, allineati verso destra prima del properties panel. Il vecchio pulsante `VIEW` non viene più disegnato in questa fascia, perché la destinazione naturale sarà una futura sezione impostazioni. La status bar resta in basso per messaggi operativi.
+
+Rimossa anche la ridondanza visiva dei badge di stato nei pulsanti laterali: lo stato resta nella seconda riga (`READY - ...`, `NEED MONEY - ...`, `LOCKED - ...`, ecc.) e il pulsante BUILD attivo continua a essere evidenziato con bordo giallo. Cambiare tab verso `RESEARCH` o `UPGRADE` disattiva l'eventuale tool BUILD, evitando costruzioni involontarie mentre si sta consultando un'altra sezione.
+
+## 2026-06-06 - Step 19G: BUILD column full-width cards
+- Expanded the single left panel width so one visible section has more room for full building names and explanations.
+- BUILD cards are taller and now use an extra detail row with size and functional category.
+- BUILD titles allow longer names, reducing truncation such as short `PANNELLO SO.` / `CENTRO DI R.` style labels.
+- Kept active build tool highlight as the yellow card border.
+
+## 2026-06-06 - Step 19H: RESEARCH column full-width cards
+
+Stato: preparato.
+
+La sezione `RESEARCH` del pannello sinistro a colonna unica è stata portata allo stesso modello delle schede BUILD full-width. Le ricerche ora usano più larghezza disponibile, titolo grande, stato/costo più leggibile, indicazione chiara di cosa sbloccano o gestiscono, descrizione operativa e riga finale di dettaglio. È stata aggiunta una barra verticale colorata per distinguere ricerche completate, bloccate, ricerche che sbloccano edifici e ricerche di automazione/management.
+
+## Step 19I - UPGRADE full-width cards
+
+- Updated the single left panel `UPGRADE` section to match the full-width card approach already used by `BUILD` and `RESEARCH`.
+- Upgrade cards now show: title, status/cost, effect, target, and a final level/detail line.
+- Added effect-colored left accent bars for upgrade categories.
+- Completed upgrades use a green accent/status; locked upgrades use a muted accent.
+- Gameplay logic and upgrade cost calculations were not changed.
+
+## Step 19J - Left panel clipping and full-width status bar
+
+- Added an explicit bottom status bar rectangle spanning the full viewport width.
+- The properties panel and left panel now stop above the status bar.
+- Left panel card visibility now uses an explicit list rectangle, so BUILD/RESEARCH/UPGRADE cards are drawn only when fully inside the list area.
+- This prevents scrolled cards from overlapping the tab strip or top resource bar.
+- No gameplay logic was changed.
+
+## Step 19J Fix1 - Top mask draw order and removed scroll hint
+
+- Fixed the remaining scroll overlap by drawing the scrollable left menu before the top resource bar and tab bar.
+- The top resource bar and tab bar are now redrawn after the left list, acting as a visual mask for any scrolled card edge.
+- Removed the `MORE/TOP/SCROLL` hint text from the gap between tabs and the left menu.
+- Status bar full-width behavior from Step 19J is retained.
+
+## Step 19J Fix2 - StatusBarHeight compile fix
+
+- Added the missing `StatusBarHeight` constant declaration used by the Step 19J status bar/layout calculations.
+- No behavioral changes beyond making the previous Fix1 compile.
+
+## Step 19J Fix3 - Card-aligned left panel scrolling
+
+- Changed left panel scrolling to advance exactly by one card stride.
+- Scroll offsets are now snapped to whole-card positions.
+- This prevents the empty gap at the top of BUILD/RESEARCH/UPGRADE lists after scrolling.
+- The previous top bar clipping and full-width status bar behavior is retained.
+
+## Step 19K - Left panel card state polish
+
+- Refined card status text/color consistency across BUILD, RESEARCH and UPGRADE.
+- BUILD cards now show `ACTIVE - BUILD COST ...` when the building tool is selected.
+- BUILD cards now show `NEED MONEY - BUILD COST ...` instead of only the amount.
+- RESEARCH cards now visually distinguish ready, locked and insufficient research states.
+- UPGRADE cards now visually distinguish ready, locked and insufficient resource states.
+- No gameplay, economy, research or upgrade logic was changed.
+
+## Step 19L - Properties panel readability polish
+
+- Improved properties panel readability without changing gameplay logic.
+- Property rows now use clearer display labels, for example `MONEY / S`, `RESEARCH / S`, `STORAGE`, `FOOTPRINT`, and `REVEALS`.
+- Value text has more horizontal room, reducing truncation for longer values such as heat conversion descriptions.
+- Added subtle separator lines between major property groups without consuming extra row height.
+- Property labels now use group-oriented colors for identity, economy, lifetime, energy, heat, research/sell and terrain/action rows.
+
+## Step 19M - Command strip future sections and status alignment
+
+- Added disabled future section buttons in the command strip: `STATS`, `HELP`, `SETTINGS`.
+- Future buttons are drawn only when there is enough space before `NEW/LOAD/SAVE/EXIT`, avoiding overlap on narrower windows.
+- Removed the old `VIEW` command strip residue from the unused command button helper.
+- Status bar text now uses the real status bar rectangle for vertical positioning instead of a fixed viewport offset.
+- No gameplay logic was changed.
+
+## Step 19M Fix1 - Restore VIEW command
+
+- Restored the `VIEW` command in the command strip between `SAVE` and `EXIT`.
+- `VIEW` again uses the existing fullscreen/windowed toggle hit-test rectangle.
+- Command strip width calculation now includes `VIEW`, so future disabled placeholders still disappear when there is not enough horizontal space.
+- No gameplay logic was changed.
+
+## Step 19N - Responsive command strip placeholders
+
+- Improved command strip responsiveness after restoring `VIEW`.
+- Future disabled placeholders `STATS`, `HELP`, `SETTINGS` are now drawn progressively when each one fits.
+- This avoids the previous all-or-nothing behavior where all future placeholders disappeared if `SETTINGS` did not fit.
+- Added a slightly larger safety gap before the properties panel area when positioning `NEW/LOAD/SAVE/VIEW/EXIT`.
+- No gameplay logic was changed.

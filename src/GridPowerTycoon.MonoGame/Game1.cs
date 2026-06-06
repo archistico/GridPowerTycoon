@@ -43,6 +43,7 @@ public sealed class Game1 : Game
     private string? _lastSaveLoadMessage;
 
     private string? _selectedBuildingId;
+    private LeftPanelMode _activeLeftPanelMode = LeftPanelMode.Build;
     private Guid? _pendingDemolishBuildingId;
     private ResearchResult? _lastResearchResult;
     private UpgradeResult? _lastUpgradeResult;
@@ -190,7 +191,7 @@ public sealed class Game1 : Game
         if (_input.IsKeyPressed(Keys.F9))
             LoadCurrentGame();
 
-        _uiRenderer.HandleScroll(new Point(_input.CurrentMouse.X, _input.CurrentMouse.Y), _input.CurrentMouse.ScrollWheelValue - _input.PreviousMouse.ScrollWheelValue, GraphicsDevice.Viewport);
+        _uiRenderer.HandleScroll(new Point(_input.CurrentMouse.X, _input.CurrentMouse.Y), _input.CurrentMouse.ScrollWheelValue - _input.PreviousMouse.ScrollWheelValue, _activeLeftPanelMode, GraphicsDevice.Viewport);
 
         HandleBuildSelectionInput();
 
@@ -242,6 +243,7 @@ public sealed class Game1 : Game
         _uiRenderer.Draw(
             _spriteBatch,
             GraphicsDevice.Viewport,
+            _activeLeftPanelMode,
             _selectedBuildingId,
             _mapInput.LastBuildResult,
             _lastResearchResult,
@@ -301,6 +303,7 @@ public sealed class Game1 : Game
         ConfigureWorld(new GameWorld(map, _gameData));
         CenterCameraOnInitialIsland();
         _selectedBuildingId = null;
+        _activeLeftPanelMode = LeftPanelMode.Build;
         _pendingDemolishBuildingId = null;
         _lastResearchResult = null;
         _lastUpgradeResult = null;
@@ -400,6 +403,19 @@ public sealed class Game1 : Game
 
         var mousePoint = new Point(_input.CurrentMouse.X, _input.CurrentMouse.Y);
 
+        if (_input.IsLeftClickPressed() &&
+            _uiRenderer.TryGetLeftPanelModeButtonAt(mousePoint, GraphicsDevice.Viewport, out var clickedLeftPanelMode))
+        {
+            _activeLeftPanelMode = clickedLeftPanelMode;
+            if (clickedLeftPanelMode != LeftPanelMode.Build)
+                _selectedBuildingId = null;
+
+            _pendingDemolishBuildingId = null;
+            _mapInput.ClearLastBuildResult();
+            _mapInput.ClearLastAreaUnlockResult();
+            return;
+        }
+
         if (_input.IsRightClickPressed() && !string.IsNullOrWhiteSpace(_selectedBuildingId))
         {
             _selectedBuildingId = null;
@@ -451,7 +467,7 @@ public sealed class Game1 : Game
         }
 
         if (_input.IsLeftClickPressed() &&
-            _uiRenderer.TryGetResearchButtonAt(mousePoint, GraphicsDevice.Viewport, out var clickedResearchId))
+            _uiRenderer.TryGetResearchButtonAt(mousePoint, GraphicsDevice.Viewport, _activeLeftPanelMode, out var clickedResearchId))
         {
             _lastResearchResult = _researchSystem.Complete(clickedResearchId);
             _lastUpgradeResult = null;
@@ -462,7 +478,7 @@ public sealed class Game1 : Game
         }
 
         if (_input.IsLeftClickPressed() &&
-            _uiRenderer.TryGetUpgradeButtonAt(mousePoint, GraphicsDevice.Viewport, out var clickedUpgradeId))
+            _uiRenderer.TryGetUpgradeButtonAt(mousePoint, GraphicsDevice.Viewport, _activeLeftPanelMode, out var clickedUpgradeId))
         {
             _lastUpgradeResult = _upgradeSystem.Purchase(clickedUpgradeId);
             _lastResearchResult = null;
@@ -529,7 +545,7 @@ public sealed class Game1 : Game
             return;
         }
 
-        if (_input.IsLeftClickPressed() && _uiRenderer.TryGetBuildingButtonAt(mousePoint, GraphicsDevice.Viewport, out var clickedBuildingId))
+        if (_input.IsLeftClickPressed() && _uiRenderer.TryGetBuildingButtonAt(mousePoint, GraphicsDevice.Viewport, _activeLeftPanelMode, out var clickedBuildingId))
         {
             if (string.Equals(_selectedBuildingId, clickedBuildingId, StringComparison.OrdinalIgnoreCase))
             {
@@ -561,6 +577,8 @@ public sealed class Game1 : Game
         }
 
         var buildingId = buildIds[index];
+        _activeLeftPanelMode = LeftPanelMode.Build;
+
         if (string.Equals(_selectedBuildingId, buildingId, StringComparison.OrdinalIgnoreCase))
         {
             _selectedBuildingId = null;
