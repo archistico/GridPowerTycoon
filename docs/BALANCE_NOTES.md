@@ -450,3 +450,69 @@ This pass closes Milestone 23.
 The milestone now covers map expansion readability, obstacle clearing readability and heat range readability. All changes in this final documentation pass are descriptive only.
 
 No balance values were changed.
+
+## Step 23J - Useful stability tests
+
+Added useful core tests to protect the rules that Milestone 23 visualizes.
+
+The tests do not change balance. They verify heat range behavior, cloud preview behavior and terrain clear validation.
+
+## Step 24A - First objective hint
+
+Added a non-blocking objective hint for early onboarding.
+
+No balance values were changed. The objective sequence follows the current economy: first build wind, sell energy, then reach office/research/battery/solar/generator progression.
+
+## Step 24B - Early game checklist
+
+Added a compact early checklist for onboarding.
+
+No balance values were changed. Checklist completion is derived from existing world state.
+
+## Step 24C - Contextual heat and generator hints
+
+Added clearer heat/generator guidance in build cards and property rows.
+
+No balance values were changed.
+
+## Step 24D - Help panel / quick guide
+
+Added a non-modal help panel for onboarding.
+
+No balance values were changed.
+
+## Step 24E - Help panel current objective/checklist
+
+Improved HELP panel with current objective and checklist status.
+
+No balance values were changed.
+
+## Step 24F - Milestone 24 final documentation
+
+This pass closes Milestone 24.
+
+The milestone adds onboarding and guidance only. No balance values were changed.
+
+## Step 25A - Mid-game objective hints
+
+Added mid-game objective hints for upgrades, research, expansion, managers and next heat tiers.
+
+No balance values were changed.
+
+## Step 25B - Goal-aware HELP details
+
+Added HELP details for missing money, research, tools, cloud unlock costs and upgrade readiness.
+
+No balance values were changed.
+
+## Step 25C - Progression bottleneck feedback
+
+Added bottleneck text to HELP for energy, money, research, heat, expansion, tools, storage and available upgrades/research.
+
+No balance values were changed.
+
+## Step 25D - Progression advisor extraction and tests
+
+Moved progression guidance into a Core advisor and added tests.
+
+No balance values were changed.

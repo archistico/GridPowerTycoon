@@ -55,6 +55,21 @@ public sealed class BuildingOperationalStatusCalculatorTests
     }
 
     [Fact]
+    public void Calculate_ForHeatProducerWithGeneratorInDiagonalChebyshevRange_ShouldReturnActive()
+    {
+        var world = CreateWorld(startingEnergy: 10);
+        var build = new BuildSystem(world);
+        var solarResult = build.Build("solar_panel", new GridPosition(1, 1));
+        Assert.True(solarResult.Success);
+        Assert.True(build.Build("generator_small", new GridPosition(2, 2)).Success);
+
+        var status = BuildingOperationalStatusCalculator.Calculate(world, world.BuildingInstances[solarResult.BuildingId!.Value]);
+
+        Assert.Equal(BuildingOperationalState.Active, status.State);
+        Assert.True(status.HasHeatConverterInRange);
+    }
+
+    [Fact]
     public void Calculate_ForHeatProducerWithHighHeat_ShouldReturnHeatWarningWhenConverterExists()
     {
         var world = CreateWorld(startingEnergy: 10);

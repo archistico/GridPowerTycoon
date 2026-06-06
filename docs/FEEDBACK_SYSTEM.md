@@ -181,3 +181,35 @@ Heat coverage:
 - selected converters highlight covered heat producers;
 - selected heat producers highlight active converters covering them;
 - converter build tools preview future range before placement.
+
+## Milestone 24 onboarding feedback
+
+Onboarding feedback is intentionally non-blocking.
+
+The status bar shows the current objective when no higher-priority status message is active. The early checklist appears in the map area until all starting goals are complete. The HELP panel can be opened with `HELP` or `H` and repeats the current objective/checklist together with a short guide.
+
+Priority remains unchanged: action results, selected-building status, save/load messages and demolish confirmation override tutorial text.
+
+## Milestone 25 progression objective feedback
+
+The status bar objective now continues after the early checklist. It can suggest first upgrades, research, expansion, clearing obstacles, managers and next heat tiers.
+
+The objective remains lower priority than direct feedback. Action results, selected-building status, save/load messages and demolish confirmation still override objective text.
+
+## Goal-aware HELP detail feedback
+
+The HELP panel `CURRENT` section now includes a `NEXT` line. This line translates the current objective into a practical next action or a resource gap.
+
+This helps the player understand why progress is blocked without changing the status bar priority system.
+
+## Progression bottleneck feedback
+
+The HELP panel `CURRENT` section now includes a `BOT` line.
+
+`BOT` is a compact diagnosis of the current progression bottleneck. It does not change simulation behavior. It reads the current resource-rate snapshot and world state, then explains the dominant issue in plain UI text.
+
+## Progression advisor extraction
+
+Objective, NEXT and BOT text now come from Core `ProgressionAdvisor`.
+
+The UI still decides where to draw the text, but the decision logic is testable outside MonoGame rendering.

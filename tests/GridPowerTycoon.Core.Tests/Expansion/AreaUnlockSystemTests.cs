@@ -112,6 +112,34 @@ public sealed class AreaUnlockSystemTests
         Assert.Equal(40, world.Resources.Research);
     }
 
+    [Fact]
+    public void GetUnlockableCloudTiles_WhenResourcesMissing_ShouldStillReturnPreviewTiles()
+    {
+        var world = CreateWorld(startingMoney: 0, startingResearch: 0, radius: 1, maxTiles: 3);
+        var positions = new[]
+        {
+            new GridPosition(1, 1),
+            new GridPosition(2, 1),
+            new GridPosition(1, 2)
+        };
+
+        foreach (var position in positions)
+        {
+            var tile = world.Map.GetTile(position);
+            tile.SetType(TileType.Cloud);
+            tile.SetCoveredType(TileType.Land);
+        }
+
+        var system = new AreaUnlockSystem(world);
+
+        var tiles = system.GetUnlockableCloudTiles(new GridPosition(1, 1));
+
+        Assert.Equal(3, tiles.Count);
+        Assert.Contains(new GridPosition(1, 1), tiles);
+        Assert.Contains(new GridPosition(2, 1), tiles);
+        Assert.Contains(new GridPosition(1, 2), tiles);
+    }
+
     private static GameWorld CreateWorld(decimal startingMoney, double startingResearch, int radius = 0, int maxTiles = 1)
     {
         var map = new GridMap(4, 4, TileType.Land);

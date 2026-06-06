@@ -6,6 +6,7 @@ using GridPowerTycoon.Core.Research;
 using GridPowerTycoon.Core.Map;
 using GridPowerTycoon.Core.Managers;
 using GridPowerTycoon.Core.Operations;
+using GridPowerTycoon.Core.Progression;
 using GridPowerTycoon.Core.Tools;
 using GridPowerTycoon.Core.Upgrades;
 using GridPowerTycoon.Core.World;
@@ -125,6 +126,7 @@ public sealed class UiRenderer
         AreaUnlockResult? lastAreaUnlockResult,
         UpgradeResult? lastUpgradeResult,
         string? saveLoadMessage,
+        bool showHelpPanel,
         Guid? pendingDemolishBuildingId)
     {
         var topBar = GetTopBarRectangle(viewport);
@@ -142,6 +144,8 @@ public sealed class UiRenderer
         DrawMenuStrip(spriteBatch, viewport, activeLeftPanelMode);
 
         DrawPropertiesPanel(spriteBatch, viewport, selectedBuildingId, selectedTilePosition, selectedMapBuildingId, selectedTerrainPosition, selectedCloudPosition, pendingDemolishBuildingId);
+        DrawEarlyChecklist(spriteBatch, viewport);
+        DrawHelpPanel(spriteBatch, viewport, showHelpPanel);
         DrawStatus(spriteBatch, viewport, selectedBuildingId, selectedMapBuildingId, lastBuildResult, lastResearchResult, lastTerrainClearResult, lastAreaUnlockResult, lastUpgradeResult, saveLoadMessage, pendingDemolishBuildingId);
     }
 
@@ -201,6 +205,11 @@ public sealed class UiRenderer
     public bool IsToggleFullscreenButtonAt(Point mousePosition, Viewport viewport)
     {
         return GetToggleFullscreenButtonRectangle(viewport).Contains(mousePosition);
+    }
+
+    public bool IsHelpButtonAt(Point mousePosition, Viewport viewport)
+    {
+        return GetHelpButtonRectangle(viewport).Contains(mousePosition);
     }
 
     public bool IsExitButtonAt(Point mousePosition, Viewport viewport)
@@ -682,6 +691,57 @@ public sealed class UiRenderer
     }
 
 
+    private void DrawEarlyChecklist(SpriteBatch spriteBatch, Viewport viewport)
+    {
+        var items = GetEarlyChecklistItems();
+        if (items.All(item => item.Done))
+            return;
+
+        var properties = GetPropertiesPanelRectangle(viewport);
+        var x = SideMenuWidth + 16;
+        var width = properties.X - x - 16;
+        if (width < 320)
+            return;
+
+        var itemHeight = 16;
+        var height = 32 + items.Count * itemHeight + 10;
+        var panel = new Rectangle(x, viewport.Height - StatusBarHeight - height - 10, Math.Min(width, 430), height);
+
+        if (panel.Y < TopBarHeight + MenuStripHeight + 8)
+            return;
+
+        spriteBatch.Draw(_pixel, panel, new Color(25, 31, 42, 225));
+        DrawOutline(spriteBatch, panel, new Color(90, 110, 135, 220), 2);
+
+        _text.DrawString(spriteBatch, "EARLY CHECKLIST", new Vector2(panel.X + 12, panel.Y + 10), new Color(235, 240, 245), 1);
+
+        var y = panel.Y + 31;
+        foreach (var item in items)
+        {
+            var marker = item.Done ? "OK" : "--";
+            var markerColor = item.Done ? new Color(150, 235, 150) : new Color(255, 225, 120);
+            var textColor = item.Done ? new Color(145, 170, 145) : new Color(220, 230, 240);
+
+            _text.DrawString(spriteBatch, marker, new Vector2(panel.X + 12, y), markerColor, 1);
+            _text.DrawString(spriteBatch, Shorten(item.Text, 48), new Vector2(panel.X + 39, y), textColor, 1);
+            y += itemHeight;
+        }
+    }
+
+    private IReadOnlyList<EarlyChecklistItem> GetEarlyChecklistItems()
+    {
+        return new[]
+        {
+            new EarlyChecklistItem("Build wind turbine", HasBuilt("wind_turbine")),
+            new EarlyChecklistItem("Build small office", HasBuilt("office_small")),
+            new EarlyChecklistItem("Build research center", HasBuilt("research_small")),
+            new EarlyChecklistItem("Build small battery", HasBuilt("battery_small")),
+            new EarlyChecklistItem("Build solar + generator", HasBuilt("solar_panel") && HasBuilt("generator_small") && !HasHeatProducerWithoutConverter())
+        };
+    }
+
+    private readonly record struct EarlyChecklistItem(string Text, bool Done);
+
     private void DrawPropertiesPanel(
         SpriteBatch spriteBatch,
         Viewport viewport,
@@ -898,7 +958,7 @@ public sealed class UiRenderer
             return "ENERGY SUPPLY OK";
 
         if (status.HeatConversionInputPerSecond > 0)
-            return "ABSORBING HEAT";
+            return "ABSORBING HEAT IN RANGE";
 
         if (status.AutoSellInputPerSecond > 0)
             return "SELLING ENERGY";
@@ -916,7 +976,7 @@ public sealed class UiRenderer
         {
             BuildingCategory.Storage => "STORAGE READY",
             BuildingCategory.Automation => "WAITING FOR ENERGY",
-            BuildingCategory.HeatConverter => "WAITING FOR HEAT",
+            BuildingCategory.HeatConverter => "WAITING FOR HEAT IN RANGE",
             _ => "READY"
         };
     }
@@ -993,10 +1053,62 @@ public sealed class UiRenderer
         return "READY TO REVEAL";
     }
 
+    private string GetBuildToolHintText(BuildingDefinition definition)
+    {
+        var heatOut = UpgradeCalculator.GetHeatPerSecond(_world, definition);
+        var heatIn = UpgradeCalculator.GetHeatConversionPerSecond(_world, definition);
+
+        if (heatIn > 0 && definition.HeatRange > 0)
+        {
+            return HasBuiltHeatProducer()
+                ? $"PLACE WITH HEAT SOURCE IN RANGE {definition.HeatRange}"
+                : "BUILD HEAT SOURCE FIRST";
+        }
+
+        if (heatOut > 0)
+        {
+            return HasBuiltHeatConverter()
+                ? "PLACE INSIDE GENERATOR RANGE"
+                : "BUILD GENERATOR AFTER THIS";
+        }
+
+        return "-";
+    }
+
+    private string GetBuildToolActionText(BuildingDefinition definition)
+    {
+        var heatOut = UpgradeCalculator.GetHeatPerSecond(_world, definition);
+        var heatIn = UpgradeCalculator.GetHeatConversionPerSecond(_world, definition);
+
+        if (heatIn > 0 && definition.HeatRange > 0)
+            return "CLICK CELL, CHECK RANGE PREVIEW";
+
+        if (heatOut > 0)
+            return "CLICK CELL, THEN ADD GENERATOR";
+
+        return "LEFT CLICK PLAIN CELL";
+    }
+
+    private bool HasBuiltHeatProducer()
+    {
+        return _world.BuildingInstances.Values.Any(instance =>
+            _world.BuildingCatalog.TryGet(instance.DefinitionId, out var definition) &&
+            UpgradeCalculator.GetHeatPerSecond(_world, definition) > 0);
+    }
+
+    private bool HasBuiltHeatConverter()
+    {
+        return _world.BuildingInstances.Values.Any(instance =>
+            _world.BuildingCatalog.TryGet(instance.DefinitionId, out var definition) &&
+            definition.HeatRange > 0 &&
+            UpgradeCalculator.GetHeatConversionPerSecond(_world, definition) > 0);
+    }
+
     private void FillBuildToolPropertyRows(Dictionary<string, string> rows, BuildingDefinition definition, out Color stateColor, out string action)
     {
         rows["TYPE"] = definition.Category.ToString().ToUpperInvariant();
         rows["PURPOSE"] = GetPropertyPurposeText(definition);
+        rows["ISSUE"] = GetBuildToolHintText(definition);
         rows["BUILD TOOL"] = Shorten(definition.Name.ToUpperInvariant(), 24);
         rows["BUILD COST"] = "$" + FormatNumber((double)definition.Cost);
         rows["NEXT UPGRADE"] = GetNextUpgradeCostText(definition);
@@ -1005,7 +1117,7 @@ public sealed class UiRenderer
         rows["PAYBACK"] = FormatPayback(definition.Cost, GetEstimatedMoneyPerSecond(definition));
         rows["SIZE"] = $"{definition.Width} X {definition.Height}";
         action = _world.Resources.Money >= definition.Cost
-            ? "LEFT CLICK PLAIN CELL"
+            ? GetBuildToolActionText(definition)
             : "NEED MONEY TO BUILD";
         stateColor = new Color(255, 220, 80);
     }
@@ -1020,6 +1132,7 @@ public sealed class UiRenderer
             _world.BuildingCatalog.TryGet(selectedBuildingId, out var selectedDefinition))
         {
             rows["PURPOSE"] = GetPropertyPurposeText(selectedDefinition);
+            rows["ISSUE"] = GetBuildToolHintText(selectedDefinition);
             rows["BUILD TOOL"] = Shorten(selectedDefinition.Name.ToUpperInvariant(), 24);
             rows["BUILD COST"] = "$" + FormatNumber((double)selectedDefinition.Cost);
             rows["MONEY/S"] = FormatEstimatedMoneyPerSecond(GetEstimatedMoneyPerSecond(selectedDefinition));
@@ -1032,7 +1145,7 @@ public sealed class UiRenderer
             else if (_world.Resources.Money < selectedDefinition.Cost)
                 action = "TOOL ACTIVE - NEED MONEY";
             else
-                action = "TOOL ACTIVE - CLICK TO BUILD";
+                action = "TOOL ACTIVE - " + GetBuildToolActionText(selectedDefinition);
         }
         else
         {
@@ -1133,12 +1246,12 @@ public sealed class UiRenderer
         {
             var range = Math.Max(0, definition.HeatRange);
             return range > 0
-                ? $"NEEDS HEAT NEARBY, RANGE {range}"
+                ? $"PLACE NEAR HEAT SOURCE, RANGE {range}"
                 : "NEEDS STORED HEAT";
         }
 
         if (heatOut > 0)
-            return "NEEDS GENERATOR TO USE HEAT";
+            return "PLACE GENERATOR IN RANGE";
 
         if (energyIn > 0)
             return $"USES {FormatNumber(energyIn)}/S ENERGY";
@@ -1874,14 +1987,70 @@ public sealed class UiRenderer
         yield return new GridPosition(position.X, position.Y - 1);
     }
 
+    private void DrawHelpPanel(SpriteBatch spriteBatch, Viewport viewport, bool showHelpPanel)
+    {
+        if (!showHelpPanel)
+            return;
+
+        var panel = GetHelpPanelRectangle(viewport);
+        if (panel.Width <= 0 || panel.Height <= 0)
+            return;
+
+        spriteBatch.Draw(_pixel, panel, new Color(24, 31, 42, 242));
+        DrawOutline(spriteBatch, panel, new Color(120, 145, 175, 230), 2);
+
+        var x = panel.X + 16;
+        var y = panel.Y + 14;
+        _text.DrawString(spriteBatch, "QUICK GUIDE", new Vector2(x, y), new Color(235, 240, 245), 2);
+        _text.DrawString(spriteBatch, "H OR HELP TO TOGGLE", new Vector2(panel.Right - 150, y + 5), new Color(170, 185, 205), 1);
+
+        y += 36;
+        _text.DrawString(spriteBatch, "CURRENT", new Vector2(x, y), new Color(255, 225, 120), 1);
+        y += 18;
+        DrawHelpLine(spriteBatch, x, ref y, ">", GetCurrentObjectiveHint().Replace("OBJECTIVE: ", ""));
+        DrawHelpLine(spriteBatch, x, ref y, "NEXT", GetCurrentObjectiveDetailHint());
+        DrawHelpLine(spriteBatch, x, ref y, "BOT", GetCurrentBottleneckHint());
+
+        foreach (var item in GetEarlyChecklistItems())
+        {
+            var marker = item.Done ? "OK" : "--";
+            DrawHelpLine(spriteBatch, x, ref y, marker, item.Text.ToUpperInvariant());
+        }
+
+        y += 10;
+        _text.DrawString(spriteBatch, "BASICS", new Vector2(x, y), new Color(255, 225, 120), 1);
+        y += 18;
+        DrawHelpLine(spriteBatch, x, ref y, "1", "BUILD WIND TURBINE TO PRODUCE ENERGY");
+        DrawHelpLine(spriteBatch, x, ref y, "2", "SELL ENERGY, THEN BUILD OFFICE FOR AUTO MONEY");
+        DrawHelpLine(spriteBatch, x, ref y, "3", "RESEARCH UNLOCKS BUILDINGS AND MANAGERS");
+        DrawHelpLine(spriteBatch, x, ref y, "4", "GENERATORS CONVERT HEAT INSIDE THEIR RANGE");
+        DrawHelpLine(spriteBatch, x, ref y, "5", "CLEAR OBSTACLES AND UNLOCK CLOUDS TO EXPAND");
+
+        y += 10;
+        _text.DrawString(spriteBatch, "CONTROLS", new Vector2(x, y), new Color(255, 225, 120), 1);
+        y += 18;
+        DrawHelpLine(spriteBatch, x, ref y, "-", "LEFT CLICK SELECT / BUILD / ACTION BUTTONS");
+        DrawHelpLine(spriteBatch, x, ref y, "-", "RIGHT CLICK CANCELS ACTIVE BUILD TOOL");
+        DrawHelpLine(spriteBatch, x, ref y, "-", "1-0 SELECT BUILDINGS, F5 SAVE, F9 LOAD");
+        DrawHelpLine(spriteBatch, x, ref y, "-", "VIEW TO TOGGLE FULLSCREEN");
+    }
+
+    private void DrawHelpLine(SpriteBatch spriteBatch, int x, ref int y, string bullet, string text)
+    {
+        _text.DrawString(spriteBatch, bullet, new Vector2(x, y), new Color(150, 210, 255), 1);
+        _text.DrawString(spriteBatch, Shorten(text, 62), new Vector2(x + 22, y), new Color(215, 226, 238), 1);
+        y += 18;
+    }
+
     private void DrawStatus(SpriteBatch spriteBatch, Viewport viewport, string? selectedBuildingId, Guid? selectedMapBuildingId, BuildResult? lastBuildResult, ResearchResult? lastResearchResult, TerrainClearResult? lastTerrainClearResult, AreaUnlockResult? lastAreaUnlockResult, UpgradeResult? lastUpgradeResult, string? saveLoadMessage, Guid? pendingDemolishBuildingId)
     {
         var statusBar = GetStatusBarRectangle(viewport);
         var y = statusBar.Y + 14;
         var selectedStatusMessage = GetSelectedBuildingStatusMessage(selectedMapBuildingId);
+        var objectiveHint = GetCurrentObjectiveHint();
         var message = selectedStatusMessage ??
                       (selectedBuildingId is null
-                          ? "SELECT BUILDING"
+                          ? objectiveHint
                           : $"BUILD TOOL {selectedBuildingId} - LEFT CLICK BUILD, RIGHT CLICK CANCEL");
 
         if (lastResearchResult is not null)
@@ -1929,6 +2098,36 @@ public sealed class UiRenderer
         DrawOutline(spriteBatch, statusBar, new Color(55, 67, 84), 1);
         _text.DrawString(spriteBatch, Shorten(message, 90), new Vector2(statusBar.X + 14, y), new Color(230, 238, 245), 1);
         DrawStatusBadgeLegend(spriteBatch, statusBar);
+    }
+
+    private string GetCurrentBottleneckHint()
+    {
+        return CreateProgressionAdvisor().GetCurrentBottleneckHint();
+    }
+
+    private string GetCurrentObjectiveDetailHint()
+    {
+        return CreateProgressionAdvisor().GetCurrentObjectiveDetailHint();
+    }
+
+    private string GetCurrentObjectiveHint()
+    {
+        return CreateProgressionAdvisor().GetCurrentObjectiveHint();
+    }
+
+    private bool HasBuilt(string buildingDefinitionId)
+    {
+        return CreateProgressionAdvisor().HasBuilt(buildingDefinitionId);
+    }
+
+    private bool HasHeatProducerWithoutConverter()
+    {
+        return CreateProgressionAdvisor().HasHeatProducerWithoutConverter();
+    }
+
+    private ProgressionAdvisor CreateProgressionAdvisor()
+    {
+        return new ProgressionAdvisor(_world);
     }
 
     private string? GetSelectedBuildingStatusMessage(Guid? selectedMapBuildingId)
@@ -2101,6 +2300,7 @@ public sealed class UiRenderer
         DrawSmallCommandButton(spriteBatch, GetLoadButtonRectangle(viewport), "LOAD", new Color(54, 78, 103));
         DrawSmallCommandButton(spriteBatch, GetNewGameButtonRectangle(viewport), "NEW", new Color(74, 64, 96));
         DrawSmallCommandButton(spriteBatch, GetToggleFullscreenButtonRectangle(viewport), "VIEW", new Color(66, 82, 78));
+        DrawSmallCommandButton(spriteBatch, GetHelpButtonRectangle(viewport), "HELP", new Color(70, 70, 96));
         DrawSmallCommandButton(spriteBatch, GetExitButtonRectangle(viewport), "EXIT", new Color(96, 58, 58));
     }
 
@@ -2191,20 +2391,37 @@ public sealed class UiRenderer
         return new Rectangle(save.Right + 8, save.Y, 56, 28);
     }
 
-    private static Rectangle GetExitButtonRectangle(Viewport viewport)
+    private static Rectangle GetHelpButtonRectangle(Viewport viewport)
     {
         var view = GetToggleFullscreenButtonRectangle(viewport);
         return new Rectangle(view.Right + 8, view.Y, 56, 28);
     }
 
+    private static Rectangle GetExitButtonRectangle(Viewport viewport)
+    {
+        var help = GetHelpButtonRectangle(viewport);
+        return new Rectangle(help.Right + 8, help.Y, 56, 28);
+    }
+
     private static int GetGameCommandButtonsStartX(Viewport viewport)
     {
         var properties = GetPropertiesPanelRectangle(viewport);
-        const int totalWidth = 48 + 8 + 56 + 8 + 56 + 8 + 56 + 8 + 56;
+        const int totalWidth = 48 + 8 + 56 + 8 + 56 + 8 + 56 + 8 + 56 + 8 + 56;
         return Math.Max(GetUpgradeTabButtonRectangle(viewport).Right + 24, properties.X - totalWidth - 16);
     }
 
     public const int PropertiesPanelWidth = 380;
+
+    private static Rectangle GetHelpPanelRectangle(Viewport viewport)
+    {
+        var properties = GetPropertiesPanelRectangle(viewport);
+        var x = SideMenuWidth + 20;
+        var right = properties.X - 20;
+        var width = Math.Min(560, Math.Max(0, right - x));
+        var height = Math.Min(448, Math.Max(0, viewport.Height - TopBarHeight - MenuStripHeight - StatusBarHeight - 40));
+        var y = TopBarHeight + MenuStripHeight + 18;
+        return new Rectangle(x, y, width, height);
+    }
 
     private static Rectangle GetPropertiesPanelRectangle(Viewport viewport)
     {

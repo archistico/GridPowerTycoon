@@ -42,6 +42,7 @@ public sealed class Game1 : Game
     private string _savePath = string.Empty;
     private string _dataDirectory = string.Empty;
     private string? _lastSaveLoadMessage;
+    private bool _showHelpPanel;
 
     private string? _selectedBuildingId;
     private LeftPanelMode _activeLeftPanelMode = LeftPanelMode.Build;
@@ -193,6 +194,9 @@ public sealed class Game1 : Game
         if (_input.IsKeyPressed(Keys.F9))
             LoadCurrentGame();
 
+        if (_input.IsKeyPressed(Keys.H))
+            ToggleHelpPanel();
+
         _uiRenderer.HandleScroll(new Point(_input.CurrentMouse.X, _input.CurrentMouse.Y), _input.CurrentMouse.ScrollWheelValue - _input.PreviousMouse.ScrollWheelValue, _activeLeftPanelMode, GraphicsDevice.Viewport);
 
         HandleBuildSelectionInput();
@@ -286,6 +290,7 @@ public sealed class Game1 : Game
             _mapInput.LastAreaUnlockResult,
             _lastUpgradeResult,
             _lastSaveLoadMessage,
+            _showHelpPanel,
             _pendingDemolishBuildingId);
 
         _spriteBatch.End();
@@ -293,6 +298,12 @@ public sealed class Game1 : Game
         base.Draw(gameTime);
     }
 
+
+    private void ToggleHelpPanel()
+    {
+        _showHelpPanel = !_showHelpPanel;
+        _lastSaveLoadMessage = _showHelpPanel ? "HELP OPEN - PRESS H OR HELP TO CLOSE" : "HELP CLOSED";
+    }
 
     private void StartFullscreen()
     {
@@ -488,6 +499,13 @@ public sealed class Game1 : Game
         if (_input.IsLeftClickPressed() && _uiRenderer.IsToggleFullscreenButtonAt(mousePoint, GraphicsDevice.Viewport))
         {
             ToggleFullscreen();
+            _pendingDemolishBuildingId = null;
+            return;
+        }
+
+        if (_input.IsLeftClickPressed() && _uiRenderer.IsHelpButtonAt(mousePoint, GraphicsDevice.Viewport))
+        {
+            ToggleHelpPanel();
             _pendingDemolishBuildingId = null;
             return;
         }

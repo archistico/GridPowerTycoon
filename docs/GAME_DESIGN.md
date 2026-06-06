@@ -38,3 +38,128 @@ Aggiunte ricerche collegate e primi upgrade specifici. La UI BUILD/RESEARCH/UPGR
 I gestori automatici sono sblocchi di ricerca che riducono la manutenzione manuale. Quando un edificio con vita limitata scade, il gestore può rinnovarlo automaticamente pagando il costo dell'edificio, purché il giocatore abbia denaro sufficiente.
 
 I gestori rinnovano solo edifici scaduti. Gli edifici esplosi restano distrutti e devono essere gestiti in modo diverso in una futura fase di gameplay.
+
+## Milestone 24 onboarding direction
+
+The first onboarding pass uses non-blocking status bar objectives instead of modal tutorial screens.
+
+The objective hint is intentionally lightweight. It is derived from current world state and does not create persistent mission state. This keeps saves stable and avoids forcing the player through a rigid tutorial.
+
+Initial objective sequence:
+1. build a wind turbine;
+2. sell stored energy and build a small office;
+3. build a small research center;
+4. build a small battery;
+5. build a solar panel;
+6. place a generator in range of heat sources;
+7. expand the map and upgrade buildings.
+
+Action results and selected-building feedback remain higher priority than tutorial text.
+
+### Early checklist
+
+The early onboarding now combines a single current objective with a compact checklist.
+
+The checklist is not a quest system. It is a read-only UI summary derived from world state. It helps the player understand the first progression arc without adding persistent tutorial state.
+
+Current checklist:
+- build wind turbine;
+- build small office;
+- build research center;
+- build small battery;
+- build solar + generator.
+
+The checklist disappears once all items are complete.
+
+### Contextual heat guidance
+
+Heat onboarding now appears directly in the places where the player is already looking.
+
+Heat producers explain that a generator must be placed in range. Heat converters explain that they should be placed near a heat source and that the range preview should be used before building.
+
+This keeps onboarding non-blocking and avoids modal tutorial screens.
+
+### Quick guide panel
+
+A non-modal quick guide can now be opened with the HELP button or the H key.
+
+The guide summarizes the core early game loop: produce energy, sell energy, build office/research/battery, use generators to convert heat, clear obstacles and unlock clouds. This keeps onboarding accessible without interrupting the player.
+
+### Help panel current progress
+
+The HELP panel now includes a current-progress section. It repeats the active objective and early checklist, making the guide useful both as documentation and as a status reference during play.
+
+The section remains derived from world state and does not introduce quest save data.
+
+## Milestone 24 final onboarding state
+
+Milestone 24 introduces non-blocking onboarding. The player is guided without modal tutorials, forced steps or saved quest state.
+
+The final onboarding set is:
+
+- a dynamic objective in the status bar;
+- an early-game checklist shown in the map area;
+- contextual heat/generator hints in build cards and property rows;
+- a non-modal HELP panel opened with the `HELP` button or the `H` key;
+- a dynamic `CURRENT` section inside HELP showing the current objective and checklist state;
+- a static `BASICS` section inside HELP explaining the main game loops and controls.
+
+The onboarding state is always derived from the current world:
+- built buildings;
+- available money;
+- heat producers with or without generator coverage;
+- existing world/resource state.
+
+No persistent mission state is stored. This keeps save-data stable and avoids rigid tutorial flow.
+
+Final early progression guidance:
+1. build a wind turbine;
+2. sell energy and build a small office;
+3. build a small research center;
+4. build a small battery;
+5. build a solar panel;
+6. place a generator in range of heat sources;
+7. expand the map, upgrade buildings and keep the grid stable.
+
+## Milestone 25 progression guidance
+
+Milestone 25 starts by extending guidance beyond the first onboarding loop.
+
+After the early sequence is complete, the objective system no longer falls back immediately to a generic message. It now derives mid-game objectives from the current world and points the player toward the next useful progression step.
+
+Current mid-game objective priorities:
+1. buy the first relevant upgrade;
+2. complete available research;
+3. produce research for the next available research item;
+4. unlock clouds when expansion is still available;
+5. clear forests or mountains when blocked terrain exists;
+6. unlock a manager;
+7. build the next heat power tier;
+8. buy later upgrades.
+
+This remains a guidance layer only. It does not create persistent quest state.
+
+### Goal-aware HELP details
+
+The HELP panel now explains not only the current objective, but also the immediate next action.
+
+Examples:
+- if money is missing, the guide shows the missing amount;
+- if research is missing, the guide shows the research gap;
+- if a cloud can be unlocked, the guide tells the player to select a cloud and click unlock;
+- if terrain can be cleared, the guide tells the player to select the obstacle and click clear;
+- if an upgrade is available, the guide points the player to the Upgrade tab.
+
+This remains world-state derived guidance and does not introduce persistent quest data.
+
+### Progression bottleneck feedback
+
+The HELP panel now classifies the current bottleneck. This is separate from the objective and the next action.
+
+The bottleneck helps the player understand the systemic reason for slow progress: energy, money, research, heat coverage, expansion resources, storage or available upgrades/research.
+
+### Progression advisor
+
+Progression guidance is now centralized in Core through `ProgressionAdvisor`.
+
+The advisor produces three UI-facing strings: current objective, next practical detail and bottleneck. This keeps the behavior testable and avoids spreading progression rules across rendering code.

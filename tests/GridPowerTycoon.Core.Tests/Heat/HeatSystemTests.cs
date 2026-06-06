@@ -47,6 +47,24 @@ public sealed class HeatSystemTests
     }
 
     [Fact]
+    public void GeneratorDiagonalWithinChebyshevRange_ShouldConvertHeatToEnergy()
+    {
+        var world = CreateWorld();
+        var build = new BuildSystem(world);
+        var solarResult = build.Build("solar_panel", new GridPosition(1, 1));
+        Assert.True(solarResult.Success);
+        Assert.True(build.Build("generator_small", new GridPosition(2, 2)).Success);
+
+        var system = new HeatSystem(world);
+
+        system.Update(1);
+
+        var solar = world.BuildingInstances[solarResult.BuildingId!.Value];
+        Assert.Equal(0, solar.AccumulatedHeat);
+        Assert.Equal(10, world.Resources.Energy);
+    }
+
+    [Fact]
     public void GeneratorOutOfRange_ShouldNotConvertHeat()
     {
         var world = CreateWorld();

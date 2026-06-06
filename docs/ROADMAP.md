@@ -635,3 +635,104 @@ Completed:
 - no code changes.
 
 Milestone 23 is now complete.
+
+### Step 23J - Useful stability tests
+
+Completed:
+- added targeted core tests for heat range, heat operational status, cloud preview and terrain clear validation;
+- avoided fragile rendering tests;
+- no gameplay logic changes.
+
+## Milestone 24 - Onboarding and early guidance
+
+Goal: make the early game easier to understand without adding heavy tutorial flow or interrupting the player.
+
+### Step 24A - First objective hint
+
+Completed:
+- added dynamic objective text to the status bar;
+- objective is derived from world state;
+- no save-data changes;
+- no gameplay logic changes.
+
+### Step 24B - Early game checklist
+
+Completed:
+- added compact early-game checklist;
+- checklist is derived from world state;
+- checklist hides after completion;
+- no save-data changes;
+- no gameplay logic changes.
+
+### Step 24C - Contextual heat and generator hints
+
+Completed:
+- added heat-specific guidance to build tool properties;
+- improved build menu support text for heat producers/converters;
+- improved selected-building issue text for heat converters;
+- no gameplay logic changes.
+
+### Step 24D - Help panel / quick guide
+
+Completed:
+- added HELP button;
+- added H shortcut;
+- added quick guide overlay;
+- no save-data changes;
+- no gameplay logic changes.
+
+### Step 24E - Help panel current objective/checklist
+
+Completed:
+- HELP panel now shows the current objective;
+- HELP panel now repeats the early checklist state;
+- static guide remains available as `BASICS`;
+- no gameplay logic changes.
+
+### Step 24F - Milestone 24 final documentation
+
+Completed:
+- consolidated Milestone 24 onboarding documentation;
+- documented final status bar objective, early checklist and HELP behavior;
+- confirmed no saved tutorial/quest state;
+- no code changes.
+
+Milestone 24 is now complete.
+
+## Milestone 25 - Progression guidance and mid-game clarity
+
+Goal: keep the player oriented after the first onboarding sequence, without adding blocking tutorials or saved quest state.
+
+### Step 25A - Mid-game objective hints
+
+Completed:
+- extended objective hints after the early checklist;
+- added guidance for first upgrade, research, expansion, terrain clearing, managers and next heat tiers;
+- kept objective state derived from current world state;
+- no save-data changes;
+- no gameplay logic changes.
+
+### Step 25B - Goal-aware HELP details
+
+Completed:
+- HELP panel now shows a `NEXT` detail line below the current objective;
+- detail line explains missing resources or the recommended UI/action;
+- no save-data changes;
+- no gameplay logic changes.
+
+### Step 25C - Progression bottleneck feedback
+
+Completed:
+- HELP panel now shows a `BOT` bottleneck line;
+- bottleneck is derived from resource rates and world state;
+- no gameplay logic changes;
+- no save-data changes.
+
+### Step 25D - Progression advisor extraction and tests
+
+Completed:
+- extracted progression guidance into Core `ProgressionAdvisor`;
+- connected UI to the advisor;
+- added targeted Core tests for objective/detail/bottleneck behavior;
+- no save-data changes;
+- no gameplay logic changes.

@@ -731,3 +731,177 @@ La sezione `RESEARCH` del pannello sinistro a colonna unica è stata portata all
 - Updated `docs/FEEDBACK_SYSTEM.md` with a feedback summary for cloud unlocks, obstacles and heat coverage.
 - Recorded that Milestone 23 is UI/readability-only and does not change map data, unlock logic, clear logic, heat conversion, economy or save-data format.
 - No code, gameplay, balance or data changes were made.
+
+## Step 23J - Useful stability tests
+
+- Added targeted core tests for Milestone 23 map feedback rules.
+- Added `HeatSystemTests.GeneratorDiagonalWithinChebyshevRange_ShouldConvertHeatToEnergy`.
+- Added `BuildingOperationalStatusCalculatorTests.Calculate_ForHeatProducerWithGeneratorInDiagonalChebyshevRange_ShouldReturnActive`.
+- Added `AreaUnlockSystemTests.GetUnlockableCloudTiles_WhenResourcesMissing_ShouldStillReturnPreviewTiles`.
+- Added `TerrainClearSystemTests.CanClearMountain_WhenNotEnoughMines_ShouldReturnNotEnoughMines`.
+- These tests protect the rules shown by the UI:
+  - heat range is Chebyshev;
+  - heat producer status matches diagonal converter coverage;
+  - cloud preview tiles are still available when money/research is missing;
+  - terrain clear validation returns the correct missing-tool reason.
+- No gameplay, balance, UI rendering or save-data logic was changed.
+
+## Step 24A - First objective hint
+
+- Started Milestone 24 onboarding.
+- Added a lightweight dynamic objective hint in the status bar.
+- The objective is derived from current world state and does not require saved mission state.
+- Early sequence guides the player through:
+  - building the first wind turbine;
+  - selling stored energy and building the first office;
+  - building the first research center;
+  - building the first battery;
+  - building solar/heat generation and placing a generator in range.
+- The hint is shown only as the default status message when no higher-priority status is active.
+- Existing status priorities remain unchanged: action results, save/load messages, selected building status and demolish confirmation still override the objective.
+- No economy, simulation, build logic, research logic or save-data format was changed.
+
+## Step 24B - Early game checklist
+
+- Added a compact non-interactive early checklist in `UiRenderer.cs`.
+- The checklist is drawn above the status bar in the map area when early onboarding is still incomplete.
+- Checklist items are derived from current world state and do not require saved mission state.
+- Items:
+  - build wind turbine;
+  - build small office;
+  - build research center;
+  - build small battery;
+  - build solar + generator with heat coverage.
+- The checklist hides automatically when all items are complete.
+- Uses simple `OK` / `--` markers for pixel-font compatibility.
+- No economy, simulation, build logic, research logic or save-data format was changed.
+
+## Step 24C - Contextual heat and generator hints
+
+- Improved contextual onboarding text for heat-related buildings in `UiRenderer.cs`.
+- Build tool properties now populate `ISSUE` with heat-specific guidance.
+- Heat producers now hint that a generator should be added after placement.
+- Heat converters now hint to place them with a heat source inside range.
+- Build tool action text now mentions range preview for heat converters.
+- Build menu support text is clearer:
+  - heat producers: `PLACE GENERATOR IN RANGE`;
+  - heat converters: `PLACE NEAR HEAT SOURCE, RANGE #`.
+- Selected active heat converters now report `ABSORBING HEAT IN RANGE`.
+- Idle heat converters now report `WAITING FOR HEAT IN RANGE`.
+- No build rules, heat conversion logic, economy, balance or save-data format was changed.
+
+## Step 24D - Help panel / quick guide
+
+- Added a non-modal quick guide panel.
+- Added `HELP` command button in the top command strip.
+- Added `H` keyboard shortcut to toggle the help panel.
+- The help panel explains:
+  - early energy/money/research flow;
+  - batteries;
+  - heat producers and generators;
+  - terrain clearing;
+  - cloud expansion;
+  - basic controls.
+- The panel is UI-only and uses `_showHelpPanel` runtime state in `Game1`.
+- No save-data format, economy, simulation, build, heat, research or expansion logic was changed.
+
+## Step 24E - Help panel current objective/checklist
+
+- Improved the HELP panel in `UiRenderer.cs`.
+- Added a dynamic `CURRENT` section to the quick guide.
+- The `CURRENT` section shows:
+  - the current objective from `GetCurrentObjectiveHint`;
+  - the same early checklist used by the map overlay.
+- Renamed the static guide section to `BASICS`.
+- Increased max help panel height to fit the dynamic guidance while keeping viewport-based bounds.
+- No save-data, economy, simulation, build, heat, research or expansion logic was changed.
+
+## Step 24F - Milestone 24 final documentation
+
+- Consolidated Milestone 24 documentation.
+- Added final onboarding-state summary to `docs/GAME_DESIGN.md`.
+- Added onboarding feedback summary to `docs/FEEDBACK_SYSTEM.md`.
+- Recorded that onboarding remains non-blocking and derived from world state.
+- Recorded that no persistent mission/tutorial state is introduced.
+- No code, gameplay, balance or save-data changes were made.
+
+## Step 25A - Mid-game objective hints
+
+- Started Milestone 25 progression guidance.
+- Extended `UiRenderer.GetCurrentObjectiveHint` beyond the early-game checklist.
+- Added `GetMidGameObjectiveHint` and helper methods to derive mid-game guidance from current world state.
+- Mid-game objectives now guide the player toward:
+  - first affordable/relevant upgrade;
+  - available research;
+  - research accumulation;
+  - cloud unlocks;
+  - terrain clearing;
+  - manager research;
+  - next heat power tier;
+  - later affordable upgrades.
+- Objective state is still derived from world state only.
+- No persistent quest state, economy logic, simulation logic, build rules, research rules, expansion rules or save-data format was changed.
+
+## Step 25B - Goal-aware HELP details
+
+- Improved the HELP panel current-progress section.
+- Added a `NEXT` line below the current objective.
+- `NEXT` explains what the player should do or what is missing for the current objective.
+- Detail hints cover:
+  - missing money for buildings;
+  - missing required research for buildings;
+  - first/next upgrade affordability;
+  - missing money/research for upgrades;
+  - available research;
+  - missing research for next research;
+  - cloud unlock money/research requirements;
+  - terrain clear tool requirements;
+  - manager research;
+  - next heat tier.
+- Added helper methods in `UiRenderer.cs`:
+  - `GetCurrentObjectiveDetailHint`;
+  - `GetMidGameObjectiveDetailHint`;
+  - `GetBuildObjectiveDetail`;
+  - `GetUpgradeSavingDetail`;
+  - `TryGetNextRelevantUpgradeToSaveFor`.
+- No persistent quest state, economy logic, simulation logic, build rules, research rules, expansion rules or save-data format was changed.
+
+## Step 25C - Progression bottleneck feedback
+
+- Added bottleneck feedback to the HELP panel.
+- The `CURRENT` section now shows:
+  - current objective;
+  - `NEXT` practical action/resource gap;
+  - `BOT` current bottleneck classification.
+- Added `GetCurrentBottleneckHint` in `UiRenderer.cs`.
+- Bottleneck detection uses `ResourceRateSnapshot.Calculate(_world)` and current world state.
+- Covered bottlenecks:
+  - heat producer without generator coverage;
+  - negative net energy;
+  - no energy production;
+  - no money because no office or no sellable energy;
+  - no research because no research center or no energy supply;
+  - cloud unlock resource gap;
+  - terrain clear tool gap;
+  - nearly full energy storage;
+  - affordable upgrade/research available;
+  - stable fallback.
+- No economy, simulation, heat, expansion, build, research, upgrade or save-data logic was changed.
+
+## Step 25D - Progression advisor extraction and tests
+
+- Extracted progression guidance from `UiRenderer` into `GridPowerTycoon.Core.Progression.ProgressionAdvisor`.
+- `ProgressionAdvisor` now owns:
+  - current objective;
+  - current objective detail;
+  - current bottleneck;
+  - heat producer coverage checks used by onboarding UI.
+- `UiRenderer` now calls `ProgressionAdvisor` through small wrapper methods and remains focused on rendering.
+- Added `ProgressionAdvisorTests` covering:
+  - no wind turbine objective;
+  - missing money detail for first office;
+  - first affordable upgrade objective after early game;
+  - heat producer without converter bottleneck;
+  - cloud unlock resource gap detail.
+- This is a structural/testability pass only.
+- No economy, simulation, heat, expansion, build, research, upgrade or save-data behavior was intentionally changed.

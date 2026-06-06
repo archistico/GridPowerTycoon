@@ -55,6 +55,21 @@ public sealed class TerrainClearSystemTests
     }
 
     [Fact]
+    public void CanClearMountain_WhenNotEnoughMines_ShouldReturnNotEnoughMines()
+    {
+        var world = CreateWorld(startingAxes: 0, startingMines: 3);
+        var position = new GridPosition(1, 1);
+        world.Map.GetTile(position).SetType(TileType.Mountain);
+        var system = new TerrainClearSystem(world);
+
+        var reason = system.CanClear(position);
+
+        Assert.Equal(TerrainClearFailureReason.NotEnoughMines, reason);
+        Assert.Equal(TileType.Mountain, world.Map.GetTile(position).Type);
+        Assert.Equal(3, world.Resources.Mines);
+    }
+
+    [Fact]
     public void ClearLand_ShouldFailAsNotClearable()
     {
         var world = CreateWorld(startingAxes: 10, startingMines: 10);
