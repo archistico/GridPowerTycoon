@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "cloudUnlockMoneyCost": 2500,
-  "cloudUnlockResearchCost": 25,
+  "cloudUnlockMoneyCost": 1500,
+  "cloudUnlockResearchCost": 40,
   "cloudUnlockRadius": 2,
   "maxCloudTilesPerUnlock": 9
 }

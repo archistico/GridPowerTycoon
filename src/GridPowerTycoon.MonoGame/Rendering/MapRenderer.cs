@@ -1,6 +1,7 @@
 using GridPowerTycoon.Core.Build;
 using GridPowerTycoon.Core.Buildings;
 using GridPowerTycoon.Core.Map;
+using GridPowerTycoon.Core.Operations;
 using GridPowerTycoon.Core.Upgrades;
 using GridPowerTycoon.Core.World;
 using Microsoft.Xna.Framework;
@@ -65,6 +66,9 @@ public sealed class MapRenderer
 
             DrawLifetimeBar(spriteBatch, inner, instance, definition);
             DrawHeatBar(spriteBatch, inner, instance, definition);
+
+            var status = BuildingOperationalStatusCalculator.Calculate(_world, instance);
+            DrawOperationalBadge(spriteBatch, inner, status);
 
             if (instance.State == BuildingState.Expired)
             {
@@ -163,6 +167,32 @@ public sealed class MapRenderer
             return new Color(235, 180, 70);
 
         return new Color(110, 220, 120);
+    }
+
+
+    private void DrawOperationalBadge(SpriteBatch spriteBatch, Rectangle buildingRect, BuildingOperationalStatus status)
+    {
+        var badge = GetOperationalBadge(status);
+        if (badge is null)
+            return;
+
+        var rect = new Rectangle(buildingRect.Right - 18, buildingRect.Y + 4, 14, 14);
+        spriteBatch.Draw(_pixel, rect, badge.Value.Background);
+        DrawOutline(spriteBatch, rect, badge.Value.Outline, 1);
+        _text.DrawString(spriteBatch, badge.Value.Text, new Vector2(rect.X + 4, rect.Y + 4), badge.Value.TextColor, 1);
+    }
+
+    private static (string Text, Color Background, Color Outline, Color TextColor)? GetOperationalBadge(BuildingOperationalStatus status)
+    {
+        return status.State switch
+        {
+            BuildingOperationalState.NoEnergy => ("E", new Color(105, 60, 35, 235), new Color(255, 165, 120), new Color(255, 225, 180)),
+            BuildingOperationalState.NoHeatConversion => ("G", new Color(110, 45, 35, 235), new Color(255, 150, 120), new Color(255, 230, 210)),
+            BuildingOperationalState.HeatWarning => ("H", new Color(110, 68, 20, 235), new Color(245, 145, 55), new Color(255, 235, 170)),
+            BuildingOperationalState.Expired => ("T", new Color(90, 85, 55, 235), new Color(255, 210, 95), new Color(255, 245, 190)),
+            BuildingOperationalState.Exploded => ("X", new Color(110, 25, 20, 235), new Color(255, 85, 75), new Color(255, 225, 220)),
+            _ => null
+        };
     }
 
 

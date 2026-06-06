@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "startingMoney": 1,
+  "startingMoney": 10,
   "startingEnergy": 0,
-  "startingMaxEnergy": 100,
+  "startingMaxEnergy": 200,
   "startingResearch": 0,
   "energySellValue": 1,
   "manualSellMultiplier": 1,

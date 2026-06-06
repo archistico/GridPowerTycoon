@@ -478,3 +478,119 @@ La sezione `RESEARCH` del pannello sinistro a colonna unica è stata portata all
 - This avoids the previous all-or-nothing behavior where all future placeholders disappeared if `SETTINGS` did not fit.
 - Added a slightly larger safety gap before the properties panel area when positioning `NEW/LOAD/SAVE/VIEW/EXIT`.
 - No gameplay logic was changed.
+
+## Step 20A - Base building roles and first balance pass
+
+- Started Milestone 20 gameplay balancing.
+- Updated `buildings.json` and `economy.json` to establish a clearer early -> mid -> industrial progression.
+- Preserved the immediate first action: starting money now matches the new first wind turbine cost.
+- Reduced the extreme `$1` wind turbine distortion by moving wind cost to `$10`.
+- Rebalanced starter storage, automation, research, solar/generator, coal, gas and large research values.
+- Added detailed balancing notes to `docs/BALANCE_NOTES.md`.
+
+## Step 20B - Research and upgrade balance alignment
+
+- Updated `research.json` to align unlock costs with the revised Step 20A building economy.
+- Updated `upgrades.json` to avoid old over-inflated mid/industrial upgrade prices.
+- Reduced repeated production upgrade multipliers from `1.5` to `1.35` where appropriate.
+- Reduced lifetime upgrade multipliers from `2.0` to `1.5` where appropriate.
+- Kept early unlocks accessible while lowering mid/industrial unlock costs.
+- Updated `docs/BALANCE_NOTES.md`.
+
+## Step 20C - Heat, explosion and conversion balance
+
+- Updated `heat.json` thresholds: warning `250`, explosion `500`.
+- Rebalanced thermal buildings and converters in `buildings.json`.
+- Reduced heat production/conversion upgrade multipliers to `1.30` in `upgrades.json`.
+- Added `HEAT RISK` row to the properties panel in `UiRenderer.cs`.
+- Heat risk now reports controlled state or approximate time to explosion.
+- Updated `docs/BALANCE_NOTES.md`.
+
+## Step 20D - Expansion, tools and map unlock pacing
+
+- Updated `tools.json` to make forest/mountain clearing fit the revised economy.
+- Increased passive tool generation and storage caps.
+- Reduced forest clear cost from `4` axes to `3`.
+- Updated `area-unlock.json`: cloud unlock now costs less money but more research.
+- Added detailed pacing notes to `docs/BALANCE_NOTES.md`.
+
+## Step 20E - Early and mid-game progression pacing
+
+- Adjusted early building costs so the first research/automation/storage choices arrive sooner.
+- Reduced `research_small` cost and output to make it accessible earlier without flooding research.
+- Reduced solar/small-generator setup cost to establish the first thermal loop sooner.
+- Reduced coal/medium-generator/large-office tier costs to create a clearer mid-game transition.
+- Reduced gas/research-large industrial costs and outputs to keep the scale consistent.
+- Updated matching research and upgrade costs.
+- Updated `docs/BALANCE_NOTES.md`.
+
+## Step 21A - Clear operational issue text
+
+- Started Milestone 21 gameplay feedback/readability.
+- Added an `ISSUE` row to selected building properties in `UiRenderer.cs`.
+- The row explains why a building is stopped, risky, expired, exploded, or operating correctly.
+- No simulation, economy, balance or save-data logic was changed.
+
+## Step 21B - Map operational state badges
+
+- Added small operational badges directly on map buildings in `MapRenderer.cs`.
+- Badges use the same `BuildingOperationalStatusCalculator` state used by the properties panel.
+- Badge meanings:
+  - `E`: no energy;
+  - `G`: heat producer needs a generator/converter in range;
+  - `H`: heat warning;
+  - `T`: expired/timed out;
+  - `X`: exploded.
+- No simulation, economy, balance or save-data logic was changed.
+
+## Step 21C - Status bar badge legend
+
+- Added a responsive badge legend to the status bar in `UiRenderer.cs`.
+- The legend explains the map operational badges introduced in Step 21B:
+  - `E`: energy issue;
+  - `G`: generator/conversion issue;
+  - `H`: heat warning;
+  - `T`: timed out/expired;
+  - `X`: exploded.
+- The legend is drawn only when the status bar has enough horizontal space.
+- No simulation, economy, balance or save-data logic was changed.
+
+## Step 21D - Clear failure messages
+
+- Improved status bar failure messages in `UiRenderer.cs`.
+- Build, research, terrain clear, area unlock and upgrade failures now show actionable text instead of raw enum names.
+- Examples:
+  - `BUILD FAILED: NEED MONEY`
+  - `BUILD FAILED: CELL OCCUPIED`
+  - `RESEARCH FAILED: MISSING PREREQUISITE`
+  - `CLEAR FAILED: NEED AXES`
+  - `UNLOCK FAILED: NEED RESEARCH`
+  - `UPGRADE FAILED: MAX LEVEL`
+- No simulation, economy, balance or save-data logic was changed.
+
+## Step 21E - Status bar selected building feedback
+
+- Improved status bar priority/readability in `UiRenderer.cs`.
+- When a map building is selected and no newer action/save/demolish message has priority, the status bar now shows the selected building operational summary.
+- Examples:
+  - `PALA EOLICA: ACTIVE - PRODUCING ENERGY`
+  - `CENTRO DI RICERCA PICCOLO: NEED STORED ENERGY`
+  - `PANNELLO SOLARE: PLACE GENERATOR IN RANGE`
+  - `CENTRALE A CARBONE: HEAT WARNING 320/500`
+  - `...: EXPIRED - REPLACE OR DEMOLISH`
+  - `...: EXPLODED - RESTORE OR DEMOLISH`
+- The existing action result/save/load/demolish confirmation messages still override the selected-building summary.
+- Status bar is now included in UI hit-testing so clicks on the bottom bar do not pass through to the map.
+- No simulation, economy, balance or save-data logic was changed.
+
+## Step 21F - Feedback system documentation
+
+- Added `docs/FEEDBACK_SYSTEM.md`.
+- Documented the player feedback surfaces introduced in Milestone 21:
+  - properties panel `ISSUE`;
+  - map operational badges;
+  - status badge legend;
+  - selected-building status bar summary;
+  - failure message style;
+  - heat feedback semantics.
+- No code, simulation, economy, balance or save-data logic was changed.

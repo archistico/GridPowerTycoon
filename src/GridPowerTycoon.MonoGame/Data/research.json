@@ -51,7 +51,7 @@
       "id": "coal_power",
       "name": "Energia a carbone",
       "description": "Sblocca la centrale a carbone.",
-      "cost": 750,
+      "cost": 450,
       "unlockBuildingIds": [
         "coal_power_plant"
       ],
@@ -64,7 +64,7 @@
       "id": "office_large",
       "name": "Vendita industriale",
       "description": "Sblocca l'ufficio grande.",
-      "cost": 1250,
+      "cost": 650,
       "unlockBuildingIds": [
         "office_large"
       ],
@@ -77,7 +77,7 @@
       "id": "generator_medium",
       "name": "Generatori medi",
       "description": "Sblocca il generatore medio.",
-      "cost": 2000,
+      "cost": 1000,
       "unlockBuildingIds": [
         "generator_medium"
       ],
@@ -90,7 +90,7 @@
       "id": "gas_power",
       "name": "Centrali a gas",
       "description": "Sblocca la centrale a gas.",
-      "cost": 10000,
+      "cost": 4500,
       "unlockBuildingIds": [
         "gas_power_plant"
       ],
@@ -103,7 +103,7 @@
       "id": "research_large",
       "name": "Ricerca avanzata",
       "description": "Sblocca il centro di ricerca grande.",
-      "cost": 25000,
+      "cost": 9000,
       "unlockBuildingIds": [
         "research_large"
       ],
@@ -116,7 +116,7 @@
       "id": "wind_turbine_manager",
       "name": "Gestore pale eoliche",
       "description": "Rinnova automaticamente le pale eoliche scadute se hai denaro sufficiente.",
-      "cost": 300,
+      "cost": 250,
       "unlockBuildingIds": [],
       "managedBuildingIds": [
         "wind_turbine"
@@ -127,7 +127,7 @@
       "id": "solar_panel_manager",
       "name": "Gestore pannelli solari",
       "description": "Rinnova automaticamente i pannelli solari scaduti se hai denaro sufficiente.",
-      "cost": 1000,
+      "cost": 750,
       "unlockBuildingIds": [],
       "managedBuildingIds": [
         "solar_panel"
@@ -140,7 +140,7 @@
       "id": "coal_power_manager",
       "name": "Gestore carbone",
       "description": "Rinnova automaticamente le centrali a carbone scadute se hai denaro sufficiente.",
-      "cost": 15000,
+      "cost": 4000,
       "unlockBuildingIds": [],
       "managedBuildingIds": [
         "coal_power_plant"
@@ -153,7 +153,7 @@
       "id": "gas_power_manager",
       "name": "Gestore gas",
       "description": "Rinnova automaticamente le centrali a gas scadute se hai denaro sufficiente.",
-      "cost": 1000000,
+      "cost": 50000,
       "unlockBuildingIds": [],
       "managedBuildingIds": [
         "gas_power_plant"

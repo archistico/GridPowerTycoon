@@ -448,3 +448,90 @@ Completed:
 - future command placeholders now appear progressively based on available width;
 - command buttons keep a slightly safer gap from the properties panel area;
 - no gameplay changes.
+
+### Step 20A - Base building roles and first balance pass
+
+Completed:
+- first building balance pass;
+- clearer role for every current building;
+- starting economy adjusted from `$1` first action to `$10` first action;
+- early, mid and industrial numbers reduced into a more readable progression;
+- balance notes updated.
+
+### Step 20B - Research and upgrade balance alignment
+
+Completed:
+- research costs aligned to the new building economy;
+- upgrade costs aligned to early/mid/industrial tiers;
+- repeated upgrade multipliers reduced to avoid runaway growth;
+- balance notes updated.
+
+### Step 20C - Heat, explosion and conversion balance
+
+Completed:
+- heat warning/explosion thresholds increased;
+- solar/generator, coal/medium generator and gas thermal balance adjusted;
+- heat/conversion upgrade multipliers reduced;
+- properties panel now includes `HEAT RISK`;
+- balance notes updated.
+
+### Step 20D - Expansion, tools and map unlock pacing
+
+Completed:
+- tool generation made faster;
+- tool caps increased;
+- forest clearing made earlier;
+- cloud unlock shifted toward a mixed money/research investment;
+- balance notes updated.
+
+### Step 20E - Early and mid-game progression pacing
+
+Completed:
+- first research, battery and automation made earlier;
+- solar + small generator setup made easier to reach;
+- coal + medium generator mid-game tier brought closer;
+- research and upgrade prices aligned to the revised progression;
+- balance notes updated.
+
+### Step 21A - Clear operational issue text
+
+Completed:
+- selected building properties now include `ISSUE`;
+- common operational states now have actionable explanations;
+- no gameplay logic changes.
+
+### Step 21B - Map operational state badges
+
+Completed:
+- added map badges for `NO ENERGY`, `NO HEAT CONVERSION`, `HEAT WARNING`, `EXPIRED`, and `EXPLODED`;
+- map badges and properties panel now rely on the same operational state calculation;
+- no gameplay logic changes.
+
+### Step 21C - Status bar badge legend
+
+Completed:
+- added responsive status bar legend for map badges;
+- kept legend hidden on narrow windows;
+- no gameplay logic changes.
+
+### Step 21D - Clear failure messages
+
+Completed:
+- action failure messages now use readable, actionable text;
+- raw enum names are no longer shown in the status bar for common failures;
+- no gameplay logic changes.
+
+### Step 21E - Status bar selected building feedback
+
+Completed:
+- status bar now shows selected building operational summary when no higher-priority action message is active;
+- critical selected-building states are visible without reading the properties panel;
+- status bar added to UI hit-test area;
+- no gameplay logic changes.
+
+### Step 21F - Feedback system documentation
+
+Completed:
+- documented Milestone 21 feedback rules in `docs/FEEDBACK_SYSTEM.md`;
+- recorded badge meanings, `ISSUE` semantics, heat feedback and status bar priority;
+- no code changes.

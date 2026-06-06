@@ -142,7 +142,7 @@ public sealed class UiRenderer
         DrawMenuStrip(spriteBatch, viewport, activeLeftPanelMode);
 
         DrawPropertiesPanel(spriteBatch, viewport, selectedBuildingId, selectedTilePosition, selectedMapBuildingId, selectedTerrainPosition, selectedCloudPosition, pendingDemolishBuildingId);
-        DrawStatus(spriteBatch, viewport, selectedBuildingId, lastBuildResult, lastResearchResult, lastTerrainClearResult, lastAreaUnlockResult, lastUpgradeResult, saveLoadMessage, pendingDemolishBuildingId);
+        DrawStatus(spriteBatch, viewport, selectedBuildingId, selectedMapBuildingId, lastBuildResult, lastResearchResult, lastTerrainClearResult, lastAreaUnlockResult, lastUpgradeResult, saveLoadMessage, pendingDemolishBuildingId);
     }
 
     public bool IsMouseOverUi(Point mousePosition, Viewport viewport)
@@ -150,7 +150,8 @@ public sealed class UiRenderer
         return GetTopBarRectangle(viewport).Contains(mousePosition) ||
                GetMenuStripRectangle(viewport).Contains(mousePosition) ||
                GetSideMenuRectangle(viewport).Contains(mousePosition) ||
-               GetPropertiesPanelRectangle(viewport).Contains(mousePosition);
+               GetPropertiesPanelRectangle(viewport).Contains(mousePosition) ||
+               GetStatusBarRectangle(viewport).Contains(mousePosition);
     }
 
     public void HandleScroll(Point mousePosition, int scrollDelta, LeftPanelMode activeLeftPanelMode, Viewport viewport)
@@ -758,6 +759,7 @@ public sealed class UiRenderer
         "TYPE",
         "PURPOSE",
         "STATE",
+        "ISSUE",
         "BUILD TOOL",
         "BUILD COST",
         "NEXT UPGRADE",
@@ -770,6 +772,7 @@ public sealed class UiRenderer
         "ENERGY OUT",
         "HEAT OUT",
         "HEAT STORED",
+        "HEAT RISK",
         "HEAT IN",
         "HEAT TO ENERGY",
         "RESEARCH OUT",
@@ -800,6 +803,7 @@ public sealed class UiRenderer
         rows["TYPE"] = definition.Category.ToString().ToUpperInvariant();
         rows["PURPOSE"] = GetPropertyPurposeText(definition);
         rows["STATE"] = status.Label;
+        rows["ISSUE"] = GetOperationalIssueText(status, definition);
         rows["BUILD COST"] = "$" + FormatNumber((double)definition.Cost);
         rows["NEXT UPGRADE"] = GetNextUpgradeCostText(definition);
         rows["MONEY/S"] = FormatEstimatedMoneyPerSecond(GetEstimatedMoneyPerSecond(status));
@@ -813,6 +817,7 @@ public sealed class UiRenderer
         rows["HEAT STORED"] = (instance.AccumulatedHeat > 0 || UpgradeCalculator.GetHeatPerSecond(_world, definition) > 0)
             ? $"{FormatNumber(status.HeatStored)} / {FormatNumber(status.HeatExplosionThreshold)}"
             : "-";
+        rows["HEAT RISK"] = GetHeatRiskText(status);
         rows["HEAT IN"] = UpgradeCalculator.GetHeatConversionPerSecond(_world, definition) > 0
             ? $"ABSORBS {FormatNumber(status.HeatConversionInputPerSecond)}/S, RANGE {definition.HeatRange} CELLS"
             : "-";
@@ -831,6 +836,73 @@ public sealed class UiRenderer
             action = _world.Resources.Money >= definition.Cost ? "REPLACE OR DEMOLISH" : "NEED MONEY TO REPLACE";
         else
             action = "DEMOLISH AVAILABLE";
+    }
+
+    private static string GetHeatRiskText(BuildingOperationalStatus status)
+    {
+        if (status.HeatOutputPerSecond <= 0 && status.HeatStored <= 0)
+            return "-";
+
+        if (status.HeatOutputPerSecond <= 0)
+            return "NO NEW HEAT";
+
+        if (status.HasHeatConverterInRange && status.HeatStored < status.HeatWarningThreshold)
+            return "CONTROLLED";
+
+        var remainingToExplosion = status.HeatExplosionThreshold - status.HeatStored;
+        if (remainingToExplosion <= 0)
+            return "EXPLOSION";
+
+        var seconds = remainingToExplosion / Math.Max(0.0001, status.HeatOutputPerSecond);
+        return seconds < 60
+            ? $"EXPLODES IN {Math.Ceiling(seconds):0} S"
+            : "RISK LOW";
+    }
+
+    private static string GetOperationalIssueText(BuildingOperationalStatus status, BuildingDefinition definition)
+    {
+        return status.State switch
+        {
+            BuildingOperationalState.Active => GetActiveOperationalNote(status, definition),
+            BuildingOperationalState.HeatWarning => "HEAT ABOVE WARNING",
+            BuildingOperationalState.NoEnergy => "NEEDS STORED ENERGY",
+            BuildingOperationalState.NoHeatConversion => "PLACE GENERATOR IN RANGE",
+            BuildingOperationalState.Expired => "REPLACE OR MANAGE",
+            BuildingOperationalState.Exploded => "RESTORE OR DEMOLISH",
+            _ => status.Label
+        };
+    }
+
+    private static string GetActiveOperationalNote(BuildingOperationalStatus status, BuildingDefinition definition)
+    {
+        if (status.HeatOutputPerSecond > 0)
+            return status.HasHeatConverterInRange ? "HEAT CONVERSION OK" : "NEEDS GENERATOR";
+
+        if (status.EnergyInputPerSecond > 0)
+            return "ENERGY SUPPLY OK";
+
+        if (status.HeatConversionInputPerSecond > 0)
+            return "ABSORBING HEAT";
+
+        if (status.AutoSellInputPerSecond > 0)
+            return "SELLING ENERGY";
+
+        if (status.ResearchOutputPerSecond > 0)
+            return "PRODUCING RESEARCH";
+
+        if (status.EnergyOutputPerSecond > 0)
+            return "PRODUCING ENERGY";
+
+        if (status.BatteryCapacity > 0)
+            return "STORING ENERGY";
+
+        return definition.Category switch
+        {
+            BuildingCategory.Storage => "STORAGE READY",
+            BuildingCategory.Automation => "WAITING FOR ENERGY",
+            BuildingCategory.HeatConverter => "WAITING FOR HEAT",
+            _ => "READY"
+        };
     }
 
     private void FillTerrainPropertyRows(Dictionary<string, string> rows, Tile tile, out Color stateColor, out string action)
@@ -1391,11 +1463,11 @@ public sealed class UiRenderer
     {
         return label switch
         {
-            "TYPE" or "PURPOSE" or "STATE" or "BUILD TOOL" => new Color(175, 190, 210),
+            "TYPE" or "PURPOSE" or "STATE" or "ISSUE" or "BUILD TOOL" => new Color(175, 190, 210),
             "BUILD COST" or "NEXT UPGRADE" or "MONEY/S" or "PAYBACK" => new Color(205, 190, 150),
             "LIFE" or "MANAGED" => new Color(170, 195, 170),
             "ENERGY IN" or "ENERGY OUT" or "NET ENERGY" or "BATTERY" => new Color(145, 195, 225),
-            "HEAT OUT" or "HEAT STORED" or "HEAT IN" or "HEAT TO ENERGY" => new Color(220, 150, 95),
+            "HEAT OUT" or "HEAT STORED" or "HEAT RISK" or "HEAT IN" or "HEAT TO ENERGY" => new Color(220, 150, 95),
             "RESEARCH OUT" or "AUTO SELL" => new Color(195, 175, 225),
             "REVEAL" or "CLEAR COST" or "UNLOCK COST" => new Color(190, 190, 170),
             "ACTION" => new Color(255, 225, 120),
@@ -1494,13 +1566,14 @@ public sealed class UiRenderer
         {
             "BUILD COST" or "UNLOCK COST" or "ACTION" => new Color(255, 225, 120),
             "PURPOSE" => new Color(185, 205, 225),
+            "ISSUE" => new Color(255, 225, 120),
             "NEXT UPGRADE" => new Color(210, 190, 255),
             "MONEY/S" or "PAYBACK" => new Color(180, 225, 190),
             "NET ENERGY" => new Color(135, 210, 255),
             "BUILD TOOL" => new Color(255, 220, 80),
             "ENERGY IN" => new Color(255, 165, 120),
             "ENERGY OUT" or "HEAT TO ENERGY" => new Color(135, 210, 255),
-            "HEAT OUT" or "HEAT STORED" => new Color(245, 145, 55),
+            "HEAT OUT" or "HEAT STORED" or "HEAT RISK" => new Color(245, 145, 55),
             "HEAT IN" => new Color(70, 220, 190),
             "RESEARCH OUT" => new Color(210, 190, 255),
             "AUTO SELL" => new Color(180, 225, 190),
@@ -1741,47 +1814,49 @@ public sealed class UiRenderer
         yield return new GridPosition(position.X, position.Y - 1);
     }
 
-    private void DrawStatus(SpriteBatch spriteBatch, Viewport viewport, string? selectedBuildingId, BuildResult? lastBuildResult, ResearchResult? lastResearchResult, TerrainClearResult? lastTerrainClearResult, AreaUnlockResult? lastAreaUnlockResult, UpgradeResult? lastUpgradeResult, string? saveLoadMessage, Guid? pendingDemolishBuildingId)
+    private void DrawStatus(SpriteBatch spriteBatch, Viewport viewport, string? selectedBuildingId, Guid? selectedMapBuildingId, BuildResult? lastBuildResult, ResearchResult? lastResearchResult, TerrainClearResult? lastTerrainClearResult, AreaUnlockResult? lastAreaUnlockResult, UpgradeResult? lastUpgradeResult, string? saveLoadMessage, Guid? pendingDemolishBuildingId)
     {
         var statusBar = GetStatusBarRectangle(viewport);
         var y = statusBar.Y + 14;
-        var message = selectedBuildingId is null
-            ? "SELECT BUILDING"
-            : $"BUILD TOOL {selectedBuildingId} - LEFT CLICK BUILD, RIGHT CLICK CANCEL";
+        var selectedStatusMessage = GetSelectedBuildingStatusMessage(selectedMapBuildingId);
+        var message = selectedStatusMessage ??
+                      (selectedBuildingId is null
+                          ? "SELECT BUILDING"
+                          : $"BUILD TOOL {selectedBuildingId} - LEFT CLICK BUILD, RIGHT CLICK CANCEL");
 
         if (lastResearchResult is not null)
         {
             message = lastResearchResult.Success
                 ? $"RESEARCH OK {lastResearchResult.ResearchId}"
-                : $"RESEARCH FAILED {lastResearchResult.FailureReason}";
+                : GetResearchFailureMessage(lastResearchResult.FailureReason);
         }
 
         if (lastBuildResult is not null)
         {
             message = lastBuildResult.Success
                 ? "BUILD OK"
-                : $"BUILD FAILED {lastBuildResult.FailureReason}";
+                : GetBuildFailureMessage(lastBuildResult.FailureReason);
         }
 
         if (lastTerrainClearResult is not null)
         {
             message = lastTerrainClearResult.Success
                 ? "TERRAIN CLEARED"
-                : $"CLEAR FAILED {lastTerrainClearResult.FailureReason}";
+                : GetTerrainClearFailureMessage(lastTerrainClearResult.FailureReason);
         }
 
         if (lastAreaUnlockResult is not null)
         {
             message = lastAreaUnlockResult.Success
                 ? $"AREA UNLOCKED {lastAreaUnlockResult.TilesUnlocked} TILES"
-                : $"UNLOCK FAILED {lastAreaUnlockResult.FailureReason}";
+                : GetAreaUnlockFailureMessage(lastAreaUnlockResult.FailureReason);
         }
 
         if (lastUpgradeResult is not null)
         {
             message = lastUpgradeResult.Success
                 ? $"UPGRADE OK {lastUpgradeResult.UpgradeId} LV {lastUpgradeResult.NewLevel}"
-                : $"UPGRADE FAILED {lastUpgradeResult.FailureReason}";
+                : GetUpgradeFailureMessage(lastUpgradeResult.FailureReason);
         }
 
         if (!string.IsNullOrWhiteSpace(saveLoadMessage))
@@ -1792,7 +1867,158 @@ public sealed class UiRenderer
 
         spriteBatch.Draw(_pixel, statusBar, new Color(25, 31, 42));
         DrawOutline(spriteBatch, statusBar, new Color(55, 67, 84), 1);
-        _text.DrawString(spriteBatch, Shorten(message, 110), new Vector2(statusBar.X + 14, y), new Color(230, 238, 245), 1);
+        _text.DrawString(spriteBatch, Shorten(message, 90), new Vector2(statusBar.X + 14, y), new Color(230, 238, 245), 1);
+        DrawStatusBadgeLegend(spriteBatch, statusBar);
+    }
+
+    private string? GetSelectedBuildingStatusMessage(Guid? selectedMapBuildingId)
+    {
+        if (!selectedMapBuildingId.HasValue)
+            return null;
+
+        if (!_world.TryGetBuilding(selectedMapBuildingId.Value, out var instance))
+            return null;
+
+        if (!_world.BuildingCatalog.TryGet(instance.DefinitionId, out var definition))
+            return null;
+
+        var status = BuildingOperationalStatusCalculator.Calculate(_world, instance);
+        var name = definition.Name.ToUpperInvariant();
+
+        return status.State switch
+        {
+            BuildingOperationalState.Active => GetActiveSelectedBuildingMessage(name, status),
+            BuildingOperationalState.NoEnergy => $"{name}: NEED STORED ENERGY",
+            BuildingOperationalState.NoHeatConversion => $"{name}: PLACE GENERATOR IN RANGE",
+            BuildingOperationalState.HeatWarning => $"{name}: HEAT WARNING {FormatNumber(status.HeatStored)}/{FormatNumber(status.HeatExplosionThreshold)}",
+            BuildingOperationalState.Expired => $"{name}: EXPIRED - REPLACE OR DEMOLISH",
+            BuildingOperationalState.Exploded => $"{name}: EXPLODED - RESTORE OR DEMOLISH",
+            _ => $"{name}: {status.Label}"
+        };
+    }
+
+    private static string GetActiveSelectedBuildingMessage(string name, BuildingOperationalStatus status)
+    {
+        if (status.HeatOutputPerSecond > 0)
+            return status.HasHeatConverterInRange
+                ? $"{name}: ACTIVE - HEAT CONVERSION OK"
+                : $"{name}: ACTIVE - NEED GENERATOR";
+
+        if (status.HeatConversionInputPerSecond > 0)
+            return $"{name}: ACTIVE - ABSORBING HEAT";
+
+        if (status.AutoSellInputPerSecond > 0)
+            return $"{name}: ACTIVE - SELLING ENERGY";
+
+        if (status.ResearchOutputPerSecond > 0)
+            return $"{name}: ACTIVE - PRODUCING RESEARCH";
+
+        if (status.EnergyOutputPerSecond > 0)
+            return $"{name}: ACTIVE - PRODUCING ENERGY";
+
+        if (status.BatteryCapacity > 0)
+            return $"{name}: ACTIVE - STORING ENERGY";
+
+        return $"{name}: ACTIVE";
+    }
+
+    private static string GetBuildFailureMessage(BuildFailureReason reason)
+    {
+        return reason switch
+        {
+            BuildFailureReason.NotEnoughMoney => "BUILD FAILED: NEED MONEY",
+            BuildFailureReason.ResearchRequired => "BUILD FAILED: RESEARCH REQUIRED",
+            BuildFailureReason.TileAlreadyOccupied => "BUILD FAILED: CELL OCCUPIED",
+            BuildFailureReason.TileNotBuildable => "BUILD FAILED: INVALID TERRAIN",
+            BuildFailureReason.OutOfMap => "BUILD FAILED: OUT OF MAP",
+            BuildFailureReason.UnknownBuilding => "BUILD FAILED: UNKNOWN BUILDING",
+            BuildFailureReason.InvalidBuildingSize => "BUILD FAILED: NOT ENOUGH SPACE",
+            BuildFailureReason.BuildingNotFound => "BUILD FAILED: BUILDING NOT FOUND",
+            BuildFailureReason.BuildingNotExpired => "BUILD FAILED: BUILDING STILL ACTIVE",
+            _ => $"BUILD FAILED: {reason}"
+        };
+    }
+
+    private static string GetResearchFailureMessage(ResearchFailureReason reason)
+    {
+        return reason switch
+        {
+            ResearchFailureReason.NotEnoughResearch => "RESEARCH FAILED: NEED RESEARCH POINTS",
+            ResearchFailureReason.MissingPrerequisite => "RESEARCH FAILED: MISSING PREREQUISITE",
+            ResearchFailureReason.AlreadyCompleted => "RESEARCH FAILED: ALREADY COMPLETED",
+            ResearchFailureReason.UnknownResearch => "RESEARCH FAILED: UNKNOWN RESEARCH",
+            _ => $"RESEARCH FAILED: {reason}"
+        };
+    }
+
+    private static string GetTerrainClearFailureMessage(TerrainClearFailureReason reason)
+    {
+        return reason switch
+        {
+            TerrainClearFailureReason.NotEnoughAxes => "CLEAR FAILED: NEED AXES",
+            TerrainClearFailureReason.NotEnoughMines => "CLEAR FAILED: NEED MINES",
+            TerrainClearFailureReason.TileHasBuilding => "CLEAR FAILED: CELL HAS BUILDING",
+            TerrainClearFailureReason.NotClearableTerrain => "CLEAR FAILED: TERRAIN NOT CLEARABLE",
+            TerrainClearFailureReason.OutOfMap => "CLEAR FAILED: OUT OF MAP",
+            _ => $"CLEAR FAILED: {reason}"
+        };
+    }
+
+    private static string GetAreaUnlockFailureMessage(AreaUnlockFailureReason reason)
+    {
+        return reason switch
+        {
+            AreaUnlockFailureReason.NotEnoughMoney => "UNLOCK FAILED: NEED MONEY",
+            AreaUnlockFailureReason.NotEnoughResearch => "UNLOCK FAILED: NEED RESEARCH",
+            AreaUnlockFailureReason.TileAlreadyOccupied => "UNLOCK FAILED: CELL OCCUPIED",
+            AreaUnlockFailureReason.TileNotCloud => "UNLOCK FAILED: SELECT CLOUD",
+            AreaUnlockFailureReason.MissingHiddenTile => "UNLOCK FAILED: NOTHING TO REVEAL",
+            AreaUnlockFailureReason.OutOfMap => "UNLOCK FAILED: OUT OF MAP",
+            _ => $"UNLOCK FAILED: {reason}"
+        };
+    }
+
+    private static string GetUpgradeFailureMessage(UpgradeFailureReason reason)
+    {
+        return reason switch
+        {
+            UpgradeFailureReason.NotEnoughMoney => "UPGRADE FAILED: NEED MONEY",
+            UpgradeFailureReason.NotEnoughResearch => "UPGRADE FAILED: NEED RESEARCH",
+            UpgradeFailureReason.MissingResearch => "UPGRADE FAILED: RESEARCH REQUIRED",
+            UpgradeFailureReason.MaxLevelReached => "UPGRADE FAILED: MAX LEVEL",
+            UpgradeFailureReason.UnknownUpgrade => "UPGRADE FAILED: UNKNOWN UPGRADE",
+            _ => $"UPGRADE FAILED: {reason}"
+        };
+    }
+
+    private void DrawStatusBadgeLegend(SpriteBatch spriteBatch, Rectangle statusBar)
+    {
+        const int itemWidth = 78;
+        const int itemGap = 8;
+        const int itemCount = 5;
+        var totalWidth = itemWidth * itemCount + itemGap * (itemCount - 1);
+
+        if (statusBar.Width < totalWidth + 560)
+            return;
+
+        var x = statusBar.Right - totalWidth - 14;
+        var y = statusBar.Y + 11;
+
+        DrawStatusBadgeLegendItem(spriteBatch, ref x, y, "E", "ENERGY", new Color(105, 60, 35), new Color(255, 165, 120), itemWidth, itemGap);
+        DrawStatusBadgeLegendItem(spriteBatch, ref x, y, "G", "GEN", new Color(110, 45, 35), new Color(255, 150, 120), itemWidth, itemGap);
+        DrawStatusBadgeLegendItem(spriteBatch, ref x, y, "H", "HEAT", new Color(110, 68, 20), new Color(245, 145, 55), itemWidth, itemGap);
+        DrawStatusBadgeLegendItem(spriteBatch, ref x, y, "T", "TIME", new Color(90, 85, 55), new Color(255, 210, 95), itemWidth, itemGap);
+        DrawStatusBadgeLegendItem(spriteBatch, ref x, y, "X", "BOOM", new Color(110, 25, 20), new Color(255, 85, 75), itemWidth, itemGap);
+    }
+
+    private void DrawStatusBadgeLegendItem(SpriteBatch spriteBatch, ref int x, int y, string badge, string label, Color background, Color outline, int itemWidth, int itemGap)
+    {
+        var badgeRect = new Rectangle(x, y, 18, 18);
+        spriteBatch.Draw(_pixel, badgeRect, background);
+        DrawOutline(spriteBatch, badgeRect, outline, 1);
+        _text.DrawString(spriteBatch, badge, new Vector2(badgeRect.X + 5, badgeRect.Y + 6), new Color(255, 240, 220), 1);
+        _text.DrawString(spriteBatch, label, new Vector2(badgeRect.Right + 5, y + 6), new Color(185, 198, 215), 1);
+        x += itemWidth + itemGap;
     }
 
     private void DrawGameCommandButtons(SpriteBatch spriteBatch, Viewport viewport)
